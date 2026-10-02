@@ -16,7 +16,16 @@ class DivisionController extends Controller
      */
     public function index(): JsonResponse
     {
-        $divisions = Division::withCount('applications')->get();
+        $divisions = Division::query()
+            ->withCount('applications', 'activeInterns')
+            ->get();
+
+        $divisions->each(function (Division $division): void {
+            $division->setAttribute(
+                'remaining_quota',
+                $division->remainingQuota($division->active_interns_count),
+            );
+        });
 
         return $this->successResponse($divisions, 'Daftar bidang/divisi berhasil diambil');
     }

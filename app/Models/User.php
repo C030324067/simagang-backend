@@ -26,6 +26,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'status_akun',
+        'tanggal_disetujui',
         'no_hp',
         'division_id',
     ];
@@ -50,12 +52,18 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'tanggal_disetujui' => 'datetime',
         ];
     }
 
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class);
+    }
+
+    public function bidang(): BelongsTo
+    {
+        return $this->belongsTo(Division::class, 'division_id');
     }
 
     public function applications(): HasMany

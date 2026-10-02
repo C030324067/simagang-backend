@@ -51,10 +51,11 @@ class CertificateVerificationTest extends TestCase
 
     public function test_mentor_evaluates_and_generates_verifiable_certificate(): void
     {
-        // 1. Mentor submits evaluation with scores: 90, 80, 85 -> final: (90*0.3 + 80*0.4 + 85*0.3) = 27 + 32 + 25.5 = 84.5
+        // With no attendance or scored tasks, the mentor's average contributes 40% to the final score.
         $evalResponse = $this->actingAs($this->mentor, 'sanctum')->postJson('/api/evaluations', [
             'intern_id' => $this->intern->id,
             'discipline_score' => 90,
+            'responsibility_score' => 85,
             'skill_score' => 80,
             'softskill_score' => 85,
             'remarks' => 'Kinerja sangat memuaskan.',
@@ -62,7 +63,7 @@ class CertificateVerificationTest extends TestCase
 
         $evalResponse->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.final_score', '84.50');
+            ->assertJsonPath('data.final_score', '34.00');
 
         // 2. Generate Certificate
         $certResponse = $this->actingAs($this->mentor, 'sanctum')->postJson('/api/certificates/generate', [
@@ -83,7 +84,7 @@ class CertificateVerificationTest extends TestCase
             ->assertJsonPath('data.valid', true)
             ->assertJsonPath('data.intern.name', $this->intern->name)
             ->assertJsonPath('data.intern.division', 'Bidang Aplikasi Informatika')
-            ->assertJsonPath('data.evaluation.final_score', '84.50');
+            ->assertJsonPath('data.evaluation.final_score', '34.00');
     }
 
     public function test_public_verification_returns_404_for_invalid_qr_hash(): void

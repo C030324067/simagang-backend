@@ -1,430 +1,655 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   AlertCircle,
+  Award,
   BookOpen,
-  CalendarDays,
+  Calendar,
   Check,
-  CheckCircle2,
+  ChevronRight,
   Clock3,
   Download,
-  LogIn,
-  LogOut,
+  GraduationCap,
   Plus,
-  Upload,
+  Share2,
   X,
 } from 'lucide-react';
-import { apiRequest, getToken } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { formatLocalTime, formatWitaDateTime } from '../utils/dateFormatter';
-import { getGrade } from '../utils/evaluation';
+import useInternDashboard from '../hooks/useInternDashboard';
+import InternAttendance from '../components/InternAttendance';
 
-const getCollection = (response) => {
-  if (Array.isArray(response?.data)) return response.data;
-  return response?.data?.data || [];
-};
-
-const formatDate = (value, options = { day: 'numeric', month: 'short', year: 'numeric' }) => {
+// Helper Format Tanggal (e.g. 22 Sep 2026)
+const formatDate = (value) => {
   if (!value) return '—';
   const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('id-ID', options).format(date);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
 };
 
-const formatTime = formatLocalTime;
-
-const getGreeting = (date) => {
-  const hour = Number(new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    hourCycle: 'h23',
-    timeZone: 'Asia/Makassar',
-  }).format(date));
-
-  if (hour < 11) return 'Selamat Pagi';
-  if (hour < 15) return 'Selamat Siang';
-  if (hour < 18) return 'Selamat Sore';
-  return 'Selamat Malam';
+// Style Badges Status Tugas sesuai UI Referensi
+const taskStatusStyle = {
+  pending: { label: 'Belum Dikerjakan', style: 'bg-rose-50 text-rose-600 font-bold' },
+  in_progress: { label: 'Dalam Proses', style: 'bg-amber-100/70 text-amber-800 font-bold' },
+  revision_needed: { label: 'Perlu Revisi', style: 'bg-rose-100 text-rose-700 font-bold' },
+  completed: { label: 'Selesai', style: 'bg-emerald-100/70 text-emerald-700 font-bold' },
 };
-
-const taskStatus = {
-  todo: { label: 'Belum dimulai', style: 'bg-slate-100 text-slate-600' },
-  in_progress: { label: 'IN PROGRESS', style: 'bg-sky-50 text-sky-700' },
-  completed: { label: 'Selesai', style: 'bg-emerald-50 text-emerald-700' },
-};
-
-function StatusBadge({ status }) {
-  const approved = status === 'approved';
-
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${approved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-      {approved ? 'Disetujui' : 'Menunggu'}
-    </span>
-  );
-}
 
 export default function InternDashboard() {
   const { user } = useAuth();
-  const [now, setNow] = useState(new Date());
-  const [attendance, setAttendance] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const [logbooks, setLogbooks] = useState([]);
-  const [evaluation, setEvaluation] = useState(null);
-  const [certificate, setCertificate] = useState(null);
-  const [application, setApplication] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [isLogbookModalOpen, setIsLogbookModalOpen] = useState(false);
-  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
-  const [checkInPhoto, setCheckInPhoto] = useState(null);
-  const [checkInNotes, setCheckInNotes] = useState('');
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [logbookForm, setLogbookForm] = useState({ date: '', activity_description: '', attachment: null });
-  const [taskForm, setTaskForm] = useState({ submission_notes: '', submission_file: null });
+  const {
+    logbooks,
+    attendance,
+    attendanceHistory,
+    attendanceSummary,
+    tasks,
+    progressMetrics,
+    application,
+    evaluation,
+    certificate,
+    submitting,
+    message,
+    setMessage,
+    isLogbookModalOpen,
+    setIsLogbookModalOpen,
+    isCheckInModalOpen,
+    setIsCheckInModalOpen,
+    selectedTask,
+    setSelectedTask,
+    logbookForm,
+    setLogbookForm,
+    taskForm,
+    setTaskForm,
+    activeTasks,
+    downloadCertificate,
+    loadDashboard,
+    submitLogbook,
+    submitTask,
+    downloadTaskFile,
+  } = useInternDashboard(user);
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
-    const [attendanceResponse, taskResponse, logbookResponse, evaluationResponse, certificateResponse, applicationResponse] = await Promise.all([
-      apiRequest('/attendances/today'),
-      apiRequest('/tasks'),
-      apiRequest('/logbooks'),
-      apiRequest('/evaluations'),
-      apiRequest('/certificates/my-certificate'),
-      apiRequest('/applications/my-application'),
-    ]);
-
-    if (attendanceResponse.success) setAttendance(attendanceResponse.data || null);
-    if (taskResponse.success) setTasks(getCollection(taskResponse));
-    if (logbookResponse.success) setLogbooks(getCollection(logbookResponse));
-    if (evaluationResponse.success) setEvaluation(getCollection(evaluationResponse)[0] || null);
-    if (certificateResponse.success) setCertificate(certificateResponse.data || null);
-    if (applicationResponse.success) setApplication(applicationResponse.data || null);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadDashboard();
-    const clockTimer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(clockTimer);
-  }, [loadDashboard]);
-
-  const notify = (text, type = 'success') => {
-    setMessage({ text, type });
-    window.setTimeout(() => setMessage(null), 4000);
+  const openTaskSubmission = (task) => {
+    setSelectedTask(task);
+    setTaskForm({ submission_notes: task.submission_notes || '', submission_file: null });
   };
 
-  const activeTasks = useMemo(() => tasks.filter((task) => task.status !== 'completed'), [tasks]);
-  const greeting = getGreeting(now);
-  const institution = application?.institution_name || 'Institusi belum diatur';
-  const division = application?.division?.name || user?.division?.name || 'Bidang belum ditetapkan';
-  const checkedInAt = formatTime(attendance?.check_in_time);
-  const checkedOutAt = formatTime(attendance?.check_out_time);
-  const grade = getGrade(evaluation?.final_score);
+  // State Modal
+  const [isAllActivitiesModalOpen, setIsAllActivitiesModalOpen] = useState(false);
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [certificateNotice, setCertificateNotice] = useState('');
 
-  const handleAttendance = async (action) => {
-    setSubmitting(true);
-    const response = await apiRequest(`/attendances/${action === 'check-in' ? 'check-in' : 'check-out'}`, { method: 'POST' });
-    notify(response.message || (response.success ? 'Presensi berhasil dicatat.' : 'Presensi gagal dicatat.'), response.success ? 'success' : 'error');
-    if (response.success) await loadDashboard();
-    setSubmitting(false);
+  const userName = user?.name || 'Peserta Magang';
+  const pendingTasksCount = tasks.filter((t) => t.status !== 'completed').length;
+
+  const attendancePercent = Math.round(Number(attendanceSummary?.attendance_percentage || 0) * 100) / 100;
+  const approvedLogbooks = logbooks.filter((item) => item.verification_status === 'approved').length;
+  const applicationEndDate = application?.end_date ? new Date(`${String(application.end_date).slice(0, 10)}T23:59:59`) : null;
+  const internshipCompleted = application?.internship_status === 'completed';
+  const internshipPeriodEnded = applicationEndDate ? applicationEndDate < new Date() : false;
+  const remainingDays = applicationEndDate && !internshipPeriodEnded
+    ? Math.ceil((applicationEndDate.getTime() - new Date().getTime()) / 86400000)
+    : 0;
+
+  const certificateChecklist = [
+    { title: 'Kehadiran minimum tercapai', description: `${attendancePercent}% kehadiran (acuan 80%)`, done: attendancePercent >= 80 },
+    { title: 'Logbook kegiatan terverifikasi', description: `${approvedLogbooks} dari ${logbooks.length} logbook disetujui`, done: logbooks.length > 0 && approvedLogbooks === logbooks.length },
+    { title: 'Status magang selesai', description: internshipCompleted ? 'Penilaian akhir pembimbing sudah disimpan' : internshipPeriodEnded ? 'Menunggu penilaian akhir pembimbing' : 'Program magang sedang berjalan', done: internshipCompleted },
+    { title: 'Penilaian akhir oleh pembimbing', description: evaluation ? 'Penilaian telah diisi pembimbing' : 'Menunggu penilaian pembimbing', done: Boolean(evaluation) },
+  ];
+  const certificateProgress = Math.round((certificateChecklist.filter((item) => item.done).length / certificateChecklist.length) * 100);
+
+  const handleCertificateClick = () => {
+    setCertificateNotice('');
+    setIsCertificateModalOpen(true);
   };
 
-  const submitCheckIn = async (event) => {
-    event.preventDefault();
-    if (!checkInPhoto) {
-      notify('Ambil atau pilih foto bukti kehadiran terlebih dahulu.', 'error');
-      return;
+  const handleShareCertificate = async () => {
+    if (!certificate?.qr_hash) return;
+    const verificationUrl = `${window.location.origin}/verify-cert/${encodeURIComponent(certificate.qr_hash)}`;
+    try {
+      await navigator.clipboard.writeText(verificationUrl);
+      setCertificateNotice('Tautan verifikasi berhasil disalin.');
+    } catch {
+      setCertificateNotice(verificationUrl);
     }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(checkInPhoto.type) || checkInPhoto.size > 5 * 1024 * 1024) {
-      notify('Foto harus JPG, PNG, atau WEBP dengan ukuran maksimal 5 MB.', 'error');
-      return;
-    }
-
-    setSubmitting(true);
-    const payload = new FormData();
-    payload.append('photo', checkInPhoto);
-    if (checkInNotes.trim()) payload.append('notes', checkInNotes.trim());
-    const response = await apiRequest('/attendances/check-in', { method: 'POST', body: payload });
-    notify(response.message || (response.success ? 'Presensi masuk berhasil dicatat.' : 'Presensi gagal dicatat.'), response.success ? 'success' : 'error');
-    if (response.success) {
-      setIsCheckInModalOpen(false);
-      setCheckInPhoto(null);
-      setCheckInNotes('');
-      await loadDashboard();
-    }
-    setSubmitting(false);
   };
-
-  const submitLogbook = async (event) => {
-    event.preventDefault();
-    setSubmitting(true);
-    const payload = new FormData();
-    payload.append('date', logbookForm.date);
-    payload.append('activity_description', logbookForm.activity_description);
-    if (logbookForm.attachment) payload.append('attachment', logbookForm.attachment);
-
-    const response = await apiRequest('/logbooks', { method: 'POST', body: payload });
-    notify(response.message || (response.success ? 'Logbook berhasil dikirim.' : 'Logbook gagal dikirim.'), response.success ? 'success' : 'error');
-    if (response.success) {
-      setIsLogbookModalOpen(false);
-      setLogbookForm({ date: '', activity_description: '', attachment: null });
-      await loadDashboard();
-    }
-    setSubmitting(false);
-  };
-
-  const submitTask = async (event) => {
-    event.preventDefault();
-    if (!selectedTask) return;
-    setSubmitting(true);
-    const payload = new FormData();
-    payload.append('status', 'completed');
-    payload.append('submission_notes', taskForm.submission_notes);
-    if (taskForm.submission_file) payload.append('submission_file', taskForm.submission_file);
-
-    const response = await apiRequest(`/tasks/${selectedTask.id}/status`, { method: 'PUT', body: payload });
-    notify(response.message || (response.success ? 'Tugas berhasil dikumpulkan.' : 'Tugas gagal dikumpulkan.'), response.success ? 'success' : 'error');
-    if (response.success) {
-      setSelectedTask(null);
-      setTaskForm({ submission_notes: '', submission_file: null });
-      await loadDashboard();
-    }
-    setSubmitting(false);
-  };
-
-  const downloadCertificate = async () => {
-    if (!certificate?.pdf_path) return;
-    const response = await fetch(`/storage/${certificate.pdf_path}`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    });
-    if (!response.ok) {
-      notify('Sertifikat belum dapat diunduh.', 'error');
-      return;
-    }
-    const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'sertifikat-magang.pdf';
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const cardClass = 'rounded-xl border border-slate-100 bg-white shadow-sm';
-  const sectionTitle = 'text-xs font-bold tracking-wider text-slate-400 uppercase';
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 pb-12 font-sans text-slate-800 sm:px-6 lg:px-8">
-      <main className="mx-auto max-w-7xl space-y-6 py-6 md:py-8">
-        <header className={`${cardClass} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6`}>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-              {greeting}, {user?.name || 'Mahasiswa'} <span aria-hidden="true">👋</span>
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">{institution} <span className="px-1">•</span> Bidang {division}</p>
-          </div>
-          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-600">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Status: Aktif Magang
-          </span>
-        </header>
-
+    <div className="min-h-screen bg-[#F4F7FC] font-sans text-slate-800 antialiased pb-12">
+      
+      {/* MAIN CONTAINER */}
+      <main className="mx-auto max-w-7xl space-y-6 px-4 pt-6 sm:px-6 lg:px-8">
+        
+        {/* NOTIFIKASI PESAN */}
         {message && (
-          <div role="status" className={`flex items-start gap-2 rounded-xl border p-4 text-sm ${message.type === 'error' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
-            {message.type === 'error' ? <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> : <Check className="mt-0.5 h-4 w-4 shrink-0" />}
-            {message.text}
+          <div
+            className={`flex items-center justify-between rounded-2xl p-4 text-xs font-medium shadow-xs border ${
+              message.type === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{message.text}</span>
+            </div>
+            <button onClick={() => setMessage(null)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+              <X className="h-4 w-4" />
+            </button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <section className={`${cardClass} p-5 sm:p-6 md:col-span-2`}>
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className={sectionTitle}>Presensi Hari Ini</h2>
-              <CalendarDays className="h-5 w-5 text-slate-400" aria-hidden="true" />
-            </div>
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        {/* 1. HEADER PAGE & RINGKASAN TUGAS */}
+        <section className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-1">
+          <div className="space-y-1 max-w-2xl">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F2942]">
+              Dashboard Peserta Magang
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+              Pantau tugas dari pembimbing lapangan dan catat kegiatan harianmu selama magang di Diskominfo.
+            </p>
+          </div>
+
+          {/* Kartu Tugas Belum Dikerjakan */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 sm:p-5 shadow-xs text-center min-w-[220px] shrink-0 self-start md:self-auto">
+            <span className="block text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-1">
+              TUGAS BELUM DIKERJAKAN
+            </span>
+            <b className="text-3xl sm:text-4xl font-extrabold text-[#4F46E5]">
+              {pendingTasksCount}
+            </b>
+          </div>
+        </section>
+
+        {/* 2. DUA KARTU UTAMA (PRESENSI & SERTIFIKAT) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* CARD PRESENSI */}
+          <div 
+            onClick={() => setIsCheckInModalOpen(true)}
+            className="group flex items-center justify-between bg-white rounded-2xl p-5 border border-slate-100 shadow-xs hover:shadow-md transition cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-[#4F46E5] shrink-0">
+                <Calendar className="h-6 w-6" />
+              </div>
               <div>
-                <p className="text-4xl font-bold tabular-nums tracking-tight text-slate-900 sm:text-5xl">
-                  {formatWitaDateTime(now, { hour: '2-digit', minute: '2-digit' })}
-                  <span className="ml-2 text-base font-semibold text-slate-400">WITA</span>
-                </p>
-                <p className="mt-2 text-sm text-slate-500">
-                  {new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Makassar' }).format(now)}
+                <h3 className="text-sm sm:text-base font-bold text-[#0F2942] group-hover:text-[#4F46E5] transition-colors">
+                  Presensi
+                </h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  Lakukan presensi kehadiran selama kegiatan magang.
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {checkedInAt ? (
-                  <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                    <CheckCircle2 className="h-4 w-4" /> In: {checkedInAt} WITA
-                  </span>
-                ) : (
-                  <button onClick={() => setIsCheckInModalOpen(true)} disabled={submitting || loading} className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60">
-                    <LogIn className="h-4 w-4" /> Check-In
-                  </button>
-                )}
-                {checkedInAt && (
-                  <button onClick={() => handleAttendance('check-out')} disabled={submitting || loading || Boolean(checkedOutAt)} className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
-                    {checkedOutAt ? <Check className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
-                    {checkedOutAt ? `Out: ${checkedOutAt} WITA` : 'Check-Out'}
-                  </button>
-                )}
+            </div>
+            <ChevronRight className="h-5 w-5 text-[#4F46E5] transition-transform group-hover:translate-x-1 shrink-0" />
+          </div>
+
+          {/* CARD SERTIFIKAT */}
+          <div 
+            onClick={handleCertificateClick}
+            className="group flex items-center justify-between bg-white rounded-2xl p-5 border border-slate-100 shadow-xs hover:shadow-md transition cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#3B82F6] shrink-0">
+                <Award className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-[#0F2942] group-hover:text-[#3B82F6] transition-colors">
+                  Sertifikat
+                </h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  Unduh sertifikat setelah menyelesaikan magang.
+                </p>
+              </div>
+            </div>
+            {certificate?.pdf_path ? (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-[#3B82F6]">
+                <Download className="h-5 w-5" />
+              </div>
+            ) : (
+              <ChevronRight className="h-5 w-5 text-[#3B82F6] transition-transform group-hover:translate-x-1 shrink-0" />
+            )}
+          </div>
+        </div>
+
+        {/* 3. GRID UTAMA (TUGAS & KEGIATAN MAGANG) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* TABEL KIRI: TUGAS PEMBIMBING LAPANGAN */}
+          <section className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between space-y-6">
+            <div>
+              <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-[#4F46E5] shrink-0">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#0F2942]">Tugas Pembimbing Lapangan</h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      Daftar tugas yang diberikan oleh pembimbing lapangan.
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsAllActivitiesModalOpen(true)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition shrink-0 cursor-pointer"
+                >
+                  Lihat Semua
+                </button>
+              </div>
+
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[11px]">
+                      <th className="pb-3 pr-3 font-bold">Tanggal</th>
+                      <th className="pb-3 px-3 font-bold">Judul Tugas</th>
+                      <th className="pb-3 px-3 font-bold">Deskripsi</th>
+                      <th className="pb-3 pl-3 font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {activeTasks.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="py-8 text-center text-slate-400">
+                          Belum ada tugas dari pembimbing.
+                        </td>
+                      </tr>
+                    ) : (
+                      activeTasks.slice(0, 4).map((task) => {
+                        const badge = taskStatusStyle[task.status] || taskStatusStyle.pending;
+                        return (
+                          <tr 
+                            key={task.id} 
+                            onClick={() => openTaskSubmission(task)} 
+                            className="hover:bg-slate-50/80 transition cursor-pointer"
+                          >
+                            <td className="py-3.5 pr-3 font-bold text-[#0F2942] whitespace-nowrap">
+                              {formatDate(task.deadline)}
+                            </td>
+                            <td className="py-3.5 px-3 font-medium text-slate-800">
+                              {task.title}
+                            </td>
+                            <td className="py-3.5 px-3 text-slate-500 max-w-[180px] truncate">
+                              {task.description || '—'}
+                            </td>
+                            <td className="py-3.5 pl-3">
+                              <span className={`inline-block rounded-full px-3 py-1 text-[11px] whitespace-nowrap ${badge.style}`}>
+                                {badge.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </section>
 
-          <section className={`${cardClass} flex flex-col p-5 sm:p-6`}>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className={sectionTitle}>Tugas dari Mentor</h2>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{activeTasks.length} aktif</span>
-            </div>
-            <div className="flex-1 space-y-3">
-              {loading ? <p className="text-sm text-slate-400">Memuat tugas…</p> : activeTasks.length === 0 ? (
-                <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">Belum ada tugas aktif dari mentor.</p>
-              ) : activeTasks.slice(0, 3).map((task) => {
-                const badge = taskStatus[task.status] || taskStatus.todo;
-                return (
-                  <button key={task.id} onClick={() => setSelectedTask(task)} className="w-full rounded-xl border border-slate-100 p-4 text-left transition hover:border-sky-200 hover:bg-sky-50/50">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide ${badge.style}`}>{badge.label}</span>
-                      <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Clock3 className="h-3.5 w-3.5" /> Deadline {formatDate(task.deadline)}</span>
-                    </div>
-                    <p className="line-clamp-2 text-sm font-semibold text-slate-800">{task.title}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className={`${cardClass} overflow-hidden md:col-span-2`}>
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-5 sm:p-6">
-              <div>
-                <h2 className={sectionTitle}>Jurnal Aktivitas (Logbook)</h2>
-                <p className="mt-1 text-xs text-slate-400">Catatan kegiatan magang Anda</p>
+          {/* TABEL KANAN: KEGIATAN MAGANG */}
+          <section className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between space-y-6">
+            <div>
+              <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-[#3B82F6] shrink-0">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#0F2942]">Kegiatan Magang</h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      Catat kegiatan harian selama magang Anda.
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsLogbookModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold shadow-xs transition shrink-0 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" /> Tambah Kegiatan
+                </button>
               </div>
-              <button onClick={() => setIsLogbookModalOpen(true)} className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-sky-600 px-3.5 py-2.5 text-xs font-semibold text-white transition hover:bg-sky-700 sm:text-sm">
-                <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Tulis Jurnal</span><span className="sm:hidden">Jurnal</span>
+
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[11px]">
+                      <th className="pb-3 pr-3 font-bold">Tanggal</th>
+                      <th className="pb-3 px-3 font-bold">Kegiatan</th>
+                      <th className="pb-3 px-3 font-bold">Kategori</th>
+                      <th className="pb-3 pl-3 font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {logbooks.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="py-8 text-center text-slate-400">
+                          Belum ada kegiatan yang dicatat.
+                        </td>
+                      </tr>
+                    ) : (
+                      logbooks.slice(0, 4).map((log) => {
+                        const isApproved = log.verification_status === 'approved';
+                        return (
+                          <tr key={log.id} className="hover:bg-slate-50/80 transition">
+                            <td className="py-3.5 pr-3 font-bold text-[#0F2942] whitespace-nowrap">
+                              {formatDate(log.date)}
+                            </td>
+                            <td className="py-3.5 px-3 font-medium text-slate-800 max-w-[200px] truncate">
+                              {log.activity_description}
+                            </td>
+                            <td className="py-3.5 px-3">
+                              <span className="inline-block rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-bold text-[#4F46E5] whitespace-nowrap">
+                                {log.category || 'Pekerjaan'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 pl-3">
+                              <span className={`inline-block rounded-full px-3 py-1 text-[11px] font-bold whitespace-nowrap ${
+                                isApproved 
+                                  ? 'bg-emerald-100/70 text-emerald-700' 
+                                  : 'bg-amber-100/70 text-amber-800'
+                              }`}>
+                                {isApproved ? 'Selesai' : 'Dalam Proses'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button 
+                onClick={() => setIsAllActivitiesModalOpen(true)} 
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#3B82F6] hover:underline cursor-pointer"
+              >
+                Lihat Semua Kegiatan <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
-                  <tr><th className="px-5 py-3 sm:px-6">Tanggal</th><th className="px-5 py-3 sm:px-6">Aktivitas</th><th className="px-5 py-3 sm:px-6">Status</th></tr>
+          </section>
+
+        </div>
+
+      </main>
+
+      {/* MODAL SERTIFIKAT */}
+      {isCertificateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs" onClick={() => setIsCertificateModalOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-labelledby="certificate-title" className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-50 text-[#4F46E5]"><GraduationCap className="h-5 w-5" /></div>
+                <div><strong className="block text-sm text-slate-900">SIMAGANG</strong><span className="text-xs text-slate-400">Sertifikat Magang</span></div>
+              </div>
+              <button type="button" aria-label="Tutup" onClick={() => setIsCertificateModalOpen(false)} className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 transition"><X className="h-5 w-5" /></button>
+            </header>
+
+            <div className="overflow-y-auto p-6 sm:p-8">
+              <div className="mb-5">
+                <h2 id="certificate-title" className="text-xl font-bold text-[#0F2942]">Sertifikat Magang</h2>
+                <p className="mt-1 text-xs text-slate-500">Pantau progres kelayakan dan unduh sertifikat setelah kegiatan magang selesai.</p>
+              </div>
+
+              {!certificate ? (
+                <div className="space-y-5 rounded-2xl border border-slate-100 bg-slate-50/50 p-6">
+                  <div className="flex flex-wrap items-center gap-5">
+                    <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#4F46E5 ${certificateProgress}%, #E2E8F0 ${certificateProgress}% 100%)` }}>
+                      <span className="grid h-16 w-16 place-items-center rounded-full bg-white text-sm font-bold text-[#0F2942]">{certificateProgress}%</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-[#0F2942]">Sertifikat belum tersedia</h3>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-500">Sertifikat diterbitkan setelah penilaian akhir pembimbing selesai. {applicationEndDate && !internshipCompleted ? <>Sisa waktu magang: <strong className="text-slate-800">{remainingDays} hari</strong>.</> : null}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2.5">
+                    {certificateChecklist.map((item) => (
+                      <div key={item.title} className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white px-4 py-3">
+                        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${item.done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{item.done ? <Check className="h-4 w-4" /> : <Clock3 className="h-3.5 w-3.5" />}</span>
+                        <div className="min-w-0 flex-1"><strong className="block text-xs text-[#0F2942]">{item.title}</strong><span className="text-[11px] text-slate-400">{item.description}</span></div>
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${item.done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{item.done ? 'Selesai' : 'Menunggu'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid items-start gap-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs lg:grid-cols-2">
+                  <div className="relative flex aspect-[1.4/1] flex-col items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 p-6 text-center text-white">
+                    <GraduationCap className="mb-2 h-8 w-8" />
+                    <h3 className="text-xs font-bold tracking-widest uppercase">SERTIFIKAT MAGANG</h3>
+                    <strong className="mt-2 text-lg sm:text-xl font-extrabold">{userName}</strong>
+                    <p className="mt-1 text-[11px] leading-relaxed text-white/80">Telah menyelesaikan program magang di Diskominfo</p>
+                  </div>
+
+                  <div className="space-y-4 text-xs">
+                    <div className="space-y-2.5">
+                      {[
+                        ['Nomor Sertifikat', certificate.certificate_number || '—'],
+                        ['Periode Magang', `${application?.start_date ? formatDate(application.start_date) : '—'} – ${application?.end_date ? formatDate(application.end_date) : '—'}`],
+                        ['Tanggal Terbit', certificate.issued_at ? formatDate(certificate.issued_at) : '—'],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex justify-between gap-4 border-b border-slate-100 pb-2"><span className="text-slate-400">{label}</span><strong className="text-[#0F2942]">{value}</strong></div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <button type="button" onClick={downloadCertificate} disabled={!certificate.pdf_path} className="inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white hover:bg-[#4338CA] transition disabled:opacity-50"><Download className="h-4 w-4" />Unduh PDF</button>
+                      <button type="button" onClick={handleShareCertificate} disabled={!certificate.qr_hash} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition disabled:opacity-50"><Share2 className="h-4 w-4" />Bagikan</button>
+                    </div>
+                    {certificateNotice && <p className="text-xs text-indigo-600 font-medium">{certificateNotice}</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* COMPONENT PRESENSI */}
+      <InternAttendance open={isCheckInModalOpen} onClose={() => setIsCheckInModalOpen(false)} attendance={attendance} attendanceHistory={attendanceHistory} onUpdated={loadDashboard} />
+
+      {/* MODAL TAMBAH KEGIATAN (SESUAI UI REFERENSI) */}
+      {isLogbookModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-3">
+              <h3 className="text-lg font-bold text-[#0F2942]">Tambah Kegiatan</h3>
+              <button 
+                type="button" 
+                onClick={() => setIsLogbookModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form Modal */}
+            <form onSubmit={submitLogbook} className="space-y-4 text-xs font-medium">
+              {/* Field Tanggal */}
+              <div>
+                <label className="block text-slate-800 font-bold mb-1.5">Tanggal</label>
+                <input
+                  required
+                  type="date"
+                  value={logbookForm.date || ''}
+                  onChange={(e) => setLogbookForm({ ...logbookForm, date: e.target.value })}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition"
+                />
+              </div>
+
+              {/* Field Kegiatan */}
+              <div>
+                <label className="block text-slate-800 font-bold mb-1.5">Kegiatan</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={logbookForm.activity_description || ''}
+                  onChange={(e) => setLogbookForm({ ...logbookForm, activity_description: e.target.value })}
+                  placeholder="Tuliskan kegiatan yang dilakukan"
+                  className="w-full rounded-2xl border border-slate-200 p-4 text-slate-700 placeholder:text-slate-400 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition resize-none"
+                />
+              </div>
+
+              {/* Field Kategori */}
+              <div>
+                <label className="block text-slate-800 font-bold mb-1.5">Kategori</label>
+                <div className="relative">
+                  <select
+                    value={logbookForm.category || 'Pekerjaan'}
+                    onChange={(e) => setLogbookForm({ ...logbookForm, category: e.target.value })}
+                    className="w-full appearance-none rounded-2xl border border-slate-200 px-4 py-3 text-slate-700 outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition bg-white pr-10"
+                  >
+                    <option value="Kegiatan">Kegiatan</option>
+                    <option value="Pekerjaan">Pekerjaan</option>
+                    <option value="Diskusi">Diskusi</option>
+                    <option value="Pembelajaran">Pembelajaran</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                    <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tombol Aksi */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsLogbookModalOpen(false)}
+                  className="rounded-2xl bg-slate-100 hover:bg-slate-200 px-6 py-2.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-2xl bg-[#4F46E5] hover:bg-[#4338CA] px-6 py-2.5 text-xs font-bold text-white transition disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DETAIL / SUBMIT TUGAS */}
+      {selectedTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-xl border border-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <h3 className="font-bold text-[#0F2942]">Detail & Pengumpulan Tugas</h3>
+              <button onClick={() => setSelectedTask(null)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={submitTask} className="space-y-4 p-6 text-xs">
+              <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100 space-y-1">
+                <p className="font-bold text-[#0F2942]">{selectedTask.title}</p>
+                <p className="text-slate-500">{selectedTask.description || 'Tidak ada deskripsi.'}</p>
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700">Catatan Pengumpulan</label>
+                <textarea
+                  rows={2}
+                  value={taskForm.submission_notes}
+                  onChange={(e) => setTaskForm({ ...taskForm, submission_notes: e.target.value })}
+                  placeholder="Tambah catatan..."
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="task-submission-file" className="block font-semibold text-slate-700">Berkas Hasil Tugas</label>
+                <input
+                  id="task-submission-file"
+                  type="file"
+                  onChange={(event) => setTaskForm({ ...taskForm, submission_file: event.target.files?.[0] || null })}
+                  className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:font-semibold file:text-[#4F46E5] hover:file:bg-indigo-100"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTask(null)}
+                  className="rounded-xl bg-slate-100 px-4 py-2 font-semibold text-slate-600 hover:bg-slate-200 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] px-5 py-2 font-bold text-white transition disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? 'Mengirim...' : 'Kirim Tugas'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SEMUA AKTIVITAS */}
+      {isAllActivitiesModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-xl border border-slate-100 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <div>
+                <h3 className="font-bold text-[#0F2942]">Daftar Seluruh Aktivitas Magang</h3>
+                <p className="text-xs text-slate-400">Riwayat lengkap seluruh jurnal dan kegiatan harian Anda.</p>
+              </div>
+              <button onClick={() => setIsAllActivitiesModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[11px]">
+                    <th className="pb-3 pr-3 font-bold">Tanggal</th>
+                    <th className="pb-3 px-3 font-bold">Kegiatan</th>
+                    <th className="pb-3 px-3 font-bold">Kategori</th>
+                    <th className="pb-3 pl-3 font-bold">Status</th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {loading ? <tr><td colSpan="3" className="px-6 py-8 text-center text-slate-400">Memuat logbook…</td></tr> : logbooks.length === 0 ? (
-                    <tr><td colSpan="3" className="px-6 py-8 text-center text-slate-400">Belum ada jurnal aktivitas.</td></tr>
-                  ) : logbooks.slice(0, 5).map((logbook) => (
-                    <tr key={logbook.id} className="align-top">
-                      <td className="whitespace-nowrap px-5 py-4 font-medium text-slate-700 sm:px-6">{formatDate(logbook.date)}</td>
-                      <td className="max-w-md px-5 py-4 text-slate-600 sm:px-6"><p className="line-clamp-2">{logbook.activity_description}</p>{logbook.mentor_notes && <p className="mt-1 text-xs text-slate-400">Catatan mentor: {logbook.mentor_notes}</p>}</td>
-                      <td className="px-5 py-4 sm:px-6"><StatusBadge status={logbook.verification_status} /></td>
+                  {logbooks.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="py-8 text-center text-slate-400">Belum ada kegiatan yang dicatat.</td>
                     </tr>
-                  ))}
+                  ) : (
+                    logbooks.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50 transition">
+                        <td className="py-3.5 pr-3 font-bold text-[#0F2942] whitespace-nowrap">{formatDate(log.date)}</td>
+                        <td className="py-3.5 px-3 font-medium text-slate-800">{log.activity_description}</td>
+                        <td className="py-3.5 px-3"><span className="inline-block rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-bold text-[#4F46E5]">{log.category || 'Pekerjaan'}</span></td>
+                        <td className="py-3.5 pl-3"><span className="inline-block rounded-full bg-emerald-100/70 px-3 py-1 text-[11px] font-bold text-emerald-700">Selesai</span></td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
-          </section>
 
-          <section className={`${cardClass} flex flex-col p-5 sm:p-6`}>
-            <h2 className={sectionTitle}>Evaluasi & Sertifikat</h2>
-            <div className="mt-5 flex-1">
-              <p className="text-sm font-medium text-slate-500">Nilai Akhir Magang</p>
-              <p className="mt-2 text-4xl font-bold tracking-tight text-slate-900">{evaluation?.final_score ?? '—'}<span className="ml-1 text-base font-semibold text-slate-400">/ 100</span></p>
-              {evaluation && <div className="mt-3 space-y-1 text-xs text-slate-600">
-                <p className="font-semibold text-sky-700">Predikat: {grade}</p>
-                <p>Kehadiran (20%): {evaluation.attendance_percentage}%</p>
-                <p>Rata-rata tugas harian (40%): {evaluation.task_average}</p>
-                <p>Evaluasi mentor (40%): {( (Number(evaluation.discipline_score) + Number(evaluation.responsibility_score) + Number(evaluation.skill_score) + Number(evaluation.softskill_score)) / 4).toFixed(2)}</p>
-                <p>Disiplin {evaluation.discipline_score} · Tanggung jawab {evaluation.responsibility_score} · Kualitas tugas {evaluation.skill_score} · Kerja sama {evaluation.softskill_score}</p>
-                {evaluation.remarks && <p className="pt-1">Catatan: {evaluation.remarks}</p>}
-              </div>}
-              <p className="mt-2 text-xs text-slate-400">{evaluation ? 'Nilai dari evaluasi mentor' : 'Nilai akhir belum diterbitkan.'}</p>
-            </div>
-            {certificate?.pdf_path ? (
-              <a href={`/storage/${certificate.pdf_path}`} download className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-700">
-                <Download className="h-4 w-4" /> Unduh Sertifikat Resmi
-              </a>
-            ) : (
-              <button disabled className="mt-5 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400" title="Sertifikat belum tersedia">
-                <Download className="h-4 w-4" /> Sertifikat belum tersedia
+            <div className="flex justify-end border-t border-slate-100 px-6 py-3">
+              <button
+                type="button"
+                onClick={() => setIsAllActivitiesModalOpen(false)}
+                className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 cursor-pointer"
+              >
+                Tutup
               </button>
-            )}
-          </section>
-        </div>
-      </main>
-
-      {isCheckInModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !submitting) setIsCheckInModalOpen(false); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="checkin-title" className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <div><h2 id="checkin-title" className="font-bold text-slate-900">Form Presensi Masuk</h2><p className="mt-1 text-xs text-slate-500">Unggah foto sebagai bukti kehadiran di tempat magang.</p></div>
-              <button type="button" onClick={() => setIsCheckInModalOpen(false)} disabled={submitting} aria-label="Tutup" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
             </div>
-            <form onSubmit={submitCheckIn} className="space-y-4 p-5">
-              <label className="block text-sm font-medium text-slate-700">Foto bukti kehadiran <span className="text-rose-500">*</span>
-                <input required type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => setCheckInPhoto(event.target.files?.[0] || null)} className="mt-1.5 block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-sky-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-sky-700 hover:file:bg-sky-100" />
-              </label>
-              {checkInPhoto && <p className="-mt-2 text-xs text-slate-500">Dipilih: {checkInPhoto.name} ({(checkInPhoto.size / 1024 / 1024).toFixed(1)} MB)</p>}
-              <label className="block text-sm font-medium text-slate-700">Catatan <span className="font-normal text-slate-400">(opsional)</span>
-                <textarea rows={2} maxLength={500} value={checkInNotes} onChange={(event) => setCheckInNotes(event.target.value)} placeholder="Contoh: tiba di kantor Diskominfo" className="mt-1.5 w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100" />
-              </label>
-              <p className="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-500">Foto JPG, PNG, atau WEBP maksimal 5 MB. Waktu presensi akan dicatat saat formulir dikirim.</p>
-              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <button type="button" onClick={() => setIsCheckInModalOpen(false)} disabled={submitting} className="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
-                <button type="submit" disabled={submitting || !checkInPhoto} className="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60">{submitting ? 'Mengirim…' : 'Kirim Presensi'}</button>
-              </div>
-            </form>
-          </section>
+          </div>
         </div>
       )}
 
-      {isLogbookModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsLogbookModalOpen(false); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="logbook-title" className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <div><h2 id="logbook-title" className="font-bold text-slate-900">Tulis Jurnal Harian</h2><p className="mt-1 text-xs text-slate-500">Ceritakan kegiatan magang hari ini.</p></div>
-              <button onClick={() => setIsLogbookModalOpen(false)} aria-label="Tutup" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
-            </div>
-            <form onSubmit={submitLogbook} className="space-y-4 p-5">
-              <label className="block text-sm font-medium text-slate-700">Tanggal kegiatan
-                <input required type="date" max={new Date().toISOString().slice(0, 10)} value={logbookForm.date} onChange={(event) => setLogbookForm({ ...logbookForm, date: event.target.value })} className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100" />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">Deskripsi aktivitas
-                <textarea required minLength={10} rows={4} value={logbookForm.activity_description} onChange={(event) => setLogbookForm({ ...logbookForm, activity_description: event.target.value })} placeholder="Jelaskan pekerjaan atau kegiatan yang Anda lakukan…" className="mt-1.5 w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100" />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">Lampiran <span className="font-normal text-slate-400">(opsional)</span>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(event) => setLogbookForm({ ...logbookForm, attachment: event.target.files?.[0] || null })} className="mt-1.5 block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-sky-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-sky-700 hover:file:bg-sky-100" />
-              </label>
-              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <button type="button" onClick={() => setIsLogbookModalOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
-                <button type="submit" disabled={submitting} className="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-60">{submitting ? 'Mengirim…' : 'Kirim jurnal'}</button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
-
-      {selectedTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedTask(null); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="task-title" className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <div><h2 id="task-title" className="font-bold text-slate-900">Detail Tugas</h2><p className="mt-1 text-xs text-slate-500">Deadline: {formatDate(selectedTask.deadline)}</p></div>
-              <button onClick={() => setSelectedTask(null)} aria-label="Tutup" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
-            </div>
-            <form onSubmit={submitTask} className="space-y-4 p-5">
-              <div><p className="text-lg font-bold text-slate-900">{selectedTask.title}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{selectedTask.description || 'Tidak ada keterangan tambahan.'}</p></div>
-              <label className="block text-sm font-medium text-slate-700">Catatan pengumpulan
-                <textarea rows={3} value={taskForm.submission_notes} onChange={(event) => setTaskForm({ ...taskForm, submission_notes: event.target.value })} className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100" />
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-3 text-sm text-slate-600 hover:border-sky-400">
-                <Upload className="h-4 w-4 text-sky-600" /> {taskForm.submission_file?.name || 'Pilih lampiran tugas (opsional)'}
-                <input type="file" className="sr-only" onChange={(event) => setTaskForm({ ...taskForm, submission_file: event.target.files?.[0] || null })} />
-              </label>
-              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <button type="button" onClick={() => setSelectedTask(null)} className="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100">Tutup</button>
-                <button type="submit" disabled={submitting} className="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-60">{submitting ? 'Mengirim…' : 'Kirim tugas'}</button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import Navbar from '../components/Navbar';
+import React, { useState, useEffect } from 'react';
 
 function ProfilePhoto({ src, alt, initials, className }) {
   const [failed, setFailed] = useState(false);
@@ -16,6 +17,35 @@ function ProfilePhoto({ src, alt, initials, className }) {
 
 export default function LandingPage({ onNavigateLogin, onNavigateRegister }) {
   const [activeTab, setActiveTab] = useState('home');
+  const [divisions, setDivisions] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/divisions')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.data) {
+          setDivisions(json.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  /**
+   * Find quota info for a given division by matching its name/code.
+   * @param {string} keyword - partial match against name or code
+   * @returns {{ quota: number, remaining: number }|null}
+   */
+  const getDivisionQuota = (keyword) => {
+    const lower = keyword.toLowerCase();
+    const found = divisions.find(
+      (d) => d.name?.toLowerCase().includes(lower) || d.code?.toLowerCase().includes(lower)
+    );
+    if (!found) { return null; }
+    return {
+      quota: found.quota ?? 0,
+      remaining: found.remaining_quota ?? 0,
+    };
+  };
 
   const scrollToSection = (id) => {
     setActiveTab(id);
@@ -33,59 +63,11 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister }) {
     <div className="min-h-screen bg-white font-sans text-slate-800 selection:bg-sky-100">
       
       {/* --- NAVBAR --- */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
-          
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => scrollToSection('home')}>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500 text-white font-black text-lg shadow-md shadow-sky-500/20">
-              SM
-            </div>
-            <div>
-              <div className="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
-                SIMAGANG
-              </div>
-              <p className="text-[11px] font-medium text-slate-500 mt-1">
-                Sistem Informasi Magang<br />
-                <span className="text-slate-400">Dinas Komunikasi dan Informasi Kab.Tabalong</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Navigasi Links */}
-          <nav className="hidden md:flex items-center gap-8 font-bold text-sm text-slate-600">
-            {[
-              { id: 'home', label: 'Home' },
-              { id: 'panduan', label: 'Panduan' },
-              { id: 'tentang', label: 'Tentang Kami' },
-              { id: 'bidang', label: 'Bidang' },
-              { id: 'kontak', label: 'Kontak' },
-            ].map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                className={`transition-colors py-1 relative ${
-                  activeTab === link.id ? 'text-sky-600 font-extrabold' : 'hover:text-sky-600'
-                }`}
-              >
-                {link.label}
-                {activeTab === link.id && (
-                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-sky-600 rounded-full"></span>
-                )}
-              </button>
-            ))}
-          </nav>
-
-          {/* Tombol Login */}
-          <button
-            onClick={onNavigateLogin}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-sky-600 text-white text-sm font-bold shadow-lg shadow-sky-600/25 hover:bg-sky-700 transition-all hover:-translate-y-0.5"
-          >
-            <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
-            Login
-          </button>
-        </div>
-      </header>
+      <Navbar
+        currentTab={activeTab}
+        setCurrentTab={scrollToSection}
+        onNavigateLogin={onNavigateLogin}
+      />
 
       {/* --- SECTION 1: HOME (HERO) --- */}
       <section id="home" className="pt-12 pb-20 md:py-24 bg-gradient-to-b from-sky-50/50 to-white">
@@ -111,40 +93,13 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister }) {
             </div>
           </div>
 
-          {/* Hero Visual Mockup */}
+          {/* Foto gedung Diskominfo */}
           <div className="lg:col-span-6 flex justify-center">
-            <div className="relative w-full max-w-lg rounded-3xl bg-gradient-to-tr from-sky-100 to-sky-50 p-6 md:p-8 border border-sky-100 shadow-2xl shadow-sky-100/50">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <div className="flex items-center justify-between border-b pb-4 border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-                  </div>
-                  <span className="text-xs font-bold text-sky-600 bg-sky-50 px-3 py-1 rounded-full">SIMAGANG Portal</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-3 pt-2">
-                  <div className="p-3 bg-sky-50 rounded-xl border border-sky-100 text-center">
-                    <span className="block text-xs font-bold text-sky-700">Pengajuan</span>
-                    <span className="text-[10px] text-slate-500">Online</span>
-                  </div>
-                  <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 text-center">
-                    <span className="block text-xs font-bold text-indigo-700">Laporan</span>
-                    <span className="text-[10px] text-slate-500">Harian</span>
-                  </div>
-                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-center">
-                    <span className="block text-xs font-bold text-emerald-700">Penilaian</span>
-                    <span className="text-[10px] text-slate-500">Sertifikat</span>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                  <div className="h-2 w-3/4 bg-slate-200 rounded"></div>
-                  <div className="h-2 w-1/2 bg-slate-200 rounded"></div>
-                </div>
-              </div>
-            </div>
+            <img
+              src="/images/logo/diskominfo.png"
+              alt="Gedung Dinas Komunikasi dan Informatika"
+              className="w-full max-w-2xl rounded-3xl border border-sky-100 object-cover shadow-2xl shadow-sky-100/50"
+            />
           </div>
 
         </div>
@@ -202,96 +157,96 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister }) {
         </div>
       </section>
 
-{/* --- SECTION 3: TENTANG KAMI (STRUKTUR ORGANISASI) --- */}
-<section id="tentang" className="py-20 bg-slate-50/60 border-y border-slate-100">
-  <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-12">
-    
-    <div className="max-w-3xl">
-      <span className="text-xs font-black tracking-widest text-sky-600 uppercase mb-2 block">
-        TENTANG KAMI
-      </span>
-      <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
-        Struktur Organisasi Diskominfo Kabupaten Tabalong
-      </h2>
-      <p className="text-base text-slate-500 font-normal leading-relaxed">
-        Mengenal jajaran pimpinan dan bidang kerja yang menaungi pelaksanaan program magang di Dinas Komunikasi dan Informatika Kabupaten Tabalong.
-      </p>
-    </div>
+      {/* --- SECTION 3: TENTANG KAMI (STRUKTUR ORGANISASI) --- */}
+      <section id="tentang" className="py-20 bg-slate-50/60 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-12">
+          
+          <div className="max-w-3xl">
+            <span className="text-xs font-black tracking-widest text-sky-600 uppercase mb-2 block">
+              TENTANG KAMI
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
+              Struktur Organisasi Diskominfo Kabupaten Tabalong
+            </h2>
+            <p className="text-base text-slate-500 font-normal leading-relaxed">
+              Mengenal jajaran pimpinan dan bidang kerja yang menaungi pelaksanaan program magang di Dinas Komunikasi dan Informatika Kabupaten Tabalong.
+            </p>
+          </div>
 
-    <div className="space-y-8">
-      {/* Pimpinan Atas: Kadis & Sekdin */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        
-        {/* Kepala Dinas */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm text-center relative overflow-hidden flex flex-col items-center">
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-sky-600"></div>
-          <ProfilePhoto src="/images/pimpinan/kadis.png" alt="Foto Kepala Dinas" initials="ES" className="w-24 h-24 rounded-full object-cover border-4 border-sky-100 shadow-md mb-4 mt-2" />
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Kepala Dinas Komunikasi dan Informatika</span>
-          <h3 className="text-xl font-extrabold text-slate-900">Eddy Suriyani, S.Sos., M.A.</h3>
+          <div className="space-y-8">
+            {/* Pimpinan Atas: Kadis & Sekdin */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              
+              {/* Kepala Dinas */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm text-center relative overflow-hidden flex flex-col items-center">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-sky-600"></div>
+                <ProfilePhoto src="/images/pimpinan/kadis.png" alt="Foto Kepala Dinas" initials="ES" className="w-24 h-24 rounded-full object-cover border-4 border-sky-100 shadow-md mb-4 mt-2" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Kepala Dinas Komunikasi dan Informatika</span>
+                <h3 className="text-xl font-extrabold text-slate-900">Eddy Suriyani, S.Sos., M.A.</h3>
+              </div>
+
+              {/* Sekretaris Dinas */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm text-center relative overflow-hidden flex flex-col items-center">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-700"></div>
+                <ProfilePhoto src="/images/pimpinan/sekdin.png" alt="Foto Sekretaris Dinas" initials="RF" className="w-24 h-24 rounded-full object-cover border-4 border-slate-100 shadow-md mb-4 mt-2" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Sekretaris Dinas</span>
+                <h3 className="text-xl font-extrabold text-slate-900">Rully Febriansyah, S.I.Kom., M.I.Kom. </h3>
+              </div>
+            </div>
+
+            {/* Garis Penghubung */}
+            <div className="flex justify-center items-center">
+              <div className="w-0.5 h-8 bg-sky-200"></div>
+            </div>
+
+            {/* Kepala Bidang (Kabid) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Kabid IKP */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-sky-300 transition-all flex flex-col items-center text-center">
+                <ProfilePhoto src="/images/pimpinan/kabid-ikp.png" alt="Foto Kabid IKP" initials="ER" className="w-20 h-20 rounded-full object-cover border-2 border-sky-100 shadow-sm mb-3" />
+                <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-800 mb-2">
+                  Bidang IKP
+                </span>
+                <h4 className="text-base font-extrabold text-slate-900 mb-0.5">Eka Rismawina, S.P., M.P.</h4>
+                <p className="text-xs font-bold text-slate-500 mb-3">Kabid Informasi & Komunikasi Publik</p>
+                <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 text-left w-full">
+                  Mengurusi kemitraan media, pengelolaan pengaduan masyarakat seperti SP4N-LAPOR, PPID, serta diseminasi informasi publik.
+                </p>
+              </div>
+
+              {/* Kabid APTIKA */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-sky-300 transition-all flex flex-col items-center text-center">
+                <ProfilePhoto src="/images/pimpinan/kabid-aptika.png" alt="Foto Kabid APTIKA" initials="MZ" className="w-20 h-20 rounded-full object-cover border-2 border-sky-100 shadow-sm mb-3" />
+                <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-800 mb-2">
+                  Bidang APTIKA
+                </span>
+                <h4 className="text-base font-extrabold text-slate-900 mb-0.5">Muhammad Zainaini, S.Kom., M.T.</h4>
+                <p className="text-xs font-bold text-slate-500 mb-3">Kabid E-Government & Aplikasi</p>
+                <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 text-left w-full">
+                  Mengurusi tata kelola SPBE, pengembangan aplikasi daerah, infrastruktur TIK, dan program prioritas 1 Desa 1 Wi-Fi.
+                </p>
+              </div>
+
+              {/* Kabid Statistik */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-sky-300 transition-all flex flex-col items-center text-center">
+                <ProfilePhoto src="/images/pimpinan/kabid-statistik.png" alt="Foto Kabid Statistik" initials="KS" className="w-20 h-20 rounded-full object-cover border-2 border-sky-100 shadow-sm mb-3" />
+                <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-800 mb-2">
+                  Bidang Statistik
+                </span>
+                <h4 className="text-base font-extrabold text-slate-900 mb-0.5">Muhammad Tabrani, S.Si, M.M.</h4>
+                <p className="text-xs font-bold text-slate-500 mb-3">Kabid Pengelolaan Data & Statistik Daerah</p>
+                <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 text-left w-full">
+                  Mengelola data dan statistik sektoral daerah, integrasi Satu Data Indonesia/Daerah, serta pengelolaan portal data daerah.
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
         </div>
-
-        {/* Sekretaris Dinas */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm text-center relative overflow-hidden flex flex-col items-center">
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-700"></div>
-          <ProfilePhoto src="/images/pimpinan/sekdin.png" alt="Foto Sekretaris Dinas" initials="RF" className="w-24 h-24 rounded-full object-cover border-4 border-slate-100 shadow-md mb-4 mt-2" />
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Sekretaris Dinas</span>
-          <h3 className="text-xl font-extrabold text-slate-900">Rully Febriansyah</h3>
-        </div>
-      </div>
-
-      {/* Garis Penghubung */}
-      <div className="flex justify-center items-center">
-        <div className="w-0.5 h-8 bg-sky-200"></div>
-      </div>
-
-      {/* Kepala Bidang (Kabid) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Kabid IKP */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-sky-300 transition-all flex flex-col items-center text-center">
-          <ProfilePhoto src="/images/pimpinan/kabid-ikp.jpeg" alt="Foto Kabid IKP" initials="ER" className="w-20 h-20 rounded-full object-cover border-2 border-sky-100 shadow-sm mb-3" />
-          <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-800 mb-2">
-            Bidang IKP
-          </span>
-          <h4 className="text-base font-extrabold text-slate-900 mb-0.5">Eka Rismawina</h4>
-          <p className="text-xs font-bold text-slate-500 mb-3">Kabid Informasi & Komunikasi Publik</p>
-          <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 text-left w-full">
-            Mengurusi kemitraan media, pengelolaan pengaduan masyarakat seperti SP4N-LAPOR, PPID, serta diseminasi informasi publik.
-          </p>
-        </div>
-
-        {/* Kabid APTIKA */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-sky-300 transition-all flex flex-col items-center text-center">
-          <ProfilePhoto src="/images/pimpinan/kabid-aptika.png" alt="Foto Kabid APTIKA" initials="MZ" className="w-20 h-20 rounded-full object-cover border-2 border-sky-100 shadow-sm mb-3" />
-          <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-800 mb-2">
-            Bidang APTIKA
-          </span>
-          <h4 className="text-base font-extrabold text-slate-900 mb-0.5">Muhammad Zainaini</h4>
-          <p className="text-xs font-bold text-slate-500 mb-3">Kabid E-Government & Aplikasi</p>
-          <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 text-left w-full">
-            Mengurusi tata kelola SPBE, pengembangan aplikasi daerah, infrastruktur TIK, dan program prioritas 1 Desa 1 Wi-Fi.
-          </p>
-        </div>
-
-        {/* Kabid Statistik */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-sky-300 transition-all flex flex-col items-center text-center">
-          <ProfilePhoto src="/images/pimpinan/kabid-statistik.png" alt="Foto Kabid Statistik" initials="KS" className="w-20 h-20 rounded-full object-cover border-2 border-sky-100 shadow-sm mb-3" />
-          <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-800 mb-2">
-            Bidang Statistik
-          </span>
-          <h4 className="text-base font-extrabold text-slate-900 mb-0.5">Kepala Bidang Statistik</h4>
-          <p className="text-xs font-bold text-slate-500 mb-3">Pengelolaan Data & Statistik Daerah</p>
-          <p className="text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 text-left w-full">
-            Mengelola data dan statistik sektoral daerah, integrasi Satu Data Indonesia/Daerah, serta pengelolaan portal data daerah.
-          </p>
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-</section>
+      </section>
 
       {/* --- SECTION 4: BIDANG --- */}
       <section id="bidang" className="py-20 bg-white">
@@ -307,26 +262,62 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-sky-50/50 hover:border-sky-200 transition-all">
-              <h3 className="text-xl font-extrabold text-slate-900 mb-3">Bidang APTIKA</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                <strong className="text-slate-800 font-bold">Aplikasi Informatika</strong> — Mengelola aplikasi, jaringan, dan sistem informasi untuk mendukung layanan digital pemerintahan.
-              </p>
-            </div>
+            {[
+              {
+                keyword: 'aptika',
+                title: 'Bidang APTIKA',
+                strong: 'Aplikasi Informatika',
+                desc: 'Mengelola aplikasi, jaringan, dan sistem informasi untuk mendukung layanan digital pemerintahan.',
+              },
+              {
+                keyword: 'ikp',
+                title: 'Bidang IKP',
+                strong: 'Informasi & Komunikasi Publik',
+                desc: 'Mengelola kehumasan, media massa, pengaduan masyarakat, serta keterbukaan informasi publik.',
+              },
+              {
+                keyword: 'statistik',
+                title: 'Bidang Statistik',
+                strong: 'Statistik Sektoral',
+                desc: 'Mengelola pengumpulan, validasi, dan integrasi data statistik daerah untuk mendukung perencanaan pemerintahan.',
+              },
+            ].map((bidang) => {
+              const quota = getDivisionQuota(bidang.keyword);
+              const isFull = quota !== null && quota.remaining <= 0;
+              const isLoading = divisions.length === 0;
 
-            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-sky-50/50 hover:border-sky-200 transition-all">
-              <h3 className="text-xl font-extrabold text-slate-900 mb-3">Bidang IKP</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                <strong className="text-slate-800 font-bold">Informasi & Komunikasi Publik</strong> — Mengelola kehumasan, media massa, pengaduan masyarakat, serta keterbukaan informasi publik.
-              </p>
-            </div>
+              return (
+                <div
+                  key={bidang.keyword}
+                  className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-sky-50/50 hover:border-sky-200 transition-all flex flex-col"
+                >
+                  <h3 className="text-xl font-extrabold text-slate-900 mb-3">{bidang.title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed flex-1">
+                    <strong className="text-slate-800 font-bold">{bidang.strong}</strong> � {bidang.desc}
+                  </p>
 
-            <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-sky-50/50 hover:border-sky-200 transition-all">
-              <h3 className="text-xl font-extrabold text-slate-900 mb-3">Bidang Statistik</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                <strong className="text-slate-800 font-bold">Statistik Sektoral</strong> — Mengelola pengumpulan, validasi, dan integrasi data statistik daerah untuk mendukung perencanaan pemerintahan.
-              </p>
-            </div>
+                  {/* Quota Badge */}
+                  <div className="mt-5 pt-4 border-t border-slate-100">
+                    {isLoading ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-400 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
+                        Memuat kuota...
+                      </span>
+                    ) : isFull ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
+                        Kuota penuh
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block"></span>
+                        {quota.remaining} dari {quota.quota} lowongan tersedia
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
         </div>
@@ -354,9 +345,11 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister }) {
           {/* KOLOM 1: IDENTITAS */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-sky-500 text-white font-black flex items-center justify-center text-base shadow-md shadow-sky-500/20">
-                SM
-              </div>
+              <img 
+                src="/images/logo/logo komdigi.png" 
+                alt="Logo Komdigi" 
+                className="h-10 w-auto object-contain"
+              />
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900 leading-tight tracking-wide">
                   DINAS KOMUNIKASI DAN INFORMATIKA

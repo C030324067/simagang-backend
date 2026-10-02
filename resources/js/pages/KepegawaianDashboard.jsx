@@ -1,274 +1,286 @@
-import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../api';
-import { buildAcceptanceWhatsAppUrl } from '../utils/whatsapp';
+import React from 'react';
+import useKepegawaianDashboard from '../hooks/useKepegawaianDashboard';
 import { 
-  Building2, 
-  CheckCircle2, 
-  XCircle, 
   Clock, 
   FileText, 
-  User, 
-  Calendar, 
-  AlertCircle,
-  ShieldAlert,
-  Send,
-  ExternalLink
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle, 
+  X 
 } from 'lucide-react';
 
 export default function KepegawaianDashboard() {
-  const [pendingApps, setPendingApps] = useState([]);
-  const [approvedApps, setApprovedApps] = useState([]);
-  const [letterFiles, setLetterFiles] = useState({});
-  const [divisions, setDivisions] = useState([]);
-  const [selectedApp, setSelectedApp] = useState(null);
-  const [actionForm, setActionForm] = useState({
-    status: 'review_kabid',
-    division_id: '',
-    notes: '',
-  });
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg] = useState({ type: '', text: '' });
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    const [appsRes, divRes] = await Promise.all([
-      apiRequest('/applications/kepegawaian'),
-      apiRequest('/divisions'),
-    ]);
-
-    if (appsRes.success) {
-      const applications = appsRes.data || [];
-      setPendingApps(applications.filter((application) => application.status === 'pending_kepegawaian'));
-      setApprovedApps(applications.filter((application) => application.status === 'approved_kadis'));
-    }
-    if (divRes.success) {
-      setDivisions(divRes.data || []);
-      if (divRes.data?.length > 0) {
-        setActionForm((prev) => ({ ...prev, division_id: divRes.data[0].id }));
-      }
-    }
-    setLoading(false);
-  };
-
-  const uploadLetter = async (applicationId) => {
-    const file = letterFiles[applicationId];
-    if (!file) return setMsg({ type: 'error', text: 'Pilih file PDF surat penerimaan terlebih dahulu.' });
-    const data = new FormData();
-    data.append('official_letter', file);
-    setSubmitting(true);
-    const res = await apiRequest(`/applications/${applicationId}/upload-letter`, { method: 'POST', body: data });
-    setMsg({ type: res.success ? 'success' : 'error', text: res.message || 'Gagal mengunggah surat.' });
-    if (res.success) {
-      setLetterFiles((previous) => ({ ...previous, [applicationId]: null }));
-      await loadData();
-    }
-    setSubmitting(false);
-  };
-
-  const handleActionSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedApp) return;
-
-    setSubmitting(true);
-    setMsg({ type: '', text: '' });
-
-    const res = await apiRequest(`/applications/${selectedApp.id}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ ...actionForm, rejection_note: actionForm.notes }),
-    });
-
-    if (res.success) {
-      setMsg({ type: 'success', text: res.message || 'Verifikasi kepegawaian berhasil diproses.' });
-      setSelectedApp(null);
-      loadData();
-    } else {
-      setMsg({ type: 'error', text: res.message || 'Gagal memproses verifikasi.' });
-    }
-    setSubmitting(false);
-  };
+  const {
+    pendingApps, approvedApps, letterFiles, setLetterFiles, divisions, selectedApp, setSelectedApp,
+    actionForm, setActionForm, loading, submitting, msg, setMsg, uploadLetter, openDocument, handleActionSubmit
+  } = useKepegawaianDashboard();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      {/* Page Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              Tahap 1: Verifikasi Berkas
+    <div className="min-h-screen bg-[#F2F6FA] font-sans text-slate-800 py-8">
+      
+      {/* Main Content Container */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+
+        {/* Header Banner & Counter */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
+          <div className="space-y-2 max-w-2xl">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F2942] tracking-tight">
+              Dashboard Verifikasi Kepegawaian Diskominfo
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              Verifikasi kelengkapan berkas administrasi pemohon magang (Mandiri & Rekomendasi Kampus), periksa kuota dinas, dan tentukan bidang penempatan.
+            </p>
+          </div>
+
+          {/* Counter Box Right */}
+          <div className="bg-white px-6 py-5 rounded-2xl border border-slate-100 shadow-xs min-w-[210px] flex flex-col justify-center items-center self-start md:self-auto">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
+              MENUNGGU VERIFIKASI
             </span>
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 mt-2 tracking-tight">
-            Dashboard Verifikasi Kepegawaian Diskominfo
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Verifikasi kelengkapan berkas administrasi pemohon magang (Mandiri & Rekomendasi Kampus), periksa kuota dinas, dan tentukan bidang penempatan.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-center">
-            <span className="text-xs text-slate-500 font-semibold block uppercase">Menunggu Verifikasi</span>
-            <span className="text-xl font-bold text-blue-600">{pendingApps.length}</span>
+            <div className="text-4xl font-black text-[#4F46E5] text-center mt-1">
+              {pendingApps.length}
+            </div>
           </div>
         </div>
-      </div>
 
-      {msg.text && (
-        <div className={`p-4 rounded-xl text-sm border flex items-center justify-between ${
-          msg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'
-        }`}>
-          <span>{msg.text}</span>
-          <button onClick={() => setMsg({ type: '', text: '' })} className="font-bold text-xs hover:underline">
-            Tutup
-          </button>
-        </div>
-      )}
-
-      {/* Pending Queue List */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-            <Clock className="w-4 h-4 text-blue-600" />
-            Antrean Permohonan Masuk ({pendingApps.length})
-          </h3>
-        </div>
-
-        {loading ? (
-          <div className="p-8 text-center text-xs text-slate-400">Memuat data permohonan...</div>
-        ) : pendingApps.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
-            <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
-            <p className="text-sm font-semibold text-slate-700">Semua berkas telah diverifikasi!</p>
-            <p className="text-xs text-slate-400">Tidak ada pengajuan magang yang tertunda di tingkat Kepegawaian saat ini.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Nama Pemohon</th>
-                  <th className="py-3 px-4">Asal Institusi</th>
-                  <th className="py-3 px-4">Jalur</th>
-                  <th className="py-3 px-4">Periode Magang</th>
-                  <th className="py-3 px-4">Dokumen</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {pendingApps.map((app) => (
-                  <tr key={app.id} className="hover:bg-slate-50/80 transition">
-                    <td className="py-3 px-4">
-                      <p className="font-bold text-slate-900">{app.user?.name}</p>
-                      <p className="text-slate-400 text-[11px]">{app.user?.email}</p>
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-700">{app.institution_name}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                        {app.application_type === 'mandiri' ? 'Mandiri' : 'Kampus'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      {app.start_date} s/d {app.end_date}
-                    </td>
-                    <td className="py-3 px-4 text-[11px] text-blue-600">
-                      <div className="flex flex-col gap-1">
-                        {[
-                          ['Surat pengantar / proposal', app.cover_letter_path || app.file_proposal],
-                          ['CV', app.file_cv],
-                          ['Transkrip nilai', app.transcript_path || app.file_recommendation_letter],
-                          ['Kartu mahasiswa', app.student_card_path],
-                        ].filter(([, path]) => path).map(([label, path]) => <a key={label} href={`/storage/${path}`} target="_blank" rel="noreferrer" className="hover:underline">📄 {label}</a>)}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => {
-                          setSelectedApp(app);
-                          setActionForm({
-                            status: 'review_kabid',
-                            division_id: app.division_id || divisions[0]?.id || '',
-                            notes: 'Berkas administrasi lengkap dan valid.',
-                          });
-                        }}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs transition"
-                      >
-                        Verifikasi Berkas
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Alert Notification */}
+        {msg.text && (
+          <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
+            msg.type === 'success' 
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+              : 'bg-rose-50 border-rose-200 text-rose-900'
+          }`}>
+            <div className="flex items-center gap-3">
+              {msg.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+              )}
+              <span className="font-semibold">{msg.text}</span>
+            </div>
+            <button 
+              onClick={() => setMsg({ type: '', text: '' })} 
+              className="p-1 rounded-lg hover:bg-black/5 text-slate-500 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
-      </div>
 
-      <section className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <header className="p-5 border-b border-slate-100">
-          <h3 className="font-bold text-slate-900 text-sm">Persetujuan Kadis — unggah surat resmi ({approvedApps.length})</h3>
-        </header>
-        <div className="divide-y divide-slate-100">
-          {approvedApps.map((app) => <div key={app.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-            <div><p className="font-semibold text-sm">{app.user?.name}</p><p className="text-xs text-slate-500">{app.institution_name} · {app.user?.email}</p></div>
-            <div className="flex flex-wrap gap-2 items-center">
-              {app.official_letter_path && <button type="button" onClick={() => {
-                const url = buildAcceptanceWhatsAppUrl({ phone: app.user?.no_hp, name: app.user?.name, division: app.division?.name, letterUrl: `${window.location.origin}/storage/${app.official_letter_path}` });
-                if (!url) { setMsg({ type: 'error', text: 'Nomor WhatsApp atau surat penerimaan belum tersedia.' }); return; }
-                window.open(url, '_blank', 'noopener,noreferrer');
-              }} className="px-3 py-2 rounded-lg bg-green-600 text-white text-xs font-semibold">Kirim Surat via WA</button>}
-              <input type="file" accept="application/pdf,.pdf" onChange={(event) => setLetterFiles((previous) => ({ ...previous, [app.id]: event.target.files?.[0] || null }))} aria-label={`Surat penerimaan ${app.user?.name}`} />
-              <button disabled={submitting || !letterFiles[app.id]} onClick={() => uploadLetter(app.id)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-50">Unggah & Terima</button>
+        {/* Section 1: Antrean Permohonan Masuk */}
+        <section className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden p-6 space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <Clock className="w-5 h-5 text-[#0F2942]" />
+            <h3 className="font-bold text-[#0F2942] text-base sm:text-lg">
+              Antrean Permohonan Masuk ( {pendingApps.length} )
+            </h3>
+          </div>
+
+          {loading ? (
+            <div className="p-12 text-center text-xs text-slate-400 space-y-3">
+              <div className="inline-block animate-spin rounded-full h-7 w-7 border-2 border-[#4F46E5] border-t-transparent" />
+              <p className="font-medium">Memuat data permohonan...</p>
             </div>
-          </div>)}
-          {!loading && approvedApps.length === 0 && <p className="p-5 text-sm text-slate-500">Belum ada permohonan yang menunggu surat resmi.</p>}
-        </div>
-      </section>
+          ) : pendingApps.length === 0 ? (
+            <div className="p-12 text-center text-xs text-slate-400">
+              Tidak ada antrean permohonan yang tertunda saat ini.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-500 font-semibold text-xs">
+                    <th className="py-3 px-4 font-semibold">Nama Pemohon</th>
+                    <th className="py-3 px-4 font-semibold">Asal Institusi</th>
+                    <th className="py-3 px-4 font-semibold">Jalur</th>
+                    <th className="py-3 px-4 font-semibold">Periode Magang</th>
+                    <th className="py-3 px-4 font-semibold">Dokumen</th>
+                    <th className="py-3 px-4 font-semibold text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {pendingApps.map((app) => (
+                    <tr key={app.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-4 align-top">
+                        <div>
+                          <p className="font-bold text-[#0F2942] text-sm">{app.user?.name}</p>
+                          <p className="text-slate-400 text-xs mt-0.5">{app.user?.email}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 align-top text-slate-600 font-normal">
+                        {app.institution_name}
+                      </td>
+                      <td className="py-4 px-4 align-top">
+                        <span className="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-[#E0EDFF] text-[#4F46E5]">
+                          {app.application_type || 'MANDIRI'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 align-top text-slate-600 whitespace-nowrap font-normal">
+                        {app.start_date} s/d {app.end_date}
+                      </td>
+                      <td className="py-4 px-4 align-top">
+                        <div className="flex flex-col gap-1.5">
+                          {[
+                            ['Surat pengantar / proposal', 'proposal', app.cover_letter_path || app.file_proposal],
+                            ['CV', 'cv', app.file_cv],
+                            ['Transkrip nilai', 'transcript', app.transcript_path || app.file_recommendation_letter],
+                            ['Kartu mahasiswa', 'student-card', app.student_card_path],
+                          ].map(([label, documentType, path]) => path ? (
+                            <button
+                              key={label}
+                              type="button"
+                              onClick={() => openDocument(app.id, documentType)}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4F46E5] hover:underline cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5 shrink-0" />
+                              <span>{label}</span>
+                            </button>
+                          ) : (
+                            <span key={label} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                              <FileText className="w-3.5 h-3.5 shrink-0" />
+                              <span>{label} (tidak tersedia)</span>
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 align-top text-right">
+                        <button
+                          onClick={() => {
+                            setSelectedApp(app);
+                            setActionForm({
+                              status: 'review_kabid',
+                              division_id: app.division_id || divisions[0]?.id || '',
+                              notes: 'Berkas administrasi lengkap dan valid.',
+                            });
+                          }}
+                          className="px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                        >
+                          Verifikasi Berkas
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* Section 2: Persetujuan Kadis — unggah surat resmi */}
+        <section className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <FileText className="w-5 h-5 text-[#0F2942]" />
+            <h3 className="font-bold text-[#0F2942] text-base sm:text-lg">
+              Persetujuan Kadis — unggah surat resmi ( {approvedApps.length} )
+            </h3>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {approvedApps.map((app) => (
+              <div key={app.id} className="py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/50 transition px-2 rounded-xl">
+                
+                {/* Info Pemohon & Pilih File */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-8">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-bold text-[#0F2942] text-sm">{app.user?.name}</p>
+                      <span className="text-xs text-slate-400 font-normal">
+                        ({app.application_type === 'rekomendasi_kampus' ? 'Rekomendasi Kampus' : 'Pemohon Magang'})
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {app.institution_name} <span className="text-slate-300">·</span> {app.user?.email}
+                    </p>
+                  </div>
+
+                  {/* Pilih File Button & File Name */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <input 
+                      type="file" 
+                      accept="application/pdf,.pdf" 
+                      id={`file-upload-${app.id}`}
+                      onChange={(e) => setLetterFiles((prev) => ({ ...prev, [app.id]: e.target.files?.[0] || null }))} 
+                      className="sr-only"
+                    />
+                    <label 
+                      htmlFor={`file-upload-${app.id}`}
+                      className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200/80 bg-[#F0F4F9] hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Pilih File</span>
+                    </label>
+                    <span className="text-xs text-slate-400 truncate max-w-[180px]">
+                      {letterFiles[app.id] ? letterFiles[app.id].name : 'Tidak ada file yang dipilih'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Submit Button */}
+                <button 
+                  disabled={submitting || !letterFiles[app.id]} 
+                  onClick={() => uploadLetter(app.id)} 
+                  className="px-5 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs transition disabled:opacity-50 shadow-xs cursor-pointer whitespace-nowrap self-start lg:self-auto"
+                >
+                  Unggah & Terima
+                </button>
+              </div>
+            ))}
+
+            {!loading && approvedApps.length === 0 && (
+              <div className="p-8 text-center text-xs text-slate-400">
+                Belum ada permohonan yang menunggu surat resmi.
+              </div>
+            )}
+          </div>
+        </section>
+
+      </main>
 
       {/* Verification Modal */}
       {selectedApp && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-xl border border-slate-100 space-y-6">
+            
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Verifikasi Berkas Pemohon</h3>
-                <p className="text-xs text-slate-500">Pemohon: {selectedApp.user?.name} ({selectedApp.institution_name})</p>
+                <h3 className="text-lg font-bold text-[#0F2942]">Verifikasi Berkas Pemohon</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  <span className="font-semibold text-slate-700">{selectedApp.user?.name}</span> ({selectedApp.institution_name})
+                </p>
               </div>
               <button
                 onClick={() => setSelectedApp(null)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleActionSubmit} className="space-y-4">
+            <form onSubmit={handleActionSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Keputusan Verifikasi</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  Keputusan Verifikasi
+                </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setActionForm({ ...actionForm, status: 'review_kabid' })}
-                    className={`py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-2 transition ${
+                    className={`py-3 px-4 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition cursor-pointer ${
                       actionForm.status === 'review_kabid'
-                        ? 'bg-emerald-600 text-white border-emerald-600'
-                        : 'bg-slate-50 text-slate-700 border-slate-200'
+                        ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    Setujui & Teruskan ke Kabid
+                    Setujui & Teruskan
                   </button>
                   <button
                     type="button"
                     onClick={() => setActionForm({ ...actionForm, status: 'rejected' })}
-                    className={`py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-2 transition ${
+                    className={`py-3 px-4 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition cursor-pointer ${
                       actionForm.status === 'rejected'
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-slate-50 text-slate-700 border-slate-200'
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <XCircle className="w-4 h-4" />
@@ -279,46 +291,48 @@ export default function KepegawaianDashboard() {
 
               {actionForm.status === 'review_kabid' && (
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                     Penetapan Bidang Penempatan (Diskominfo)
                   </label>
                   <select
                     required
                     value={actionForm.division_id}
                     onChange={(e) => setActionForm({ ...actionForm, division_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-medium outline-none focus:ring-1 focus:ring-[#4F46E5] focus:bg-white transition"
                   >
                     {divisions.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                      <option key={d.id} value={d.id} disabled={d.remaining_quota <= 0}>{d.name} ({d.code}) — Sisa Kuota: {Math.max(0, d.remaining_quota)}/{d.quota}</option>
                     ))}
                   </select>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Catatan Verifikasi</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  Catatan Verifikasi
+                </label>
                 <textarea
                   rows="3"
                   required
                   value={actionForm.notes}
                   onChange={(e) => setActionForm({ ...actionForm, notes: e.target.value })}
-                  placeholder="Masukkan catatan evaluasi berkas atau alasan penolakan..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Masukkan catatan evaluasi berkas..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-1 focus:ring-[#4F46E5] focus:bg-white transition resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setSelectedApp(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition"
+                  className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan Verifikasi'}
                 </button>
@@ -327,6 +341,7 @@ export default function KepegawaianDashboard() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

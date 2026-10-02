@@ -51,7 +51,7 @@ class AuthTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
-    public function test_intern_can_register(): void
+    public function test_applicant_registration_creates_pending_account_and_blocks_login(): void
     {
         $response = $this->postJson('/api/auth/register', [
             'name' => 'Calon Magang Baru',
@@ -62,12 +62,21 @@ class AuthTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.user.role', 'intern');
+            ->assertJsonPath('data.user.role', 'applicant')
+            ->assertJsonPath('data.user.status_akun', 'pending')
+            ->assertJsonMissingPath('data.token');
 
         $this->assertDatabaseHas('users', [
             'email' => 'calon@magang.id',
-            'role' => 'intern',
+            'role' => 'applicant',
+            'status_akun' => 'pending',
         ]);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'calon@magang.id',
+            'password' => 'password123',
+        ])->assertForbidden()
+            ->assertJsonPath('message', 'Mohon maaf, permohonan magang Anda masih dalam proses verifikasi oleh Diskominfo.');
     }
 
     public function test_authenticated_user_can_get_profile(): void

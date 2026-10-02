@@ -14,20 +14,19 @@ class Task extends Model
         'title',
         'description',
         'assigned_to',
+        'division_id',
         'created_by',
         'deadline',
         'status',
         'submission_file',
+        'submission_file_name',
         'submission_notes',
-        'score',
-        'mentor_feedback',
     ];
 
     protected function casts(): array
     {
         return [
             'deadline' => 'datetime',
-            'score' => 'decimal:2',
         ];
     }
 
@@ -39,5 +38,10 @@ class Task extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(Division::class);
     }
 }

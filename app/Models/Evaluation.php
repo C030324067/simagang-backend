@@ -21,6 +21,13 @@ class Evaluation extends Model
         'attendance_percentage',
         'final_score',
         'remarks',
+        'score_discipline',
+        'score_quality',
+        'score_initiative',
+        'score_teamwork',
+        'grade_letter',
+        'notes',
+        'evaluated_at',
     ];
 
     protected function casts(): array
@@ -33,6 +40,11 @@ class Evaluation extends Model
             'task_average' => 'decimal:2',
             'attendance_percentage' => 'decimal:2',
             'final_score' => 'decimal:2',
+            'score_discipline' => 'decimal:2',
+            'score_quality' => 'decimal:2',
+            'score_initiative' => 'decimal:2',
+            'score_teamwork' => 'decimal:2',
+            'evaluated_at' => 'datetime',
         ];
     }
 

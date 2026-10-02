@@ -23,6 +23,14 @@ class LogbookController extends Controller
 
         if ($user->role === 'intern') {
             $query->where('user_id', $user->id);
+        } elseif ($user->role === 'mentor') {
+            if (! $user->division_id) {
+                return $this->errorResponse('Akun mentor belum terhubung dengan divisi.', 403);
+            }
+
+            $query->whereHas('user', fn ($query) => $query
+                ->where('role', 'intern')
+                ->where('division_id', $user->division_id));
         } elseif ($request->filled('user_id')) {
             $query->where('user_id', $request->input('user_id'));
         }
@@ -70,6 +78,17 @@ class LogbookController extends Controller
      */
     public function verify(Request $request, Logbook $logbook): JsonResponse
     {
+        $user = $request->user();
+
+        if ($user->role === 'mentor'
+            && (! $user->division_id
+                || ! $logbook->user()
+                    ->where('role', 'intern')
+                    ->where('division_id', $user->division_id)
+                    ->exists())) {
+            return $this->errorResponse('Anda tidak berhak memverifikasi logbook dari divisi lain.', 403);
+        }
+
         $validated = $request->validate([
             'verification_status' => ['required', Rule::in(['approved', 'rejected'])],
             'mentor_notes' => ['nullable', 'string', 'max:1000'],
@@ -78,7 +97,7 @@ class LogbookController extends Controller
         $logbook->update([
             'verification_status' => $validated['verification_status'],
             'mentor_notes' => $validated['mentor_notes'] ?? null,
-            'verified_by' => $request->user()->id,
+            'verified_by' => $user->id,
         ]);
 
         $logbook->load(['user', 'verifier']);

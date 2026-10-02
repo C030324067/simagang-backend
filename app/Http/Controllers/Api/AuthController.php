@@ -15,7 +15,7 @@ class AuthController extends Controller
     use ApiResponse;
 
     /**
-     * Register a new intern account.
+     * Register a new applicant account pending approval.
      */
     public function register(Request $request): JsonResponse
     {
@@ -30,16 +30,14 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => 'intern',
+            'role' => 'applicant',
+            'status_akun' => 'pending',
             'no_hp' => $validated['no_hp'] ?? null,
         ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
         return $this->successResponse([
             'user' => $user,
-            'token' => $token,
-        ], 'Registrasi berhasil', 201);
+        ], 'Pendaftaran berhasil! Berkas Anda sedang ditinjau oleh pihak Diskominfo. Akun Anda akan diaktifkan setelah pendaftaran DITERIMA.', 201);
     }
 
     /**
@@ -54,8 +52,26 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            return $this->errorResponse('Kredensial login tidak valid', 401);
+        if (! $user) {
+            return $this->errorResponse('Email tidak terdaftar.', 401);
+        }
+
+        if (! Hash::check($validated['password'], $user->password)) {
+            return $this->errorResponse('Password yang Anda masukkan salah.', 401);
+        }
+
+        if ($user->role === 'applicant') {
+            if ($user->status_akun === 'pending') {
+                return $this->errorResponse('Mohon maaf, permohonan magang Anda masih dalam proses verifikasi oleh Diskominfo.', 403);
+            }
+
+            if ($user->status_akun === 'rejected') {
+                return $this->errorResponse('Mohon maaf, permohonan magang Anda belum dapat diterima.', 403);
+            }
+
+            if ($user->status_akun !== 'approved') {
+                return $this->errorResponse('Akun Anda belum disetujui untuk login.', 403);
+            }
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

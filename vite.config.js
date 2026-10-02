@@ -13,6 +13,7 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        cors: true, // <-- Menghilangkan blokir CORS untuk Localtunnel
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },

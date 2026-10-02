@@ -10,7 +10,7 @@ import KabidDashboard from './pages/KabidDashboard';
 import KadisDashboard from './pages/KadisDashboard';
 import MentorDashboard from './pages/MentorDashboard';
 import VerifyCertificate from './pages/VerifyCertificate';
-import RegisterApplicationPage from './pages/RegisterApplicationPage';
+import ApplicationController from './components/ApplicationController';
 
 // --- KOMPONEN FORM PENGAJUAN MAGANG (LANGSUNG DI SINI AGAR TIDAK BLANK) ---
 function ApplyPage({ onBack, onSuccess }) {
@@ -256,7 +256,7 @@ function MainApp() {
         <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
           <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} />
           <main className="flex-1">
-            <LoginPage onSuccess={() => setCurrentTab('dashboard')} />
+            <LoginPage onSuccess={() => setCurrentTab('dashboard')} onBack={() => setCurrentTab('landing')} />
           </main>
           <Footer />
         </div>
@@ -268,7 +268,7 @@ function MainApp() {
         <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
           <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} />
           <main className="flex-1">
-            <RegisterApplicationPage onLogin={() => setCurrentTab('login')} />
+            <ApplicationController onLogin={() => setCurrentTab('login')} onBack={() => setCurrentTab('landing')} />
           </main>
           <Footer />
         </div>
@@ -278,10 +278,10 @@ function MainApp() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
         <main className="flex-1">
-          <LandingPage 
-            onNavigateLogin={() => setCurrentTab('login')} 
+          {localStorage.getItem('intern_tracking_code') ? <ApplicationController onLogin={() => setCurrentTab('login')} onBack={() => setCurrentTab('landing')} /> : <LandingPage
+            onNavigateLogin={() => setCurrentTab('login')}
             onNavigateRegister={() => setCurrentTab('apply')}
-          />
+          />}
         </main>
         <Footer />
       </div>

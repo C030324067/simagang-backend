@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['intern', 'admin_kepegawaian', 'kabid', 'kadis', 'mentor'])->default('intern');
+            $table->enum('role', ['applicant', 'intern', 'admin_kepegawaian', 'kabid', 'kadis', 'mentor'])->default('intern');
             $table->string('no_hp')->nullable();
             $table->foreignId('division_id')->nullable()->constrained('divisions')->nullOnDelete();
             $table->rememberToken();

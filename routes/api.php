@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\DivisionController;
 use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\LogbookController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\UserApprovalController;
+use App\Http\Controllers\RegisterApplicationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,6 +24,13 @@ Route::prefix('auth')->group(function () {
 
 Route::get('/divisions', [DivisionController::class, 'index']);
 Route::get('/public/verify-cert/{hash}', [CertificateController::class, 'verify']);
+Route::post('/applications/register', [RegisterApplicationController::class, 'store'])
+    ->middleware('throttle:5,1');
+Route::get('/applications/track/{trackingCode}', [ApplicationController::class, 'track'])
+    ->middleware('throttle:30,1');
+Route::get('/applications/track/{trackingCode}/letter', [ApplicationController::class, 'downloadTrackingLetter'])
+    ->middleware(['signed', 'throttle:10,1'])
+    ->name('applications.tracking-letter');
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +38,9 @@ Route::get('/public/verify-cert/{hash}', [CertificateController::class, 'verify'
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/users/{user}/approve', [UserApprovalController::class, 'approve'])
+        ->middleware('role:admin_kepegawaian,kadis');
+
     // Auth profile & logout
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -39,11 +51,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('applications')->group(function () {
         Route::get('/my-application', [ApplicationController::class, 'myApplication'])->middleware('role:intern');
         Route::get('/kepegawaian', [ApplicationController::class, 'kepegawaian'])->middleware('role:admin_kepegawaian');
-        Route::get('/kabid', [ApplicationController::class, 'kabid'])->middleware('role:kabid,mentor');
+        Route::get('/{application}/documents/{document}', [ApplicationController::class, 'document'])
+            ->middleware('role:admin_kepegawaian');
+        Route::get('/kabid', [ApplicationController::class, 'kabid'])->middleware('role:kabid');
         Route::get('/kadis', [ApplicationController::class, 'kadis'])->middleware('role:kadis');
         Route::put('/{application}/status', [ApplicationController::class, 'updateStatus'])
-            ->middleware('role:admin_kepegawaian,kabid,mentor,kadis');
+            ->middleware('role:admin_kepegawaian,kabid,kadis');
         Route::post('/{application}/upload-letter', [ApplicationController::class, 'uploadOfficialLetter'])
+            ->middleware('role:admin_kepegawaian');
+        Route::put('/{application}/issue-letter', [ApplicationController::class, 'issueLetter'])
             ->middleware('role:admin_kepegawaian');
         Route::get('/{application}/official-letter', [ApplicationController::class, 'downloadOfficialLetter'])
             ->middleware('role:intern');
@@ -81,10 +97,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('attendances')->group(function () {
         Route::get('/', [AttendanceController::class, 'index']);
 
+        Route::middleware('role:intern,mentor')->get('/summary', [AttendanceController::class, 'summary']);
+
         Route::middleware('role:intern')->group(function () {
             Route::get('/today', [AttendanceController::class, 'today']);
             Route::post('/check-in', [AttendanceController::class, 'checkIn']);
             Route::post('/check-out', [AttendanceController::class, 'checkOut']);
+        });
+
+        Route::middleware('role:mentor')->group(function () {
+            Route::get('/pending-approval', [AttendanceController::class, 'pendingApprovals']);
+            Route::get('/{attendance}/files/{kind}', [AttendanceController::class, 'file']);
+            Route::put('/{attendance}/review', [AttendanceController::class, 'review']);
         });
     });
 
@@ -104,13 +128,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Task Management Endpoints
     Route::prefix('tasks')->group(function () {
         Route::get('/', [TaskController::class, 'index']);
+        Route::middleware('role:intern,mentor')->get('/{task}/submission', [TaskController::class, 'downloadSubmission']);
 
         Route::middleware('role:mentor')->group(function () {
             Route::post('/', [TaskController::class, 'store']);
-            Route::put('/{task}/score', [TaskController::class, 'score']);
         });
 
-        Route::middleware('role:intern')->group(function () {
+        Route::middleware('role:intern,mentor')->group(function () {
             Route::put('/{task}/status', [TaskController::class, 'updateStatus']);
         });
     });
@@ -118,7 +142,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Evaluation Endpoints
     Route::prefix('evaluations')->group(function () {
         Route::get('/', [EvaluationController::class, 'index']);
-        Route::get('/{intern}', [EvaluationController::class, 'show']);
+        Route::middleware('role:mentor,intern')->get('/metrics/{intern}', [EvaluationController::class, 'metrics']);
+        Route::get('/{intern}', [EvaluationController::class, 'show'])->middleware('role:mentor,intern');
 
         Route::middleware('role:mentor')->group(function () {
             Route::post('/', [EvaluationController::class, 'store']);

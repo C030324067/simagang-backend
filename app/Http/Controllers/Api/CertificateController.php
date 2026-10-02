@@ -30,6 +30,15 @@ class CertificateController extends Controller
             return $this->errorResponse('Pengguna yang dipilih bukan pemohon magang', 422);
         }
 
+        $application = $intern->applications()
+            ->where('final_status', 'accepted')
+            ->latest('id')
+            ->first();
+
+        if (! $application || $application->internship_status !== 'completed') {
+            return $this->errorResponse('Sertifikat dapat diterbitkan setelah penilaian akhir pembimbing disimpan.', 422);
+        }
+
         // Check if intern has an evaluation
         $evaluation = Evaluation::where('intern_id', $intern->id)->first();
         if (! $evaluation) {

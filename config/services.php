@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'google_calendar' => [
+        'api_key' => env('GOOGLE_CALENDAR_API_KEY'),
+    ],
+
 ];

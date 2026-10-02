@@ -34,11 +34,14 @@ class InternApplication extends Model
         'notes_kadis',
         'verified_by_kadis',
         'final_status',
+        'internship_status',
         'status',
         'rejection_note',
         'official_letter_path',
         'division_id',
         'acceptance_letter_number',
+        'official_letter_number',
+        'tracking_code',
     ];
 
     protected function casts(): array

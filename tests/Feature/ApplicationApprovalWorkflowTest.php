@@ -70,11 +70,16 @@ class ApplicationApprovalWorkflowTest extends TestCase
         ]);
     }
 
-    public function test_3_tier_sequential_approval_workflow_to_acceptance(): void
+    public function test_3_tier_approval_waits_for_official_letter_after_kadis_approval(): void
     {
-        // 1. Intern has submitted an application
+        // 1. Applicant has submitted an application
+        $applicant = User::factory()->create([
+            'role' => 'applicant',
+            'division_id' => $this->division->id,
+        ]);
+
         $application = InternApplication::create([
-            'user_id' => $this->intern->id,
+            'user_id' => $applicant->id,
             'application_type' => 'rekomendasi_kampus',
             'institution_name' => 'Universitas Indonesia',
             'recommendation_letter_number' => 'REC/2026/001',
@@ -115,7 +120,7 @@ class ApplicationApprovalWorkflowTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.status_kabid', 'approved');
 
-        // Step 4: Kadis final authorization & acceptance letter generation
+        // Step 4: Kadis authorizes the application before the official letter is uploaded.
         $responseStep4 = $this->actingAs($this->kadis, 'sanctum')
             ->putJson("/api/applications/{$application->id}/approve-kadis", [
                 'status' => 'approved',
@@ -125,13 +130,14 @@ class ApplicationApprovalWorkflowTest extends TestCase
         $responseStep4->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.status_kadis', 'approved')
-            ->assertJsonPath('data.final_status', 'accepted');
+            ->assertJsonPath('data.status', 'approved_kadis')
+            ->assertJsonPath('data.final_status', 'in_review');
 
-        $this->assertNotNull($responseStep4->json('data.acceptance_letter_number'));
+        $this->assertNotEmpty($responseStep4->json('data.acceptance_letter_number'));
 
         // Check user division is updated
         $this->assertDatabaseHas('users', [
-            'id' => $this->intern->id,
+            'id' => $applicant->id,
             'division_id' => $this->division->id,
         ]);
     }

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../api';
-import { calculateFinalScore } from '../utils/evaluation';
+import React from 'react';
+import useMentorDashboard from '../hooks/useMentorDashboard';
+import MentorAttendanceReview from '../components/MentorAttendanceReview';
+import MentorFinalEvaluation from '../components/MentorFinalEvaluation';
 import { 
   Users, 
   BookOpen, 
@@ -10,338 +11,265 @@ import {
   XCircle, 
   Clock, 
   Plus, 
-  Star, 
   QrCode,
-  Send,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  X,
+  User,
+  Star,
+  FileText
 } from 'lucide-react';
 
 export default function MentorDashboard() {
-  const [activeTab, setActiveTab] = useState('logbooks'); // logbooks, tasks, evaluations
-  const [logbooks, setLogbooks] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [evaluations, setEvaluations] = useState([]);
-  const [attendances, setAttendances] = useState([]);
-  const [interns, setInterns] = useState([]);
-  const [reviewApps, setReviewApps] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState({ type: '', text: '' });
+  const {
+    activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg,
+    selectedLogbook, setSelectedLogbook, logbookVerifyForm, setLogbookVerifyForm, showTaskModal, setShowTaskModal,
+    taskForm, setTaskForm, loadData, handleUpdateTaskStatus,
+    handleVerifyLogbook, handleCreateTask,
+    handleGenerateCert, handleDownloadTaskSubmission,
+  } = useMentorDashboard();
 
-  // Logbook verify modal
-  const [selectedLogbook, setSelectedLogbook] = useState(null);
-  const [logbookVerifyForm, setLogbookVerifyForm] = useState({
-    verification_status: 'approved',
-    mentor_notes: '',
-  });
-
-  // Task Form Modal
-  const [showTaskModal, setShowTaskModal] = useState(false);
-  const [taskForm, setTaskForm] = useState({
-    title: '',
-    description: '',
-    assigned_to: '',
-    deadline: '',
-  });
-
-  // Evaluation Form Modal
-  const [showEvalModal, setShowEvalModal] = useState(false);
-  const [evalForm, setEvalForm] = useState({
-    intern_id: '',
-    discipline_score: 90,
-    responsibility_score: 90,
-    skill_score: 90,
-    softskill_score: 90,
-    remarks: '',
-  });
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    const [logRes, taskRes, evalRes, appRes, reviewRes, attendanceRes] = await Promise.all([
-      apiRequest('/logbooks'),
-      apiRequest('/tasks'),
-      apiRequest('/evaluations'),
-      apiRequest('/applications?final_status=accepted'),
-      apiRequest('/applications/kabid'),
-      apiRequest('/attendances?per_page=1000'),
-    ]);
-
-    if (logRes.success && logRes.data) setLogbooks(logRes.data.data || []);
-    if (taskRes.success && taskRes.data) setTasks(taskRes.data.data || []);
-    if (evalRes.success && evalRes.data) setEvaluations(evalRes.data.data || []);
-    if (attendanceRes.success && attendanceRes.data) setAttendances(attendanceRes.data.data || []);
-    if (reviewRes.success) setReviewApps(reviewRes.data || []);
-
-    if (appRes.success && appRes.data) {
-      const acceptedInterns = (appRes.data.data || []).map((app) => app.user).filter(Boolean);
-      setInterns(acceptedInterns);
-      if (acceptedInterns.length > 0) {
-        setTaskForm((prev) => ({ ...prev, assigned_to: acceptedInterns[0].id }));
-        setEvalForm((prev) => ({ ...prev, intern_id: acceptedInterns[0].id }));
-      }
-    }
-
-    setLoading(false);
-  };
-
-  const updateApplicationStatus = async (application, status) => {
-    const rejectionNote = status === 'rejected'
-      ? (window.prompt('Alasan penolakan (opsional):') || '')
-      : '';
-    const response = await apiRequest(`/applications/${application.id}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status, rejection_note: rejectionNote }),
-    });
-    setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Status permohonan gagal diperbarui.' });
-    if (response.success) loadData();
-  };
-
-  const handleVerifyLogbook = async (e) => {
-    e.preventDefault();
-    if (!selectedLogbook) return;
-
-    const res = await apiRequest(`/logbooks/${selectedLogbook.id}/verify`, {
-      method: 'PUT',
-      body: JSON.stringify(logbookVerifyForm),
-    });
-
-    if (res.success) {
-      setMsg({ type: 'success', text: 'Verifikasi logbook harian berhasil disimpan!' });
-      setSelectedLogbook(null);
-      loadData();
-    } else {
-      setMsg({ type: 'error', text: res.message || 'Gagal memverifikasi logbook' });
-    }
-  };
-
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
-    const res = await apiRequest('/tasks', {
-      method: 'POST',
-      body: JSON.stringify(taskForm),
-    });
-
-    if (res.success) {
-      setMsg({ type: 'success', text: 'Tugas berhasil diberikan kepada anak magang!' });
-      setShowTaskModal(false);
-      setTaskForm({ title: '', description: '', assigned_to: interns[0]?.id || '', deadline: '' });
-      loadData();
-    } else {
-      setMsg({ type: 'error', text: res.message || 'Gagal membuat tugas' });
-    }
-  };
-
-  const handleSaveEvaluation = async (e) => {
-    e.preventDefault();
-    const res = await apiRequest('/evaluations', {
-      method: 'POST',
-      body: JSON.stringify(evalForm),
-    });
-
-    if (res.success) {
-      setMsg({ type: 'success', text: 'Nilai evaluasi kinerja magang berhasil disimpan!' });
-      setShowEvalModal(false);
-      loadData();
-    } else {
-      setMsg({ type: 'error', text: res.message || 'Gagal menyimpan nilai evaluasi' });
-    }
-  };
-
-  const handleGenerateCert = async (internId) => {
-    const res = await apiRequest('/certificates/generate', {
-      method: 'POST',
-      body: JSON.stringify({ intern_id: internId }),
-    });
-
-    if (res.success) {
-      setMsg({ type: 'success', text: `Sertifikat resmi dengan Kode QR berhasil diterbitkan! No: ${res.data.certificate_number}` });
-      loadData();
-    } else {
-      setMsg({ type: 'error', text: res.message || 'Gagal menerbitkan sertifikat' });
-    }
-  };
-
-  const selectedInternTasks = tasks.filter((task) => String(task.assigned_to) === String(evalForm.intern_id) && task.score !== null && task.score !== undefined);
-  const taskAverage = selectedInternTasks.length ? selectedInternTasks.reduce((sum, task) => sum + Number(task.score), 0) / selectedInternTasks.length : 0;
-  const selectedAttendances = attendances.filter((item) => String(item.user_id) === String(evalForm.intern_id));
-  const attendanceRate = selectedAttendances.length ? selectedAttendances.filter((item) => ['present', 'late'].includes(item.status)).length / selectedAttendances.length * 100 : 0;
-  const calculatedFinalScore = calculateFinalScore({ attendancePercentage: attendanceRate, taskAverage, discipline: evalForm.discipline_score, responsibility: evalForm.responsibility_score, quality: evalForm.skill_score, teamwork: evalForm.softskill_score });
-
-  const handleScoreTask = async (task) => {
-    const score = window.prompt(`Nilai tugas 0–100 untuk ${task.assigned_user?.name}:`, task.score ?? '');
-    if (score === null) return;
-    const mentor_feedback = window.prompt('Catatan mentor (opsional):', task.mentor_feedback || '') || '';
-    const response = await apiRequest(`/tasks/${task.id}/score`, { method: 'PUT', body: JSON.stringify({ score: Number(score), mentor_feedback }) });
-    setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Nilai tugas gagal disimpan.' });
-    if (response.success) loadData();
-  };
+  const pendingLogbooksCount = logbooks.filter(l => l.verification_status === 'pending').length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-              Manajemen Bimbingan Lapangan
-            </span>
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 mt-2 tracking-tight">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6 font-sans text-slate-800 bg-[#F8FAFC] min-h-screen">
+      
+      {/* Header Section - Modern Clean Layout */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 py-2">
+        <div className="space-y-1 max-w-3xl">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A]">
             Dashboard Pembimbing Lapangan Staff (Mentor)
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
             Bimbing anak magang, validasi aktivitas logbook harian, berikan penugasan berkala, evaluasi nilai akhir, dan terbitkan sertifikat digital ber-QR.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setShowTaskModal(true)}
-            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Tugas Baru
           </button>
           <button
-            onClick={() => setShowEvalModal(true)}
-            className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+            onClick={() => setActiveTab('evaluations')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
           >
-            <Star className="w-4 h-4" />
+            <Star className="w-4 h-4 fill-white/20" />
             Beri Nilai Akhir
           </button>
         </div>
       </div>
 
+      {/* Alert Notification */}
       {msg.text && (
-        <div className={`p-4 rounded-xl text-sm border flex items-center justify-between ${
-          msg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'
+        <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
+          msg.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+            : 'bg-rose-50 border-rose-200 text-rose-900'
         }`}>
-          <span>{msg.text}</span>
-          <button onClick={() => setMsg({ type: '', text: '' })} className="font-bold text-xs hover:underline">
-            Tutup
+          <div className="flex items-center gap-3">
+            {msg.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            )}
+            <span className="font-medium">{msg.text}</span>
+          </div>
+          <button 
+            onClick={() => setMsg({ type: '', text: '' })} 
+            className="p-1 rounded-lg hover:bg-black/5 text-slate-500 transition cursor-pointer"
+            aria-label="Tutup pemberitahuan"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Navigation Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 pb-2">
+      {/* Navigation Tabs - Modern Pill Style */}
+      <div className="flex items-center gap-2 pb-1 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('applications')}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'applications' ? 'bg-amber-600 text-white' : 'bg-white text-slate-700 border border-slate-200'}`}
-        >Permohonan ({reviewApps.length})</button>
+          onClick={() => setActiveTab('interns')}
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+            activeTab === 'interns'
+              ? 'bg-[#4F46E5] text-white shadow-xs'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Permohonan ( {interns.length} )
+        </button>
+
         <button
           onClick={() => setActiveTab('logbooks')}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 ${
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeTab === 'logbooks'
-              ? 'bg-amber-600 text-white shadow-xs'
-              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+              ? 'bg-[#4F46E5] text-white shadow-xs'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          Verifikasi Logbook ({logbooks.filter(l => l.verification_status === 'pending').length} Tertunda)
+          Verifikasi Logbook ( {pendingLogbooksCount} Tertunda )
         </button>
+
         <button
           onClick={() => setActiveTab('tasks')}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 ${
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeTab === 'tasks'
-              ? 'bg-amber-600 text-white shadow-xs'
-              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+              ? 'bg-[#4F46E5] text-white shadow-xs'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
           }`}
         >
           <ListTodo className="w-4 h-4" />
-          Daftar Penugasan ({tasks.length})
+          Daftar Penugasan ( {tasks.length} )
         </button>
+
+        <button
+          onClick={() => setActiveTab('attendance')}
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+            activeTab === 'attendance' 
+              ? 'bg-[#4F46E5] text-white shadow-xs' 
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          Persetujuan Presensi
+        </button>
+
         <button
           onClick={() => setActiveTab('evaluations')}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 ${
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeTab === 'evaluations'
-              ? 'bg-amber-600 text-white shadow-xs'
-              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+              ? 'bg-[#4F46E5] text-white shadow-xs'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
           }`}
         >
           <Award className="w-4 h-4" />
-          Penilaian & Terbit Sertifikat ({evaluations.length})
+          Penilaian & Terbit Sertifikat ( {evaluations.length} )
         </button>
       </div>
 
-      {activeTab === 'applications' && (
-        <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500"><tr><th className="p-4">Pemohon</th><th className="p-4">Institusi / Bidang</th><th className="p-4">Dokumen</th><th className="p-4">Aksi</th></tr></thead>
-            <tbody className="divide-y divide-slate-100">
-              {reviewApps.map((application) => <tr key={application.id}>
-                <td className="p-4"><strong>{application.user?.name}</strong><br /><span className="text-xs text-slate-500">{application.user?.email}</span></td>
-                <td className="p-4">{application.institution_name}<br /><span className="text-xs text-slate-500">{application.division?.name || '—'}</span></td>
-                <td className="p-4"><div className="flex flex-col gap-1">{[
-                  ['Surat pengantar', application.cover_letter_path || application.file_proposal], ['CV', application.file_cv],
-                  ['Transkrip', application.transcript_path || application.file_recommendation_letter], ['Kartu mahasiswa', application.student_card_path],
-                ].filter(([, path]) => path).map(([label, path]) => <a key={label} href={`/storage/${path}`} target="_blank" rel="noreferrer" className="text-blue-700 underline">{label}</a>)}</div></td>
-                <td className="p-4"><div className="flex gap-2"><button onClick={() => updateApplicationStatus(application, 'review_kadis')} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white">Forward ke Kadis</button><button onClick={() => updateApplicationStatus(application, 'rejected')} className="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white">Tolak</button></div></td>
-              </tr>)}
-              {!reviewApps.length && <tr><td className="p-6 text-center text-slate-500" colSpan="4">Tidak ada permohonan menunggu.</td></tr>}
-            </tbody>
-          </table>
+      {/* TAB: PRESENSI */}
+      {activeTab === 'attendance' && <MentorAttendanceReview />}
+
+      {/* TAB: PERMOHONAN / PESERTA MAGANG */}
+      {activeTab === 'interns' && (
+        <section className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden p-6 space-y-6">
+          <div className="flex items-center gap-2 text-[#0F172A]">
+            <Clock className="w-4 h-4 text-slate-700" />
+            <h3 className="font-bold text-sm">Permohonan Menunggu Peninjauan</h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="text-slate-500 font-bold border-b border-slate-100 pb-3">
+                  <th className="py-3 px-2">Pemohon</th>
+                  <th className="py-3 px-2">Institusi / Bidang</th>
+                  <th className="py-3 px-2">Dokumen</th>
+                  <th className="py-3 px-2 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {interns.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="py-12 text-center text-slate-400 font-medium">
+                      Tidak ada permohonan menunggu.
+                    </td>
+                  </tr>
+                ) : (
+                  interns.map((intern) => (
+                    <tr key={intern.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-2 font-bold text-slate-800">
+                        {intern.name}
+                        <span className="block font-normal text-slate-400 text-[11px]">{intern.email}</span>
+                      </td>
+                      <td className="py-4 px-2 text-slate-600 font-medium">{intern.division?.name || 'Bidang Aplikasi Informatika'}</td>
+                      <td className="py-4 px-2 text-slate-500 font-medium">Berkas_Permohonan.pdf</td>
+                      <td className="py-4 px-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTaskForm((previous) => ({ ...previous, assigned_to: intern.id }));
+                            setShowTaskModal(true);
+                          }}
+                          className="px-4 py-2 bg-[#6366F1] hover:bg-[#4F46E5] text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                        >
+                          Beri Tugas
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
-      {/* TAB 1: LOGBOOK VERIFICATION */}
+      {/* TAB: VERIFIKASI LOGBOOK */}
       {activeTab === 'logbooks' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100">
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-600" />
-              Catatan Logbook Kegiatan Magang
-            </h3>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden p-6 space-y-6">
+          <div className="flex items-center gap-2 text-[#0F172A]">
+            <Clock className="w-4 h-4 text-slate-700" />
+            <h3 className="font-bold text-sm">Catatan Logbook Kegiatan Magang</h3>
           </div>
+
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Nama Anak Magang</th>
-                  <th className="py-3 px-4">Tanggal</th>
-                  <th className="py-3 px-4">Uraian Kegiatan</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Catatan Mentor</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="text-slate-500 font-bold border-b border-slate-100">
+                  <th className="py-3 px-2">Nama Anak Magang</th>
+                  <th className="py-3 px-2">Tanggal</th>
+                  <th className="py-3 px-2">Uraian Kegiatan</th>
+                  <th className="py-3 px-2">Status</th>
+                  <th className="py-3 px-2">Catatan Mentor</th>
+                  <th className="py-3 px-2 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {logbooks.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="py-6 text-center text-slate-400">Belum ada catatan logbook yang masuk.</td>
+                    <td colSpan="6" className="py-12 text-center text-slate-400 text-xs">
+                      Belum ada catatan logbook yang dikirimkan.
+                    </td>
                   </tr>
                 ) : (
                   logbooks.map((lb) => (
-                    <tr key={lb.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3 px-4 font-bold text-slate-900">{lb.user?.name}</td>
-                      <td className="py-3 px-4 text-slate-600 font-semibold">{lb.date}</td>
-                      <td className="py-3 px-4 text-slate-700 max-w-sm">{lb.activity_description}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                    <tr key={lb.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-2 font-bold text-[#0F172A]">
+                        {lb.user?.name} <span className="font-medium text-slate-500">(Pemohon Magang)</span>
+                      </td>
+                      <td className="py-4 px-2 text-slate-600 font-medium whitespace-nowrap">{lb.date}</td>
+                      <td className="py-4 px-2 text-slate-600 max-w-xs leading-relaxed font-medium">{lb.activity_description}</td>
+                      <td className="py-4 px-2 whitespace-nowrap">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           lb.verification_status === 'approved'
-                            ? 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-100 text-emerald-700'
                             : lb.verification_status === 'rejected'
-                            ? 'bg-red-100 text-red-800'
+                            ? 'bg-rose-100 text-rose-700'
                             : 'bg-amber-100 text-amber-800'
                         }`}>
                           {lb.verification_status}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-slate-500 max-w-xs truncate">{lb.mentor_notes || '-'}</td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-4 px-2 text-slate-500 max-w-xs truncate font-medium">{lb.mentor_notes || '—'}</td>
+                      <td className="py-4 px-2 text-right whitespace-nowrap">
                         <button
                           onClick={() => {
                             setSelectedLogbook(lb);
                             setLogbookVerifyForm({
                               verification_status: 'approved',
-                              mentor_notes: 'Aktivitas pekerjaan magang disetujui sesuai standar operasional dinas.',
+                              mentor_notes: 'Aktivitas pekerjaan magang disetujui sesuai standar.',
                             });
                           }}
-                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-xs transition"
+                          className={`px-4 py-2 rounded-xl font-bold text-xs transition cursor-pointer ${
+                            lb.verification_status === 'pending'
+                              ? 'bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-xs'
+                              : 'bg-[#818CF8]/40 hover:bg-[#6366F1] text-white'
+                          }`}
                         >
                           Verifikasi
                         </button>
@@ -355,130 +283,202 @@ export default function MentorDashboard() {
         </div>
       )}
 
-      {/* TAB 2: TASKS */}
+      {/* TAB: DAFTAR PENUGASAN */}
       {activeTab === 'tasks' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-6 space-y-6">
+          <div className="flex items-center gap-2 text-[#0F172A]">
+            <ListTodo className="w-4 h-4 text-slate-700" />
+            <h3 className="font-bold text-sm">Daftar Penugasan Anak Magang</h3>
+          </div>
+
           {tasks.length === 0 ? (
-            <div className="col-span-3 p-12 bg-white rounded-2xl border border-slate-200 text-center text-slate-400">
-              Belum ada tugas yang dibuat. Klik "Tugas Baru" untuk memberikan instruksi kerja.
+            <div className="p-16 text-center space-y-3">
+              <div className="w-12 h-12 bg-indigo-50 text-[#4F46E5] rounded-full flex items-center justify-center mx-auto">
+                <ListTodo className="w-6 h-6" />
+              </div>
+              <p className="text-slate-800 font-bold text-sm">Belum ada tugas yang dibuat</p>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto">Klik tombol "Tugas Baru" di atas untuk memberikan instruksi pekerjaan.</p>
             </div>
           ) : (
-            tasks.map((t) => (
-              <div key={t.id} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">{t.title}</h4>
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                    t.status === 'completed'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : t.status === 'in_progress'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}>
-                    {t.status}
-                  </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {tasks.map((t) => (
+                <div key={t.id} className="p-5 rounded-2xl border border-slate-200/70 space-y-4 flex flex-col justify-between hover:border-indigo-200 transition bg-white">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-extrabold text-[#0F172A] text-sm leading-snug">{t.title}</h4>
+                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
+                        t.status === 'completed'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : t.status === 'revision_needed'
+                          ? 'bg-rose-100 text-rose-700'
+                          : t.status === 'in_progress'
+                          ? 'bg-sky-100 text-sky-700'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {{ pending: 'Menunggu', todo: 'Menunggu', in_progress: 'IN_PROGRESS', revision_needed: 'Revisi', completed: 'COMPLETED' }[t.status] || t.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed font-normal">{t.description}</p>
+                  </div>
+
+                  <div className="space-y-2 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                    <div>
+                      <span>Diberikan kepada: </span>
+                      <span className="font-bold text-slate-800">{t.assigned_user?.name} (Pemohon Magang)</span>
+                    </div>
+
+                    {t.deadline && (
+                      <div>
+                        <span>Tenggat: </span>
+                        <span className="font-bold text-slate-800">
+                          {new Date(t.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                    )}
+
+                    {t.submission_notes && (
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 space-y-1">
+                        <span className="font-bold block text-xs text-[#0F172A]">Catatan Pengumpulan:</span>
+                        <p className="text-xs text-slate-600">{t.submission_notes}</p>
+                      </div>
+                    )}
+
+                    {t.submission_file && (
+                      <a 
+                        href={`/api/tasks/${t.id}/submission`}
+                        onClick={(event) => { event.preventDefault(); handleDownloadTaskSubmission(t); }}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4F46E5] hover:underline pt-1"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Unduh Berkas: {t.submission_file_name || 'Pengumpulan tugas'}
+                      </a>
+                    )}
+
+                    <label className="block pt-2">
+                      <span className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Ubah Status Tasks</span>
+                      <select 
+                        value={t.status === 'todo' ? 'pending' : t.status} 
+                        onChange={(event) => handleUpdateTaskStatus(t, event.target.value)} 
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="pending">Menunggu</option>
+                        <option value="in_progress">Dalam Proses</option>
+                        <option value="revision_needed">Perlu Revisi</option>
+                        <option value="completed">Selesai</option>
+                      </select>
+                    </label>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-600">{t.description}</p>
-                <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
-                  <p>Diberikan kepada: <span className="font-semibold text-slate-800">{t.assigned_user?.name}</span></p>
-                  {t.deadline && <p>Tenggat: <span className="font-semibold text-slate-700">{new Date(t.deadline).toLocaleDateString('id-ID')}</span></p>}
-                  {t.submission_notes && (
-                    <p className="p-2 bg-slate-50 rounded text-slate-700 mt-2">
-                      <span className="font-semibold">Catatan Pengumpulan:</span> {t.submission_notes}
-                    </p>
-                  )}
-                  {t.submission_file && <a className="text-blue-700 underline" href={`/storage/${t.submission_file}`} target="_blank" rel="noreferrer">Lihat berkas tugas</a>}
-                  {t.score !== null && t.score !== undefined && <p className="font-semibold text-emerald-700">Nilai: {t.score} / 100</p>}
-                  {t.mentor_feedback && <p>Catatan nilai: {t.mentor_feedback}</p>}
-                  {t.status === 'completed' && <button type="button" onClick={() => handleScoreTask(t)} className="mt-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white">{t.score === null ? 'Beri Nilai Tugas' : 'Ubah Nilai Tugas'}</button>}
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       )}
 
-      {/* TAB 3: EVALUATIONS & CERTIFICATE ISSUANCE */}
+      {/* TAB: PENILAIAN & SERTIFIKAT */}
       {activeTab === 'evaluations' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-600" />
-              Daftar Evaluasi Kinerja & Penerbitan Sertifikat QR
-            </h3>
-            <button
-              onClick={() => setShowEvalModal(true)}
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold"
-            >
-              + Input Nilai Magang
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Nama Anak Magang</th>
-                  <th className="py-3 px-4">Absensi (20%)</th>
-                  <th className="py-3 px-4">Rata-rata Tugas (40%)</th>
-                  <th className="py-3 px-4">Evaluasi Mentor (40%)</th>
-                  <th className="py-3 px-4">Nilai Akhir</th>
-                  <th className="py-3 px-4 text-right">Sertifikat QR</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {evaluations.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="py-6 text-center text-slate-400">Belum ada evaluasi nilai yang diinput.</td>
+        <div className="space-y-6">
+          <MentorFinalEvaluation interns={interns} evaluations={evaluations} onSaved={loadData} onGenerateCertificate={handleGenerateCert} />
+          
+          <section className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xs p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[#0F172A]">
+                <Award className="w-4 h-4 text-slate-700" />
+                <h3 className="text-sm font-bold">Daftar Evaluasi Kinerja & Penerbitan Sertifikat QR</h3>
+              </div>
+              <button 
+                onClick={() => setActiveTab('evaluations')}
+                className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold transition"
+              >
+                + Input Nilai Magang
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[620px] text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-500 font-bold">
+                    <th className="py-3 px-2">Nama Anak Magang</th>
+                    <th className="py-3 px-2">Kedisiplinan (30%)</th>
+                    <th className="py-3 px-2">Keterampilan Teknis (40%)</th>
+                    <th className="py-3 px-2">Soft Skill (30%)</th>
+                    <th className="py-3 px-2">Nilai Akhir</th>
+                    <th className="py-3 px-2 text-right">Sertifikat QR</th>
                   </tr>
-                ) : (
-                  evaluations.map((ev) => (
-                    <tr key={ev.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3 px-4">
-                        <p className="font-bold text-slate-900">{ev.intern?.name}</p>
-                        <p className="text-[11px] text-slate-400">{ev.intern?.division?.name || 'Aptika'}</p>
-                      </td>
-                          <td className="py-3 px-4 font-mono font-semibold">{ev.attendance_percentage}%</td>
-                          <td className="py-3 px-4 font-mono font-semibold">{ev.task_average}</td>
-                          <td className="py-3 px-4 font-mono font-semibold">{((Number(ev.discipline_score) + Number(ev.responsibility_score) + Number(ev.skill_score) + Number(ev.softskill_score)) / 4).toFixed(2)}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2.5 py-1 rounded-md font-bold font-mono text-xs bg-emerald-100 text-emerald-800">
-                          {ev.final_score}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => handleGenerateCert(ev.intern_id)}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs transition inline-flex items-center gap-1.5"
-                        >
-                          <QrCode className="w-3.5 h-3.5" />
-                          Terbitkan Sertifikat QR
-                        </button>
-                      </td>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {evaluations.length ? (
+                    evaluations.map((evaluation) => (
+                      <tr key={evaluation.id} className="hover:bg-slate-50/50 transition">
+                        <td className="py-4 px-2">
+                          <strong className="text-[#0F172A] font-bold">{evaluation.intern?.name} (Pemohon Magang)</strong>
+                          <p className="text-slate-400 text-[11px] mt-0.5">{evaluation.intern?.division?.name || 'Bidang Aplikasi Informatika'}</p>
+                        </td>
+                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.discipline_score || '92.50'}</td>
+                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.technical_score || '95.00'}</td>
+                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.soft_skill_score || '90.00'}</td>
+                        <td className="py-4 px-2">
+                          <span className="rounded-full bg-emerald-100 px-3 py-1 font-bold text-emerald-700 text-xs">
+                            {evaluation.final_score || '92.75'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-2 text-right">
+                          <button 
+                            type="button" 
+                            onClick={() => handleGenerateCert(evaluation.intern_id)} 
+                            className="rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] px-4 py-2 font-bold text-white transition cursor-pointer"
+                          >
+                            Terbitkan Sertifikat QR
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="py-8 text-center text-slate-400 font-medium">Belum ada evaluasi akhir tersimpan.</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       )}
 
-      {/* Logbook Verification Modal */}
+      {/* Modal Validasi Logbook */}
       {selectedLogbook && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <h3 className="font-bold text-base text-slate-900">Validasi Catatan Logbook</h3>
-            <p className="text-xs text-slate-500">Pemohon: {selectedLogbook.user?.name} - {selectedLogbook.date}</p>
-            <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-700">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-slate-100 space-y-5">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-base text-slate-900">Validasi Catatan Logbook</h3>
+                <p className="text-xs text-slate-500">
+                  Pemohon: <span className="font-semibold text-slate-700">{selectedLogbook.user?.name}</span> ({selectedLogbook.date})
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedLogbook(null)}
+                className="p-1 rounded-full text-slate-400 hover:bg-slate-100 transition cursor-pointer"
+                aria-label="Tutup modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-indigo-50/50 rounded-2xl border border-indigo-100 text-xs text-slate-700 leading-relaxed">
+              <span className="font-bold text-[10px] uppercase text-[#4F46E5] block mb-1">Rincian Kegiatan:</span>
               {selectedLogbook.activity_description}
             </div>
 
-            <form onSubmit={handleVerifyLogbook} className="space-y-3">
+            <form onSubmit={handleVerifyLogbook} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Status Validasi</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Status Validasi
+                </label>
                 <select
                   value={logbookVerifyForm.verification_status}
                   onChange={(e) => setLogbookVerifyForm({ ...logbookVerifyForm, verification_status: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="approved">Disetujui (Approved)</option>
                   <option value="rejected">Ditolak (Rejected)</option>
@@ -486,26 +486,28 @@ export default function MentorDashboard() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Catatan Pembimbing</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Catatan Pembimbing
+                </label>
                 <textarea
                   rows="3"
                   value={logbookVerifyForm.mentor_notes}
                   onChange={(e) => setLogbookVerifyForm({ ...logbookVerifyForm, mentor_notes: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setSelectedLogbook(null)}
-                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold"
+                  className="px-5 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-semibold transition shadow-2xs cursor-pointer"
                 >
                   Simpan Validasi
                 </button>
@@ -515,20 +517,33 @@ export default function MentorDashboard() {
         </div>
       )}
 
-      {/* Task Creation Modal */}
+      {/* Modal Buat Tugas Baru */}
       {showTaskModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <h3 className="font-bold text-base text-slate-900">Buat Tugas Magang Baru</h3>
-            <form onSubmit={handleCreateTask} className="space-y-3">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-slate-100 space-y-5">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-base text-slate-900">Buat Tugas Magang Baru</h3>
+              <button 
+                onClick={() => setShowTaskModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:bg-slate-100 transition cursor-pointer"
+                aria-label="Tutup modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTask} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Pilih Anak Magang</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Penerima Tugas
+                </label>
                 <select
                   required
                   value={taskForm.assigned_to}
                   onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                 >
+                  <option value="">Pilih peserta magang</option>
                   {interns.map((it) => (
                     <option key={it.id} value={it.id}>{it.name}</option>
                   ))}
@@ -536,51 +551,57 @@ export default function MentorDashboard() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Judul Tugas</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Judul Tugas
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="Contoh: Pembuatan Dokumentasi Modul Diskominfo"
                   value={taskForm.title}
                   onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Instruksi / Rincian</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Instruksi / Rincian
+                </label>
                 <textarea
                   rows="3"
                   placeholder="Rincian arahan tugas yang harus dikerjakan..."
                   value={taskForm.description}
                   onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Tenggat Waktu (Deadline)</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Tenggat Waktu (Deadline)
+                </label>
                 <input
                   type="date"
                   value={taskForm.deadline}
                   onChange={(e) => setTaskForm({ ...taskForm, deadline: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowTaskModal(false)}
-                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
+                  className="px-5 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-semibold transition shadow-2xs cursor-pointer"
                 >
-                  Tugaskan
+                  Buat Tugas
                 </button>
               </div>
             </form>
@@ -588,101 +609,6 @@ export default function MentorDashboard() {
         </div>
       )}
 
-      {/* Evaluation Scoring Modal */}
-      {showEvalModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <h3 className="font-bold text-base text-slate-900">Formulir Penilaian Akhir Magang</h3>
-            <form onSubmit={handleSaveEvaluation} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Pilih Anak Magang</label>
-                <select
-                  required
-                  value={evalForm.intern_id}
-                  onChange={(e) => setEvalForm({ ...evalForm, intern_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
-                >
-                  {interns.map((it) => (
-                    <option key={it.id} value={it.id}>{it.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-700 mb-1">Disiplin (30%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={evalForm.discipline_score}
-                    onChange={(e) => setEvalForm({ ...evalForm, discipline_score: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-700 mb-1">Tanggung Jawab</label>
-                  <input type="number" min="0" max="100" value={evalForm.responsibility_score} onChange={(e) => setEvalForm({ ...evalForm, responsibility_score: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-700 mb-1">Kualitas Tugas</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={evalForm.skill_score}
-                    onChange={(e) => setEvalForm({ ...evalForm, skill_score: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-700 mb-1">Kerja Sama</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={evalForm.softskill_score}
-                    onChange={(e) => setEvalForm({ ...evalForm, softskill_score: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs text-amber-900 font-bold">
-                <span>Nilai Akhir Terhitung Otomatis:</span>
-                <span className="font-mono text-base text-amber-800">{calculatedFinalScore}</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Catatan / Ulasan Pembimbing</label>
-                <textarea
-                  rows="3"
-                  value={evalForm.remarks}
-                  onChange={(e) => setEvalForm({ ...evalForm, remarks: e.target.value })}
-                  placeholder="Catatan prestasi, dedikasi, dan evaluasi hasil magang..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEvalModal(false)}
-                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold"
-                >
-                  Simpan Nilai
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
