@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1370" role="img" aria-labelledby="title description">
+  <title id="title">ERD Konseptual SIMAGANG dengan Notasi Chen</title>
+  <desc id="description">Diagram konseptual SIMAGANG. Pegawai memiliki NIP, jabatan, dan penempatan divisi; daftar divisi disediakan sebagai master data dinamis.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .title { fill: #0f172a; font: 700 30px Arial, sans-serif; }
+      .subtitle { fill: #475569; font: 15px Arial, sans-serif; }
+      .entity { fill: #fff; stroke: #334155; stroke-width: 2.5; }
+      .entity-label { fill: #0f172a; font: 700 17px Arial, sans-serif; text-anchor: middle; dominant-baseline: middle; }
+      .attribute { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.8; }
+      .attribute-label { fill: #1e3a8a; font: 14px Arial, sans-serif; text-anchor: middle; dominant-baseline: middle; }
+      .relationship { fill: #fef3c7; stroke: #d97706; stroke-width: 2; }
+      .relationship-label { fill: #78350f; font: 700 13px Arial, sans-serif; text-anchor: middle; dominant-baseline: middle; }
+      .connector { fill: none; stroke: #475569; stroke-width: 1.8; }
+      .cardinality { fill: #0f172a; font: 700 14px Arial, sans-serif; text-anchor: middle; }
+      .legend { fill: #334155; font: 14px Arial, sans-serif; }
+      .legend-title { fill: #0f172a; font: 700 15px Arial, sans-serif; }
+      .section { fill: #334155; font: 700 16px Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="canvas" width="1800" height="1370" rx="20"/>
+  <text class="title" x="900" y="48" text-anchor="middle">ERD Konseptual SIMAGANG</text>
+  <text class="subtitle" x="900" y="76" text-anchor="middle">Notasi Chen — Entitas, atribut, hubungan, dan kardinalitas proses bisnis</text>
+
+  <text class="section" x="1420" y="115">PENGAJUAN &amp; PERSETUJUAN</text>
+
+  <!-- Top-row relationship connectors -->
+  <path class="connector" d="M250 286 L292 286 M408 286 L450 286 M610 286 L662 286 M778 286 L820 286 M980 286 L1022 286 M1138 286 L1180 286"/>
+  <text class="cardinality" x="270" y="276">1</text>
+  <text class="cardinality" x="430" y="276">N</text>
+  <text class="cardinality" x="632" y="276">1</text>
+  <text class="cardinality" x="800" y="276">N</text>
+  <text class="cardinality" x="1000" y="276">N</text>
+  <text class="cardinality" x="1160" y="276">1</text>
+
+  <!-- Applicant attributes -->
+  <path class="connector" d="M145 175 L175 246 M195 175 L195 246 M245 175 L215 246"/>
+  <ellipse class="attribute" cx="145" cy="153" rx="53" ry="22"/>
+  <ellipse class="attribute" cx="195" cy="105" rx="53" ry="22"/>
+  <ellipse class="attribute" cx="245" cy="153" rx="53" ry="22"/>
+  <text class="attribute-label" x="145" y="153">Nama</text>
+  <text class="attribute-label" x="195" y="105">Email</text>
+  <text class="attribute-label" x="245" y="153">Pendidikan</text>
+
+  <!-- Application attributes -->
+  <path class="connector" d="M470 175 L490 246 M530 175 L530 246 M590 175 L570 246"/>
+  <ellipse class="attribute" cx="470" cy="153" rx="57" ry="22"/>
+  <ellipse class="attribute" cx="530" cy="105" rx="57" ry="22"/>
+  <ellipse class="attribute" cx="590" cy="153" rx="57" ry="22"/>
+  <text class="attribute-label" x="470" y="153">Kode tracking</text>
+  <text class="attribute-label" x="530" y="105">Institusi</text>
+  <text class="attribute-label" x="590" y="153">Status</text>
+
+  <!-- Approval attributes -->
+  <path class="connector" d="M840 175 L860 246 M900 175 L900 246 M960 175 L940 246"/>
+  <ellipse class="attribute" cx="840" cy="153" rx="58" ry="22"/>
+  <ellipse class="attribute" cx="900" cy="105" rx="58" ry="22"/>
+  <ellipse class="attribute" cx="960" cy="153" rx="58" ry="22"/>
+  <text class="attribute-label" x="840" y="153">Tahap</text>
+  <text class="attribute-label" x="900" y="105">Keputusan</text>
+  <text class="attribute-label" x="960" y="153">Catatan</text>
+
+  <!-- Reviewer attributes -->
+  <path class="connector" d="M1200 175 L1220 246 M1260 175 L1260 246 M1320 175 L1300 246"/>
+  <ellipse class="attribute" cx="1200" cy="153" rx="55" ry="22"/>
+  <ellipse class="attribute" cx="1260" cy="105" rx="55" ry="22"/>
+  <ellipse class="attribute" cx="1320" cy="153" rx="55" ry="22"/>
+  <text class="attribute-label" x="1200" y="153">Nama</text>
+  <text class="attribute-label" x="1260" y="105">Jabatan</text>
+  <text class="attribute-label" x="1320" y="153">Bidang</text>
+
+  <!-- Top entities and relationships -->
+  <rect class="entity" x="100" y="246" width="150" height="80" rx="2"/>
+  <text class="entity-label" x="175" y="286">PEMOHON</text>
+  <polygon class="relationship" points="350,246 408,286 350,326 292,286"/>
+  <text class="relationship-label" x="350" y="286">MENGAJUKAN</text>
+  <rect class="entity" x="450" y="246" width="160" height="80" rx="2"/>
+  <text class="entity-label" x="530" y="286">PERMOHONAN</text>
+  <polygon class="relationship" points="720,246 778,286 720,326 662,286"/>
+  <text class="relationship-label" x="720" y="286">MELALUI</text>
+  <rect class="entity" x="820" y="246" width="160" height="80" rx="2"/>
+  <text class="entity-label" x="900" y="286">PERSETUJUAN</text>
+  <polygon class="relationship" points="1080,246 1138,286 1080,326 1022,286"/>
+  <text class="relationship-label" x="1080" y="286">DIPUTUSKAN OLEH</text>
+  <rect class="entity" x="1180" y="246" width="160" height="80" rx="2"/>
+  <text class="entity-label" x="1260" y="286">PEMERIKSA</text>
+
+  <text class="section" x="1400" y="402">PENEMPATAN MAGANG</text>
+
+  <!-- Placement and assignment relations -->
+  <path class="connector" d="M530 326 L530 418 M530 534 L530 570 M780 610 L858 610 M974 610 L1050 610 M300 610 L372 610 M488 610 L620 610"/>
+  <text class="cardinality" x="516" y="376">1</text>
+  <text class="cardinality" x="516" y="558">0..1</text>
+  <text class="cardinality" x="804" y="600">N</text>
+  <text class="cardinality" x="1028" y="600">1</text>
+  <text class="cardinality" x="316" y="600">1</text>
+  <text class="cardinality" x="596" y="600">N</text>
+
+  <!-- Placement attributes -->
+  <path class="connector" d="M650 486 L675 570 M720 486 L700 570 M790 486 L725 570"/>
+  <ellipse class="attribute" cx="650" cy="464" rx="62" ry="22"/>
+  <ellipse class="attribute" cx="720" cy="416" rx="62" ry="22"/>
+  <ellipse class="attribute" cx="790" cy="464" rx="62" ry="22"/>
+  <text class="attribute-label" x="650" y="464">Status magang</text>
+  <text class="attribute-label" x="720" y="416">Tanggal mulai</text>
+  <text class="attribute-label" x="790" y="464">Tanggal selesai</text>
+
+  <!-- Mentor attributes -->
+  <path class="connector" d="M130 532 L150 570 M210 532 L200 570 M270 532 L250 570"/>
+  <ellipse class="attribute" cx="130" cy="510" rx="52" ry="22"/>
+  <ellipse class="attribute" cx="200" cy="462" rx="52" ry="22"/>
+  <ellipse class="attribute" cx="270" cy="510" rx="52" ry="22"/>
+  <text class="attribute-label" x="130" y="510">Nama</text>
+  <text class="attribute-label" x="200" y="462">NIP / Email</text>
+  <text class="attribute-label" x="270" y="510">Jabatan</text>
+
+  <!-- Division attributes -->
+  <path class="connector" d="M1100 532 L1120 570 M1180 532 L1170 570 M1260 532 L1220 570"/>
+  <ellipse class="attribute" cx="1100" cy="510" rx="52" ry="22"/>
+  <ellipse class="attribute" cx="1180" cy="462" rx="52" ry="22"/>
+  <ellipse class="attribute" cx="1260" cy="510" rx="105" ry="22"/>
+  <text class="attribute-label" x="1100" y="510">Nama</text>
+  <text class="attribute-label" x="1180" y="462">Kuota</text>
+  <text class="attribute-label" x="1260" y="510">ikp / statistik / aptika / tki</text>
+
+  <rect class="entity" x="120" y="570" width="180" height="80" rx="2"/>
+  <text class="entity-label" x="210" y="610">PEGAWAI</text>
+  <polygon class="relationship" points="430,570 488,610 430,650 372,610"/>
+  <text class="relationship-label" x="430" y="610">MEMBIMBING</text>
+  <rect class="entity" x="620" y="570" width="160" height="80" rx="2"/>
+  <text class="entity-label" x="700" y="610">PENEMPATAN</text>
+  <polygon class="relationship" points="530,436 588,476 530,516 472,476"/>
+  <text class="relationship-label" x="530" y="476">DISETUJUI</text>
+  <polygon class="relationship" points="916,570 974,610 916,650 858,610"/>
+  <text class="relationship-label" x="916" y="610">PADA BIDANG</text>
+  <rect class="entity" x="1050" y="570" width="180" height="80" rx="2"/>
+  <text class="entity-label" x="1140" y="610">BIDANG</text>
+
+  <text class="section" x="70" y="728">AKTIVITAS DAN HASIL MAGANG</text>
+
+  <!-- Branch from one placement to its activity records -->
+  <path class="connector" d="M700 650 L700 766 M170 766 L1510 766"/>
+  <path class="connector" d="M170 766 L170 814 M505 766 L505 814 M840 766 L840 814 M1175 766 L1175 814 M1510 766 L1510 814"/>
+  <path class="connector" d="M170 916 L170 972 M505 916 L505 972 M840 916 L840 972 M1175 916 L1175 972 M1510 916 L1510 972"/>
+  <text class="cardinality" x="715" y="690">1</text>
+  <text class="cardinality" x="170" y="956">N</text>
+  <text class="cardinality" x="505" y="956">N</text>
+  <text class="cardinality" x="840" y="956">N</text>
+  <text class="cardinality" x="1175" y="956">0..1</text>
+  <text class="cardinality" x="1510" y="956">0..1</text>
+
+  <!-- Activity entity attributes -->
+  <path class="connector" d="M90 1080 L110 1164 M170 1080 L170 1164 M250 1080 L230 1164"/>
+  <ellipse class="attribute" cx="90" cy="1186" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="170" cy="1234" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="250" cy="1186" rx="48" ry="22"/>
+  <text class="attribute-label" x="90" y="1186">Tanggal</text>
+  <text class="attribute-label" x="170" y="1234">Status</text>
+  <text class="attribute-label" x="250" y="1186">Keterangan</text>
+
+  <path class="connector" d="M425 1080 L445 1164 M505 1080 L505 1164 M585 1080 L565 1164"/>
+  <ellipse class="attribute" cx="425" cy="1186" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="505" cy="1234" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="585" cy="1186" rx="48" ry="22"/>
+  <text class="attribute-label" x="425" y="1186">Tanggal</text>
+  <text class="attribute-label" x="505" y="1234">Deskripsi</text>
+  <text class="attribute-label" x="585" y="1186">Verifikasi</text>
+
+  <path class="connector" d="M760 1080 L780 1164 M840 1080 L840 1164 M920 1080 L900 1164"/>
+  <ellipse class="attribute" cx="760" cy="1186" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="840" cy="1234" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="920" cy="1186" rx="48" ry="22"/>
+  <text class="attribute-label" x="760" y="1186">Judul</text>
+  <text class="attribute-label" x="840" y="1234">Tenggat</text>
+  <text class="attribute-label" x="920" y="1186">Nilai/status</text>
+
+  <path class="connector" d="M1095 1080 L1115 1164 M1175 1080 L1175 1164 M1255 1080 L1235 1164"/>
+  <ellipse class="attribute" cx="1095" cy="1186" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="1175" cy="1234" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="1255" cy="1186" rx="48" ry="22"/>
+  <text class="attribute-label" x="1095" y="1186">Nilai akhir</text>
+  <text class="attribute-label" x="1175" y="1234">Predikat</text>
+  <text class="attribute-label" x="1255" y="1186">Catatan</text>
+
+  <path class="connector" d="M1430 1080 L1450 1164 M1510 1080 L1510 1164 M1590 1080 L1570 1164"/>
+  <ellipse class="attribute" cx="1430" cy="1186" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="1510" cy="1234" rx="48" ry="22"/>
+  <ellipse class="attribute" cx="1590" cy="1186" rx="48" ry="22"/>
+  <text class="attribute-label" x="1430" y="1186">Nomor</text>
+  <text class="attribute-label" x="1510" y="1234">Tanggal terbit</text>
+  <text class="attribute-label" x="1590" y="1186">QR</text>
+
+  <!-- Activity relationships and entities -->
+  <polygon class="relationship" points="170,814 228,865 170,916 112,865"/>
+  <text class="relationship-label" x="170" y="865">MENCATAT</text>
+  <rect class="entity" x="95" y="972" width="150" height="108" rx="2"/>
+  <text class="entity-label" x="170" y="1026">PRESENSI</text>
+
+  <polygon class="relationship" points="505,814 563,865 505,916 447,865"/>
+  <text class="relationship-label" x="505" y="865">MENGISI</text>
+  <rect class="entity" x="430" y="972" width="150" height="108" rx="2"/>
+  <text class="entity-label" x="505" y="1026">LOGBOOK</text>
+
+  <polygon class="relationship" points="840,814 898,865 840,916 782,865"/>
+  <text class="relationship-label" x="840" y="865">MENERIMA</text>
+  <rect class="entity" x="765" y="972" width="150" height="108" rx="2"/>
+  <text class="entity-label" x="840" y="1026">TUGAS</text>
+
+  <polygon class="relationship" points="1175,814 1233,865 1175,916 1117,865"/>
+  <text class="relationship-label" x="1175" y="865">DIEVALUASI</text>
+  <rect class="entity" x="1100" y="972" width="150" height="108" rx="2"/>
+  <text class="entity-label" x="1175" y="1026">EVALUASI</text>
+
+  <polygon class="relationship" points="1510,814 1568,865 1510,916 1452,865"/>
+  <text class="relationship-label" x="1510" y="865">MENERIMA</text>
+  <rect class="entity" x="1435" y="972" width="150" height="108" rx="2"/>
+  <text class="entity-label" x="1510" y="1026">SERTIFIKAT</text>
+
+  <!-- Legend -->
+  <rect x="120" y="1300" width="1560" height="48" rx="12" fill="#e2e8f0"/>
+  <text class="legend-title" x="150" y="1330">LEGENDA</text>
+  <rect class="entity" x="270" y="1312" width="42" height="24"/>
+  <text class="legend" x="322" y="1330">Entitas</text>
+  <ellipse class="attribute" cx="465" cy="1324" rx="26" ry="13"/>
+  <text class="legend" x="500" y="1330">Atribut</text>
+  <polygon class="relationship" points="650,1310 676,1324 650,1338 624,1324"/>
+  <text class="legend" x="686" y="1330">Hubungan</text>
+  <text class="cardinality" x="830" y="1330">1 : N</text>
+  <text class="legend" x="880" y="1330">satu ke banyak</text>
+  <text class="cardinality" x="1050" y="1330">0..1</text>
+  <text class="legend" x="1090" y="1330">opsional, maksimal satu</text>
+  <text class="legend" x="1360" y="1330">Diagram bisnis, bukan struktur tabel fisik</text>
+</svg>

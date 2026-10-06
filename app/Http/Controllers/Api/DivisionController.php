@@ -12,18 +12,19 @@ class DivisionController extends Controller
     use ApiResponse;
 
     /**
-     * List all available divisions.
+     * List all available divisions with dynamic SSOT remaining quota calculations.
      */
     public function index(): JsonResponse
     {
         $divisions = Division::query()
-            ->withCount('applications', 'activeInterns')
+            ->withCount('activeApplications')
+            ->with('activeKabid:id,name,position,division_id')
             ->get();
 
         $divisions->each(function (Division $division): void {
             $division->setAttribute(
                 'remaining_quota',
-                $division->remainingQuota($division->active_interns_count),
+                $division->remainingQuota($division->active_applications_count),
             );
         });
 

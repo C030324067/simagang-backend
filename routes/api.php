@@ -20,6 +20,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'sendPasswordResetLink'])
+        ->middleware('throttle:5,1');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:5,1');
 });
 
 Route::get('/divisions', [DivisionController::class, 'index']);
@@ -38,6 +42,9 @@ Route::get('/applications/track/{trackingCode}/letter', [ApplicationController::
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/change-password', [AuthController::class, 'changePassword'])
+        ->middleware('throttle:5,1');
+
     Route::post('/users/{user}/approve', [UserApprovalController::class, 'approve'])
         ->middleware('role:admin_kepegawaian,kadis');
 
@@ -54,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{application}/documents/{document}', [ApplicationController::class, 'document'])
             ->middleware('role:admin_kepegawaian');
         Route::get('/kabid', [ApplicationController::class, 'kabid'])->middleware('role:kabid');
+        Route::get('/{application}/mentors', [ApplicationController::class, 'mentors'])->middleware('role:kabid');
         Route::get('/kadis', [ApplicationController::class, 'kadis'])->middleware('role:kadis');
         Route::put('/{application}/status', [ApplicationController::class, 'updateStatus'])
             ->middleware('role:admin_kepegawaian,kabid,kadis');

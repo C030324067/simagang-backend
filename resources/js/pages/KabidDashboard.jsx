@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api';
 import useApplicationReviewDashboard from '../hooks/useApplicationReviewDashboard';
+import useDivisions from '../hooks/useDivisions';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -25,14 +26,36 @@ export default function KabidDashboard() {
   });
 
   const [modalErr, setModalErr] = useState('');
-  const [quota, setQuota] = useState(null);
+  const [mentors, setMentors] = useState([]);
+  const [mentorsLoading, setMentorsLoading] = useState(false);
+  const { divisions, error: quotaError } = useDivisions();
+  const quota = divisions.find((division) => Number(division.id) === Number(user?.division_id));
 
   useEffect(() => {
-    apiRequest('/divisions').then((response) => {
-      const division = response.data?.find((item) => Number(item.id) === Number(user?.division_id));
-      if (response.success && division) setQuota(division);
-    }).catch(() => {});
-  }, [user?.division_id]);
+    if (!selectedApp) {
+      setMentors([]);
+      return;
+    }
+
+    let active = true;
+    setMentorsLoading(true);
+    apiRequest(`/applications/${selectedApp.id}/mentors`)
+      .then((response) => {
+        if (!active) return;
+        if (response.success) {
+          setMentors(response.data || []);
+        } else {
+          setModalErr(response.message || 'Daftar pembimbing gagal dimuat.');
+        }
+      })
+      .finally(() => {
+        if (active) setMentorsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedApp]);
 
   // Validasi form lokal sebelum kirim
   const onSubmitHandler = (e) => {
@@ -43,6 +66,10 @@ export default function KabidDashboard() {
     }
     if (actionForm.status === 'rejected' && !actionForm.notes?.trim()) {
       setModalErr('Mohon isi alasan penolakan pada catatan pertimbangan teknis.');
+      return;
+    }
+    if (actionForm.status === 'review_kadis' && !actionForm.mentor_id) {
+      setModalErr('Pilih Pembimbing Lapangan sebelum menyetujui permohonan.');
       return;
     }
     setModalErr('');
@@ -69,6 +96,7 @@ export default function KabidDashboard() {
                 Sisa Kuota {user?.division?.name || 'Bidang'}: <span className="font-bold">{Math.max(0, quota.remaining_quota)}/{quota.quota}</span>
               </p>
             )}
+            {quotaError && <p role="status" className="text-xs text-rose-600">{quotaError}</p>}
           </div>
 
           {/* Menunggu Persetujuan Card */}
@@ -259,7 +287,7 @@ export default function KabidDashboard() {
 
                   <button
                     type="button"
-                    onClick={() => setActionForm({ ...actionForm, status: 'rejected' })}
+                    onClick={() => setActionForm({ ...actionForm, status: 'rejected', mentor_id: '' })}
                     className={`flex items-center justify-center gap-2 p-3 rounded-xl font-bold text-xs border transition cursor-pointer ${
                       actionForm.status === 'rejected'
                         ? 'bg-rose-600 border-rose-600 text-white shadow-xs'
@@ -271,6 +299,48 @@ export default function KabidDashboard() {
                   </button>
                 </div>
               </div>
+
+              {actionForm.status === 'review_kadis' && (
+                <div className="space-y-2">
+                  <label htmlFor="mentor_id" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Pilih Pembimbing Lapangan <span className="text-rose-600">*</span>
+                  </label>
+                  <select
+                    id="mentor_id"
+                    required
+                    value={actionForm.mentor_id || ''}
+                    onChange={(event) => setActionForm({ ...actionForm, mentor_id: event.target.value })}
+                    disabled={mentorsLoading || mentors.length === 0}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
+                  >
+                    <option value="">
+                      {mentorsLoading ? 'Memuat pembimbing...' : 'Pilih Pembimbing Lapangan'}
+                    </option>
+                    {mentors.map((mentor) => (
+                      <option key={mentor.id} value={mentor.id}>
+                        {mentor.name} — {mentor.role === 'kabid' ? 'Kepala Bidang' : 'Staf Pembimbing'}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* UI Hint / Guidance */}
+                  <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 text-[11px] text-slate-600 leading-snug space-y-1">
+                    <span className="font-bold text-[#4F46E5] block">📌 Petunjuk Penunjukan Pembimbing:</span>
+                    <p>
+                      • <strong>Siswa SMA/SMK:</strong> Disarankan menunjuk Staf Pembimbing Lapangan bidang.
+                    </p>
+                    <p>
+                      • <strong>Mahasiswa D3 / S1 / Perguruan Tinggi:</strong> Dapat menunjuk Staf Senior atau Kepala Bidang secara langsung.
+                    </p>
+                  </div>
+
+                  {mentors.length === 0 && !mentorsLoading && (
+                    <p className="mt-1.5 text-xs text-rose-600 font-medium">
+                      Tidak ada pembimbing aktif yang tersedia di bidang ini.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Textarea */}
               <div>
@@ -305,7 +375,7 @@ export default function KabidDashboard() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || mentorsLoading || (actionForm.status === 'review_kadis' && !actionForm.mentor_id)}
                   className="px-5 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-semibold transition shadow-2xs cursor-pointer disabled:opacity-50"
                 >
                   {submitting ? 'Menyimpan...' : 'Kirim Keputusan Kabid'}

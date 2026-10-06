@@ -37,11 +37,13 @@ export default function useKepegawaianDashboard() {
     const file = letterFiles[applicationId];
     const officialLetterNumber = letterNumbers[applicationId]?.trim();
     if (!officialLetterNumber) { setMsg({ type: 'error', text: 'Masukkan nomor surat resmi terlebih dahulu.' }); return; }
-    if (!file) { setMsg({ type: 'error', text: 'Pilih file PDF surat penerimaan terlebih dahulu.' }); return; }
-    const data = new FormData(); data.append('official_letter', file); data.append('official_letter_number', officialLetterNumber);
+    if (!file) { setMsg({ type: 'error', text: 'Pilih file surat penerimaan terlebih dahulu.' }); return; }
+    const data = new FormData();
+    data.append('official_letter_number', officialLetterNumber);
+    data.append('official_letter_file', file);
     setSubmitting(true);
     try {
-      const response = await apiRequest(`/applications/${applicationId}/issue-letter`, { method: 'PUT', body: data });
+      const response = await apiRequest(`/applications/${applicationId}/upload-letter`, { method: 'POST', body: data });
       setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Gagal mengunggah surat.' });
       if (response.success) {
         setLetterFiles((previous) => ({ ...previous, [applicationId]: null }));

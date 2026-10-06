@@ -81,7 +81,16 @@ Respons sukses memuat `data.user` dan `data.token`. Gunakan token tersebut pada 
 
 | Method | Endpoint | Akses | Keterangan |
 |---|---|---|---|
-| GET | `/divisions` | Publik | Daftar divisi termasuk jumlah pengajuan |
+| GET | `/divisions` | Publik | Daftar divisi master, kuota tersisa, dan Kabid aktif jika ada |
+
+Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `description`, `quota`, `active_applications_count`, `remaining_quota`, dan `active_kabid` (objek berisi `id`, `name`, `position`, `division_id`, atau `null`). Daftar bidang tidak dikunci di frontend; konsumen memakai data endpoint ini. Master saat ini berisi:
+
+| `code` | Nama divisi |
+|---|---|
+| `ikp` | Bidang Informasi dan Komunikasi Publik (IKP) |
+| `statistik` | Bidang Statistik |
+| `aptika` | Bidang Aplikasi Informatika |
+| `tki` | Bidang Telekomunikasi dan Keamanan Informasi |
 
 ## Pengajuan magang
 
@@ -112,7 +121,9 @@ Respons sukses memuat `data.user` dan `data.token`. Gunakan token tersebut pada 
 
 ### Pendaftaran dan pelacakan publik
 
-Kirim pendaftaran sebagai `multipart/form-data` ke `/applications/register`. Field wajib: `application_type` (`mandiri` atau `rekomendasi_kampus`), `nama`, `email`, `bidang` (`Aptika`, `Statistika`, atau `IKP`), `institusi`, `jurusan`, `hp`, `tgl_mulai`, `tgl_selesai`, `pw`, `pw2`, serta file `b1`, `b2`, `b3`, dan `b4`. Untuk `rekomendasi_kampus`, `recommendation_letter_number` juga wajib. `pw` minimal 8 karakter dan harus sama dengan `pw2`; berkas dibatasi 5 MB. `b1`, `b2`, dan `b3` menerima PDF/JPG/JPEG/PNG; `b4` menerima JPG/JPEG/PNG.
+Kirim pendaftaran sebagai `multipart/form-data` ke `/applications/register`. Field wajib: `application_type` (`mandiri` atau `rekomendasi_kampus`), `nama`, `email`, `bidang`, `institusi`, `jurusan`, `hp`, `tgl_mulai`, `tgl_selesai`, `pw`, `pw2`, serta file `b1`, `b2`, `b3`, dan `b4`. Nilai `bidang` memakai `code` yang dikembalikan `GET /divisions` (saat ini `ikp`, `statistik`, `aptika`, atau `tki`); alias lama `Aptika`, `Statistika`, dan `IKP` masih diterima untuk kompatibilitas. Bidang yang tidak ditemukan atau kuotanya habis ditolak dengan HTTP `422`. Untuk `rekomendasi_kampus`, `recommendation_letter_number` juga wajib. `pw` minimal 8 karakter dan harus sama dengan `pw2`; berkas dibatasi 5 MB. `b1`, `b2`, dan `b3` menerima PDF/JPG/JPEG/PNG; `b4` menerima JPG/JPEG/PNG.
+
+Kepegawaian memilih divisi menggunakan `division_id` dari daftar master. Setelah diteruskan, antrean Kabid dan pilihan mentor dibatasi ke divisi yang sama; kuota diperiksa pada saat persetujuan.
 
 Respons `201` mengandung `tracking_code` (juga tersedia pada `data.tracking_code`). Simpan kode tersebut. Gunakan `GET /applications/track/{trackingCode}` tanpa login untuk membaca `status`, `rejected_at_stage`, `rejection_reason`, dan `acceptance_letter_url`. Kode yang tidak dikenal menghasilkan `404` dengan pesan `Kode tracking tidak ditemukan. Silakan periksa kembali kode Anda.` Ketika diterima, buka `acceptance_letter_url` untuk mengunduh surat tanpa login; URL bertanda tangan berlaku 30 hari.
 

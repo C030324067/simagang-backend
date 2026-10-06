@@ -18,11 +18,14 @@ class RegisterApplicationController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        $divisionCodes = Division::query()->pluck('code')->all();
+        $legacyDivisionCodes = ['Aptika', 'Statistika', 'IKP'];
+
         $validated = $request->validate([
             'application_type' => ['required', Rule::in(['mandiri', 'rekomendasi_kampus'])],
             'nama' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'bidang' => ['required', Rule::in(['Aptika', 'Statistika', 'IKP'])],
+            'bidang' => ['required', Rule::in([...$divisionCodes, ...$legacyDivisionCodes])],
             'institusi' => ['required', 'string', 'max:255'],
             'jurusan' => ['required', 'string', 'max:255'],
             'hp' => ['required', 'string', 'max:30'],
@@ -42,10 +45,10 @@ class RegisterApplicationController extends Controller
             'b4' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
         ]);
 
-        $divisionCode = match ($validated['bidang']) {
-            'Aptika' => 'aptika',
-            'Statistika' => 'statistik',
-            'IKP' => 'ikp',
+        $divisionCode = match (Str::lower($validated['bidang'])) {
+            'aptika' => 'aptika',
+            'statistika' => 'statistik',
+            default => Str::lower($validated['bidang']),
         };
         $division = Division::query()
             ->whereRaw('LOWER(code) = ?', [$divisionCode])
@@ -55,6 +58,13 @@ class RegisterApplicationController extends Controller
             return response()->json([
                 'message' => 'Bidang yang dipilih belum tersedia untuk pendaftaran.',
                 'errors' => ['bidang' => ['Silakan pilih bidang yang tersedia atau hubungi administrator.']],
+            ], 422);
+        }
+
+        if ($division->remainingQuota() <= 0) {
+            return response()->json([
+                'message' => 'Kuota bidang yang dipilih sudah penuh.',
+                'errors' => ['bidang' => ['Kuota bidang ini sudah penuh. Silakan pilih bidang lain.']],
             ], 422);
         }
 

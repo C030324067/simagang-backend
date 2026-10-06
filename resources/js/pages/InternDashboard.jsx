@@ -97,8 +97,20 @@ export default function InternDashboard() {
     { title: 'Logbook kegiatan terverifikasi', description: `${approvedLogbooks} dari ${logbooks.length} logbook disetujui`, done: logbooks.length > 0 && approvedLogbooks === logbooks.length },
     { title: 'Status magang selesai', description: internshipCompleted ? 'Penilaian akhir pembimbing sudah disimpan' : internshipPeriodEnded ? 'Menunggu penilaian akhir pembimbing' : 'Program magang sedang berjalan', done: internshipCompleted },
     { title: 'Penilaian akhir oleh pembimbing', description: evaluation ? 'Penilaian telah diisi pembimbing' : 'Menunggu penilaian pembimbing', done: Boolean(evaluation) },
+    ...(certificate?.is_eligible === false
+      ? [{ title: 'Kelayakan sertifikat dikonfirmasi sistem', description: 'Sistem menyatakan masih ada syarat yang belum terpenuhi', done: false }]
+      : []),
   ];
   const certificateProgress = Math.round((certificateChecklist.filter((item) => item.done).length / certificateChecklist.length) * 100);
+  const isCertificateEligible = certificate?.is_eligible !== false && certificateChecklist.every((item) => item.done);
+  const evaluationScore = Number(certificate?.intern?.evaluations?.[0]?.final_score ?? evaluation?.final_score);
+  const certificateType = ['kelulusan', 'mengikuti'].includes(certificate?.certificate_type)
+    ? certificate.certificate_type
+    : evaluationScore >= 70 ? 'kelulusan' : 'mengikuti';
+  const certificateTypeLabel = certificateType === 'kelulusan' ? 'SERTIFIKAT KELULUSAN' : 'SERTIFIKAT MENGIKUTI';
+  const certificateTypeStyle = certificateType === 'kelulusan'
+    ? 'bg-emerald-100 text-emerald-800'
+    : 'bg-amber-100 text-amber-800';
 
   const handleCertificateClick = () => {
     setCertificateNotice('');
@@ -106,7 +118,10 @@ export default function InternDashboard() {
   };
 
   const handleShareCertificate = async () => {
-    if (!certificate?.qr_hash) return;
+    if (!certificate?.qr_hash) {
+      setCertificateNotice('Tautan verifikasi sertifikat belum tersedia.');
+      return;
+    }
     const verificationUrl = `${window.location.origin}/verify-cert/${encodeURIComponent(certificate.qr_hash)}`;
     try {
       await navigator.clipboard.writeText(verificationUrl);
@@ -395,8 +410,12 @@ export default function InternDashboard() {
                 <p className="mt-1 text-xs text-slate-500">Pantau progres kelayakan dan unduh sertifikat setelah kegiatan magang selesai.</p>
               </div>
 
-              {!certificate ? (
+              {!isCertificateEligible ? (
                 <div className="space-y-5 rounded-2xl border border-slate-100 bg-slate-50/50 p-6">
+                  <div role="alert" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-relaxed text-amber-900">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>Sertifikat belum dapat diunduh karena syarat belum terpenuhi.</span>
+                  </div>
                   <div className="flex flex-wrap items-center gap-5">
                     <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#4F46E5 ${certificateProgress}%, #E2E8F0 ${certificateProgress}% 100%)` }}>
                       <span className="grid h-16 w-16 place-items-center rounded-full bg-white text-sm font-bold text-[#0F2942]">{certificateProgress}%</span>
@@ -416,29 +435,36 @@ export default function InternDashboard() {
                       </div>
                     ))}
                   </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white opacity-50"><Download className="h-4 w-4" />Unduh PDF</button>
+                    <button type="button" disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 opacity-50"><Share2 className="h-4 w-4" />Bagikan</button>
+                  </div>
                 </div>
               ) : (
                 <div className="grid items-start gap-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs lg:grid-cols-2">
                   <div className="relative flex aspect-[1.4/1] flex-col items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 p-6 text-center text-white">
                     <GraduationCap className="mb-2 h-8 w-8" />
+                    <span className={`mb-2 rounded-full px-3 py-1 text-[10px] font-extrabold tracking-wide ${certificateTypeStyle}`}>{certificateTypeLabel}</span>
                     <h3 className="text-xs font-bold tracking-widest uppercase">SERTIFIKAT MAGANG</h3>
                     <strong className="mt-2 text-lg sm:text-xl font-extrabold">{userName}</strong>
                     <p className="mt-1 text-[11px] leading-relaxed text-white/80">Telah menyelesaikan program magang di Diskominfo</p>
                   </div>
 
                   <div className="space-y-4 text-xs">
+                    <div><span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-extrabold tracking-wide ${certificateTypeStyle}`}>{certificateTypeLabel}</span></div>
                     <div className="space-y-2.5">
                       {[
-                        ['Nomor Sertifikat', certificate.certificate_number || '—'],
+                        ['Nama Peserta', userName],
+                        ['Nomor Sertifikat', certificate?.certificate_number || '—'],
                         ['Periode Magang', `${application?.start_date ? formatDate(application.start_date) : '—'} – ${application?.end_date ? formatDate(application.end_date) : '—'}`],
-                        ['Tanggal Terbit', certificate.issued_at ? formatDate(certificate.issued_at) : '—'],
+                        ['Tanggal Terbit', certificate?.issued_at ? formatDate(certificate.issued_at) : '—'],
                       ].map(([label, value]) => (
                         <div key={label} className="flex justify-between gap-4 border-b border-slate-100 pb-2"><span className="text-slate-400">{label}</span><strong className="text-[#0F2942]">{value}</strong></div>
                       ))}
                     </div>
                     <div className="flex gap-2 pt-2">
-                      <button type="button" onClick={downloadCertificate} disabled={!certificate.pdf_path} className="inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white hover:bg-[#4338CA] transition disabled:opacity-50"><Download className="h-4 w-4" />Unduh PDF</button>
-                      <button type="button" onClick={handleShareCertificate} disabled={!certificate.qr_hash} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition disabled:opacity-50"><Share2 className="h-4 w-4" />Bagikan</button>
+                      <button type="button" onClick={downloadCertificate} className="inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white hover:bg-[#4338CA] transition"><Download className="h-4 w-4" />Unduh PDF</button>
+                      <button type="button" onClick={handleShareCertificate} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition"><Share2 className="h-4 w-4" />Bagikan</button>
                     </div>
                     {certificateNotice && <p className="text-xs text-indigo-600 font-medium">{certificateNotice}</p>}
                   </div>

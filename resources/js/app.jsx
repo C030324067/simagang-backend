@@ -216,6 +216,7 @@ function MainApp() {
   const { user, loading } = useAuth();
   const [currentTab, setCurrentTab] = useState('landing');
   const [urlHash, setUrlHash] = useState('');
+  const [passwordReset, setPasswordReset] = useState({ token: '', email: '' });
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -223,6 +224,13 @@ function MainApp() {
       const hash = path.replace('/verify-cert/', '');
       setUrlHash(hash);
       setCurrentTab('verify_cert');
+    } else if (path.startsWith('/reset-password/')) {
+      const token = path.slice('/reset-password/'.length).split('/')[0];
+      setPasswordReset({
+        token: decodeURIComponent(token),
+        email: new URLSearchParams(window.location.search).get('email') || '',
+      });
+      setCurrentTab('reset-password');
     }
   }, []);
 
@@ -249,6 +257,26 @@ function MainApp() {
     );
   }
 
+  if (currentTab === 'reset-password') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+        <Navbar currentTab="login" setCurrentTab={setCurrentTab} />
+        <main className="flex-1">
+          <LoginPage
+            passwordResetToken={passwordReset.token}
+            passwordResetEmail={passwordReset.email}
+            onPasswordReset={() => {
+              window.history.replaceState({}, '', '/');
+              setPasswordReset({ token: '', email: '' });
+              setCurrentTab('login');
+            }}
+          />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   // Jika belum login
   if (!user) {
     if (currentTab === 'login') {
@@ -256,7 +284,23 @@ function MainApp() {
         <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
           <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} />
           <main className="flex-1">
-            <LoginPage onSuccess={() => setCurrentTab('dashboard')} onBack={() => setCurrentTab('landing')} />
+            <LoginPage
+              onSuccess={() => setCurrentTab('dashboard')}
+              onBack={() => setCurrentTab('landing')}
+              onRegister={() => setCurrentTab('apply')}
+            />
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
+    if (currentTab === 'track') {
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+          <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} />
+          <main className="flex-1">
+            <ApplicationController lookupOnly onLogin={() => setCurrentTab('login')} onBack={() => setCurrentTab('landing')} />
           </main>
           <Footer />
         </div>
@@ -278,9 +322,10 @@ function MainApp() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
         <main className="flex-1">
-          {localStorage.getItem('intern_tracking_code') ? <ApplicationController onLogin={() => setCurrentTab('login')} onBack={() => setCurrentTab('landing')} /> : <LandingPage
+          {localStorage.getItem('intern_tracking_code') ? <ApplicationController onLogin={() => setCurrentTab('login')} onBack={() => setCurrentTab('home')} /> : <LandingPage
             onNavigateLogin={() => setCurrentTab('login')}
             onNavigateRegister={() => setCurrentTab('apply')}
+            onNavigateTracking={() => setCurrentTab('track')}
           />}
         </main>
         <Footer />

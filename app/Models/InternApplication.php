@@ -39,6 +39,7 @@ class InternApplication extends Model
         'rejection_note',
         'official_letter_path',
         'division_id',
+        'mentor_id',
         'acceptance_letter_number',
         'official_letter_number',
         'tracking_code',
@@ -60,6 +61,11 @@ class InternApplication extends Model
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class);
+    }
+
+    public function mentor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'mentor_id');
     }
 
     public function verifierKepegawaian(): BelongsTo

@@ -11,7 +11,7 @@ import {
 
 export default function KepegawaianDashboard() {
   const {
-    pendingApps, approvedApps, letterFiles, setLetterFiles, divisions, selectedApp, setSelectedApp,
+    pendingApps, approvedApps, letterFiles, setLetterFiles, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
     actionForm, setActionForm, loading, submitting, msg, setMsg, uploadLetter, openDocument, handleActionSubmit
   } = useKepegawaianDashboard();
 
@@ -193,11 +193,21 @@ export default function KepegawaianDashboard() {
                     </p>
                   </div>
 
+                  {/* Nomor Surat Resmi */}
+                  <input
+                    type="text"
+                    value={letterNumbers[app.id] || ''}
+                    onChange={(event) => setLetterNumbers((previous) => ({ ...previous, [app.id]: event.target.value }))}
+                    placeholder="Masukkan Nomor Surat Resmi"
+                    aria-label={`Nomor surat resmi untuk ${app.user?.name || 'pemohon'}`}
+                    className="w-full sm:w-56 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20"
+                  />
+
                   {/* Pilih File Button & File Name */}
                   <div className="flex items-center gap-2.5 shrink-0">
                     <input 
                       type="file" 
-                      accept="application/pdf,.pdf" 
+                      accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
                       id={`file-upload-${app.id}`}
                       onChange={(e) => setLetterFiles((prev) => ({ ...prev, [app.id]: e.target.files?.[0] || null }))} 
                       className="sr-only"
@@ -217,7 +227,7 @@ export default function KepegawaianDashboard() {
 
                 {/* Action Submit Button */}
                 <button 
-                  disabled={submitting || !letterFiles[app.id]} 
+                  disabled={submitting || !letterFiles[app.id] || !letterNumbers[app.id]?.trim()}
                   onClick={() => uploadLetter(app.id)} 
                   className="px-5 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs transition disabled:opacity-50 shadow-xs cursor-pointer whitespace-nowrap self-start lg:self-auto"
                 >

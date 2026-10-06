@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Traits\ApiResponse;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password as PasswordBroker;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -82,6 +85,82 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
         ], 'Login berhasil');
+    }
+
+    /**
+     * Send a password reset link without revealing whether the email is registered.
+     */
+    public function sendPasswordResetLink(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $status = PasswordBroker::sendResetLink($validated);
+
+        if (! in_array($status, [
+            PasswordBroker::ResetLinkSent,
+            PasswordBroker::InvalidUser,
+            PasswordBroker::ResetThrottled,
+        ], true)) {
+            return $this->errorResponse('Instruksi reset password tidak dapat dikirim. Silakan coba lagi.', 500);
+        }
+
+        return $this->successResponse(
+            null,
+            'Jika email terdaftar, instruksi reset password akan dikirim ke email tersebut.'
+        );
+    }
+
+    /**
+     * Reset a user's password using a valid email reset token.
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'string', Password::min(8), 'confirmed'],
+        ]);
+
+        $status = PasswordBroker::reset($validated, function (User $user, string $password): void {
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'remember_token' => Str::random(60),
+            ])->save();
+
+            $user->tokens()->delete();
+
+            event(new PasswordReset($user));
+        });
+
+        if ($status !== PasswordBroker::PasswordReset) {
+            return $this->errorResponse('Tautan reset password tidak valid atau sudah kedaluwarsa.', 422);
+        }
+
+        return $this->successResponse(null, 'Password berhasil diperbarui. Silakan masuk dengan password baru.');
+    }
+
+    /**
+     * Change the authenticated user's password.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', Password::min(8), 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return $this->errorResponse('Password saat ini tidak sesuai.', 422);
+        }
+
+        $user->password = Hash::make($validated['new_password']);
+        $user->save();
+
+        return $this->successResponse(null, 'Password berhasil diperbarui.');
     }
 
     /**

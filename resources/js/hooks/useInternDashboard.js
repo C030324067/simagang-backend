@@ -99,7 +99,12 @@ export default function useInternDashboard(user) {
   };
 
   const downloadCertificate = async () => {
-    if (!certificate?.pdf_path) return;
+    if (certificate?.is_eligible === false) {
+      return notify('Sertifikat belum dapat diunduh karena syarat belum terpenuhi.', 'error');
+    }
+    if (!certificate?.pdf_path) {
+      return notify('File PDF sertifikat belum tersedia.', 'error');
+    }
     const response = await fetch(`/storage/${certificate.pdf_path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
     if (!response.ok) return notify('Sertifikat belum dapat diunduh.', 'error');
     const url = URL.createObjectURL(await response.blob());

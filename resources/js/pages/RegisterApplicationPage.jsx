@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { apiRequest } from '../api';
+import React, { useMemo, useState } from 'react';
+import useDivisions from '../hooks/useDivisions';
 import '../../css/RegisterApplication.css';
 
 const empty = { application_type: 'mandiri', recommendation_letter_number: '', nama: '', email: '', bidang: '', institusi: '', jurusan: '', hp: '', tgl_mulai: '', tgl_selesai: '', pw: '', pw2: '' };
@@ -19,13 +19,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
   const [visible, setVisible] = useState([false, false]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
-  const [divisions, setDivisions] = useState([]);
-
-  useEffect(() => {
-    apiRequest('/divisions').then((response) => {
-      if (response.success) setDivisions(response.data || []);
-    }).catch(() => {});
-  }, []);
+  const { divisions, error: divisionError } = useDivisions();
 
   const duration = useMemo(() => {
     if (!form.tgl_mulai || !form.tgl_selesai || form.tgl_selesai < form.tgl_mulai) return null;
@@ -98,25 +92,21 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
       <label htmlFor={key}>{label}<span className="req"> *</span></label>
       {key === 'bidang' ? <select id={key} className={`input ${errors[key] ? 'invalid' : ''}`} value={form[key]} onChange={change}>
         <option value="">Pilih bidang</option>{divisions.map((division) => {
-          const code = String(division.code || '').toLowerCase();
-          const value = code.includes('aptika') ? 'Aptika' : code.includes('stat') ? 'Statistika' : code.includes('ikp') ? 'IKP' : null;
-          const isFull = division.remaining_quota <= 0;
-          return value ? <option key={division.id} value={value} disabled={isFull}>{division.name}{isFull ? ' — Kuota penuh' : ` — Sisa kuota: ${Math.max(0, division.remaining_quota)}/${division.quota}`}</option> : null;
+          const isFull = Number(division.remaining_quota) <= 0;
+          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isFull ? ' — Kuota penuh' : ` — Sisa kuota: ${Math.max(0, division.remaining_quota)}/${division.quota}`}</option>;
         })}
       </select> : <input id={key} className={`input ${errors[key] ? 'invalid' : ''}`} type={type} value={form[key]} onChange={change} {...props} />}
       {key === 'bidang' && form[key] && (() => {
-        const sel = divisions.find(d => {
-          const c = String(d.code || '').toLowerCase();
-          const v = c.includes('aptika') ? 'Aptika' : c.includes('stat') ? 'Statistika' : c.includes('ikp') ? 'IKP' : null;
-          return v === form[key];
-        });
-        return sel && sel.remaining_quota <= 0
+        const selectedDivision = divisions.find((division) => String(division.code) === form[key]);
+        return selectedDivision && Number(selectedDivision.remaining_quota) <= 0
           ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>⚠️ Kuota bidang ini sudah penuh. Silakan pilih bidang lain.</p>)
           : null;
       })()}
+      {key === 'bidang' && divisionError && <p className="error-msg">{divisionError}</p>}
       {errors[key] && <p className="error-msg">{errors[key]}</p>}
     </div>
   );
+
   function change(event) {
     const { id, value } = event.target;
     setForm(previous => ({ ...previous, [id]: value }));
@@ -133,66 +123,103 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
 
   const formatFileSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 
-  return <div className="register-container"><main className="card">
-    {onBack && <button className="register-back" type="button" onClick={onBack} aria-label="Kembali ke beranda"><span aria-hidden="true">â</span> Kembali ke beranda</button>}
-    <header className="register-heading"><p className="eyebrow">SIMAGANG Â· PENDAFTARAN</p><h1>Daftar program magang</h1><p>Lengkapi data diri dan dokumen untuk mengajukan permohonan magang.</p></header>
-    <form onSubmit={submit} noValidate>
-      <p className="note full">Semua kolom bertanda <span className="req">*</span> wajib diisi.</p>
-      <fieldset className="application-type full">
-        <legend>Jenis pengajuan magang<span className="req"> *</span></legend>
-        <div className="application-type-options">
-          <label className={`application-type-card ${form.application_type === 'mandiri' ? 'selected' : ''}`}>
-            <input type="radio" name="application_type" value="mandiri" checked={form.application_type === 'mandiri'} onChange={() => selectApplicationType('mandiri')} />
-            <span className="application-type-copy"><strong>Magang mandiri</strong><small>Mengajukan magang atas inisiatif sendiri.</small></span>
-          </label>
-          <label className={`application-type-card ${form.application_type === 'rekomendasi_kampus' ? 'selected' : ''}`}>
-            <input type="radio" name="application_type" value="rekomendasi_kampus" checked={form.application_type === 'rekomendasi_kampus'} onChange={() => selectApplicationType('rekomendasi_kampus')} />
-            <span className="application-type-copy"><strong>Rekomendasi kampus</strong><small>Mengajukan magang dengan surat rekomendasi dari kampus.</small></span>
-          </label>
-        </div>
-      </fieldset>
-      {form.application_type === 'rekomendasi_kampus' && field('recommendation_letter_number', 'Nomor surat rekomendasi kampus')}
-      {field('nama', 'Nama lengkap', 'text', { autoComplete: 'name' })}
-      {field('email', 'Email address', 'email', { autoComplete: 'email' })}
-      {field('bidang', 'Bidang yang diminati')}
-      {field('institusi', 'Nama institusi')}
-      {field('jurusan', 'Jurusan / program studi')}
-      {field('hp', 'Nomor telepon / WhatsApp', 'tel', { autoComplete: 'tel' })}
-      {field('tgl_mulai', 'Tanggal mulai magang', 'date', { min: today })}
-      {field('tgl_selesai', 'Tanggal selesai magang', 'date', { min: form.tgl_mulai || today })}
-      {duration && <p className="date-info full">Perkiraan durasi magang: <strong>{duration}</strong></p>}
-      {['pw', 'pw2'].map((key, index) => <div className="field" key={key}>
-        <label htmlFor={key}>{index ? 'Konfirmasi password' : 'Password'}<span className="req"> *</span></label>
-        <div className="pw-wrap"><input id={key} className={`input ${errors[key] ? 'invalid' : ''}`} type={visible[index] ? 'text' : 'password'} value={form[key]} onChange={change} autoComplete={index ? 'new-password' : 'new-password'} />
-          <button type="button" className="eye-btn" aria-label={visible[index] ? 'Sembunyikan password' : 'Tampilkan password'} onClick={() => setVisible(prev => prev.map((v, i) => i === index ? !v : v))}>{visible[index] ? 'Sembunyikan' : 'Tampilkan'}</button></div>
-        {errors[key] && <p className="error-msg">{errors[key]}</p>}
-      </div>)}
-      <section className="berkas full"><h2>Dokumen pendukung</h2><p className="hint">PDF, JPG, atau PNG Â· maksimal 5 MB per berkas. Foto kartu hanya JPG/PNG.</p>
-        <div className="berkas-grid">{docs.map(({ key, label: defaultLabel, accept }) => {
-          const label = key === 'b3' && form.application_type === 'rekomendasi_kampus' ? 'Surat rekomendasi kampus' : defaultLabel;
-          const file = files[key];
+  return (
+    <div className="register-container">
+      <main className="card">
+        {onBack && (
+          <button className="register-back" type="button" onClick={() => onBack()} aria-label="Kembali ke beranda">
+            <span aria-hidden="true">&larr;</span> Kembali ke beranda
+          </button>
+        )}
+        <header className="register-heading">
+          <p className="eyebrow">SIMAGANG &middot; PENDAFTARAN</p>
+          <h1>Daftar program magang</h1>
+          <p>Lengkapi data diri dan dokumen untuk mengajukan permohonan magang.</p>
+        </header>
+        <form onSubmit={submit} noValidate>
+          <p className="note full">Semua kolom bertanda <span className="req">*</span> wajib diisi.</p>
+          <fieldset className="application-type full">
+            <legend>Jenis pengajuan magang<span className="req"> *</span></legend>
+            <div className="application-type-options">
+              <label className={`application-type-card ${form.application_type === 'mandiri' ? 'selected' : ''}`}>
+                <input type="radio" name="application_type" value="mandiri" checked={form.application_type === 'mandiri'} onChange={() => selectApplicationType('mandiri')} />
+                <span className="application-type-copy"><strong>Magang mandiri</strong><small>Mengajukan magang atas inisiatif sendiri.</small></span>
+              </label>
+              <label className={`application-type-card ${form.application_type === 'rekomendasi_kampus' ? 'selected' : ''}`}>
+                <input type="radio" name="application_type" value="rekomendasi_kampus" checked={form.application_type === 'rekomendasi_kampus'} onChange={() => selectApplicationType('rekomendasi_kampus')} />
+                <span className="application-type-copy"><strong>Rekomendasi kampus</strong><small>Mengajukan magang dengan surat rekomendasi dari kampus.</small></span>
+              </label>
+            </div>
+          </fieldset>
+          {form.application_type === 'rekomendasi_kampus' && field('recommendation_letter_number', 'Nomor surat rekomendasi kampus')}
+          {field('nama', 'Nama lengkap', 'text', { autoComplete: 'name' })}
+          {field('email', 'Email address', 'email', { autoComplete: 'email' })}
+          {field('bidang', 'Bidang yang diminati')}
+          {field('institusi', 'Nama institusi')}
+          {field('jurusan', 'Jurusan / program studi')}
+          {field('hp', 'Nomor telepon / WhatsApp', 'tel', { autoComplete: 'tel' })}
+          {field('tgl_mulai', 'Tanggal mulai magang', 'date', { min: today })}
+          {field('tgl_selesai', 'Tanggal selesai magang', 'date', { min: form.tgl_mulai || today })}
+          {duration && <p className="date-info full">Perkiraan durasi magang: <strong>{duration}</strong></p>}
+          {['pw', 'pw2'].map((key, index) => (
+            <div className="field" key={key}>
+              <label htmlFor={key}>{index ? 'Konfirmasi password' : 'Password'}<span className="req"> *</span></label>
+              <div className="pw-wrap">
+                <input id={key} className={`input ${errors[key] ? 'invalid' : ''}`} type={visible[index] ? 'text' : 'password'} value={form[key]} onChange={change} autoComplete={index ? 'new-password' : 'new-password'} />
+                <button type="button" className="eye-btn" aria-label={visible[index] ? 'Sembunyikan password' : 'Tampilkan password'} onClick={() => setVisible(prev => prev.map((v, i) => i === index ? !v : v))}>
+                  {visible[index] ? 'Sembunyikan' : 'Tampilkan'}
+                </button>
+              </div>
+              {errors[key] && <p className="error-msg">{errors[key]}</p>}
+            </div>
+          ))}
+          <section className="berkas full">
+            <h2>Dokumen pendukung</h2>
+            <p className="hint">PDF, JPG, atau PNG &middot; maksimal 5 MB per berkas. Foto kartu hanya JPG/PNG.</p>
+            <div className="berkas-grid">
+              {docs.map(({ key, label: defaultLabel, accept }) => {
+                const label = key === 'b3' && form.application_type === 'rekomendasi_kampus' ? 'Surat rekomendasi kampus' : defaultLabel;
+                const file = files[key];
 
-          return <div className="field" key={key}>
-          <label htmlFor={key}>{label}<span className="req"> *</span></label>
-          <div className={`upload-card ${file ? 'has-file' : ''} ${errors[key] ? 'invalid' : ''}`}>
-            <input id={key} className="upload-native" type="file" accept={accept} onChange={event => { setFiles(prev => ({ ...prev, [key]: event.target.files?.[0] || null })); setErrors(prev => ({ ...prev, [key]: '' })); }} />
-            <label className="upload-label" htmlFor={key}>
-              <span className="upload-copy">
-                <strong>{file?.name || 'Pilih berkas untuk diunggah'}</strong>
-                <small>{file ? `${formatFileSize(file.size)} Â· klik untuk mengganti berkas` : 'PDF, JPG, atau PNG Â· maksimal 5 MB'}</small>
-              </span>
-              <span className="upload-action">{file ? 'Ganti' : 'Pilih file'}</span>
-            </label>
+                return (
+                  <div className="field" key={key}>
+                    <label htmlFor={key}>{label}<span className="req"> *</span></label>
+                    <div className={`upload-card ${file ? 'has-file' : ''} ${errors[key] ? 'invalid' : ''}`}>
+                      <input id={key} className="upload-native" type="file" accept={accept} onChange={event => { setFiles(prev => ({ ...prev, [key]: event.target.files?.[0] || null })); setErrors(prev => ({ ...prev, [key]: '' })); }} />
+                      <label className="upload-label" htmlFor={key}>
+                        <span className="upload-copy">
+                          <strong>{file?.name || 'Pilih berkas untuk diunggah'}</strong>
+                          <small>{file ? `${formatFileSize(file.size)} &middot; klik untuk mengganti berkas` : 'PDF, JPG, atau PNG &middot; maksimal 5 MB'}</small>
+                        </span>
+                        <span className="upload-action">{file ? 'Ganti' : 'Pilih file'}</span>
+                      </label>
+                    </div>
+                    {errors[key] && <p className="error-msg">{errors[key]}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+          <div className="checks full">
+            {[
+              'Saya telah memeriksa dan memastikan seluruh data yang diisi benar.',
+              'Seluruh data dan dokumen yang saya kirim adalah milik saya dan dapat dipertanggungjawabkan.',
+            ].map((label, index) => (
+              <label className="check" key={label}>
+                <input type="checkbox" checked={agreements[index]} onChange={event => setAgreements(prev => prev.map((value, i) => i === index ? event.target.checked : value))} />
+                {label}
+              </label>
+            ))}
           </div>
-          {errors[key] && <p className="error-msg">{errors[key]}</p>}
-        </div>})}</div>
-      </section>
-      <div className="checks full">{[
-        'Saya telah memeriksa dan memastikan seluruh data yang diisi benar.',
-        'Seluruh data dan dokumen yang saya kirim adalah milik saya dan dapat dipertanggungjawabkan.',
-      ].map((label, index) => <label className="check" key={label}><input type="checkbox" checked={agreements[index]} onChange={event => setAgreements(prev => prev.map((value, i) => i === index ? event.target.checked : value))} />{label}</label>)}</div>
-      <button className="submit full" type="submit" disabled={!agreements.every(Boolean) || loading}>{loading ? 'Mengirim pendaftaran…' : 'Kirim pendaftaran'}</button>
-      <p className="login full">Sudah punya akun? <a href="/login" onClick={event => { if (onLogin) { event.preventDefault(); onLogin(); } }}>Masuk</a></p>
-    </form>
-  </main>{toast && <div className={`toast show ${toast.kind}`} role="status">{toast.message}</div>}</div>;
+          <button className="submit full" type="submit" disabled={!agreements.every(Boolean) || loading}>
+            {loading ? 'Mengirim pendaftaran…' : 'Kirim pendaftaran'}
+          </button>
+          <p className="login full">
+            Sudah punya akun? <a href="/login" onClick={event => { if (onLogin) { event.preventDefault(); onLogin(); } }}>Masuk</a>
+          </p>
+        </form>
+      </main>
+      {toast && <div className={`toast show ${toast.kind}`} role="status">{toast.message}</div>}
+    </div>
+  );
 }

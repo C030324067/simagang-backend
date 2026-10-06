@@ -37,6 +37,13 @@ class Division extends Model
             ->where('status_akun', 'approved');
     }
 
+    public function activeKabid(): HasOne
+    {
+        return $this->hasOne(User::class, 'division_id')
+            ->where('role', 'kabid')
+            ->where('status_akun', 'approved');
+    }
+
     public function activeInterns(): HasMany
     {
         return $this->hasMany(User::class)
@@ -49,15 +56,22 @@ class Division extends Model
         return $this->hasMany(Task::class);
     }
 
-    public function remainingQuota(?int $activeInternsCount = null): int
+    public function remainingQuota(?int $activeApplicationsCount = null): int
     {
-        $activeInternsCount ??= $this->activeInterns()->count();
+        $activeApplicationsCount ??= $this->activeApplications()->count();
 
-        return (int) $this->quota - $activeInternsCount;
+        return max(0, (int) $this->quota - $activeApplicationsCount);
     }
 
     public function applications(): HasMany
     {
         return $this->hasMany(InternApplication::class);
+    }
+
+    public function activeApplications(): HasMany
+    {
+        return $this->applications()
+            ->where('final_status', 'accepted')
+            ->where('internship_status', 'in_progress');
     }
 }

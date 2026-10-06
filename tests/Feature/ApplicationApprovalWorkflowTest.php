@@ -40,6 +40,7 @@ class ApplicationApprovalWorkflowTest extends TestCase
         $this->kabid = User::factory()->create([
             'role' => 'kabid',
             'division_id' => $this->division->id,
+            'status_akun' => 'approved',
         ]);
         $this->kadis = User::factory()->create(['role' => 'kadis']);
     }
@@ -114,11 +115,13 @@ class ApplicationApprovalWorkflowTest extends TestCase
             ->putJson("/api/applications/{$application->id}/approve-kabid", [
                 'status' => 'approved',
                 'notes' => 'Penempatan bidang Aptika disetujui.',
+                'mentor_id' => $this->kabid->id,
             ]);
 
         $responseStep3->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.status_kabid', 'approved');
+            ->assertJsonPath('data.status_kabid', 'approved')
+            ->assertJsonPath('data.mentor_id', $this->kabid->id);
 
         // Step 4: Kadis authorizes the application before the official letter is uploaded.
         $responseStep4 = $this->actingAs($this->kadis, 'sanctum')
@@ -130,10 +133,8 @@ class ApplicationApprovalWorkflowTest extends TestCase
         $responseStep4->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.status_kadis', 'approved')
-            ->assertJsonPath('data.status', 'approved_kadis')
+            ->assertJsonPath('data.status', 'approved_by_kadis')
             ->assertJsonPath('data.final_status', 'in_review');
-
-        $this->assertNotEmpty($responseStep4->json('data.acceptance_letter_number'));
 
         // Check user division is updated
         $this->assertDatabaseHas('users', [

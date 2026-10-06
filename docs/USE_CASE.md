@@ -16,6 +16,19 @@ SIMAGANG mengelola proses magang mulai dari pendaftaran peserta dan seleksi peng
 | Kepala Dinas (Kadis) | Memberi keputusan akhir atas pengajuan: menyetujui atau menolak. |
 | Mentor | Membuat tugas, mengelola statusnya, memverifikasi logbook dan presensi, melihat data peserta terkait, mengisi evaluasi akhir, dan menerbitkan sertifikat. |
 
+## Master divisi
+
+Pilihan divisi dan kuotanya bersumber dari endpoint publik `GET /api/divisions`, bukan daftar statis di formulir atau halaman publik. Master saat ini memuat:
+
+| Kode | Bidang |
+|---|---|
+| `ikp` | Bidang Informasi dan Komunikasi Publik (IKP) |
+| `statistik` | Bidang Statistik |
+| `aptika` | Bidang Aplikasi Informatika |
+| `tki` | Bidang Telekomunikasi dan Keamanan Informasi |
+
+Setiap Kabid dan mentor ditautkan ke divisi melalui `division_id`. Kepegawaian memilih divisi dan memeriksa sisa kuota; antrean pengajuan Kabid serta daftar mentor yang dapat ditugaskan dibatasi pada divisi pengajuan tersebut.
+
 ## Diagram ringkas
 
 ```mermaid
@@ -82,14 +95,16 @@ flowchart LR
 - **Prasyarat:** Pemohon memiliki dokumen pendaftaran dan belum menggunakan email yang terdaftar.
 - **Pemicu:** Intern mengirim pengajuan magang.
 - **Alur utama:**
-  1. Pemohon mengisi data pribadi, bidang, institusi, jurusan, periode magang, kata sandi, dan dokumen `b1`–`b4`.
+  1. Pemohon memuat pilihan bidang dari master divisi, lalu mengisi data pribadi, kode bidang, institusi, jurusan, periode magang, kata sandi, dan dokumen `b1`–`b4`.
   2. Sistem memvalidasi data, membuat akun pemohon serta pengajuan, lalu mengembalikan kode tracking.
-  3. Admin Kepegawaian memeriksa kelengkapan berkas dan menentukan penempatan.
-  4. Kabid meninjau kesesuaian teknis dan meneruskan pengajuan ke Kadis.
-  5. Kadis hanya memberi otorisasi atau menolak. Persetujuan mengubah status menjadi `approved_by_kadis`.
-  6. Admin Kepegawaian mengisi `official_letter_number` dan mengunggah PDF surat melalui `issue-letter`.
-  7. Sistem mengaktifkan akun dan mengubah status menjadi `accepted`; email dikirim bila layanan email aktif dan pemohon dapat mengunduh surat langsung dari tautan tracking publik.
+  3. Sistem memastikan kode bidang terdaftar dan kuota divisi masih tersedia.
+  4. Admin Kepegawaian memeriksa kelengkapan berkas, menetapkan `division_id`, dan meneruskan pengajuan.
+  5. Kabid pada divisi tersebut meninjau kesesuaian teknis, memilih Kabid/mentor aktif dari divisi yang sama, lalu meneruskan pengajuan ke Kadis.
+  6. Kadis hanya memberi otorisasi atau menolak. Persetujuan mengubah status menjadi `approved_by_kadis`.
+  7. Admin Kepegawaian mengisi `official_letter_number` dan mengunggah PDF surat melalui `issue-letter`.
+  8. Sistem mengaktifkan akun dan mengubah status menjadi `accepted`; email dikirim bila layanan email aktif dan pemohon dapat mengunduh surat langsung dari tautan tracking publik.
 - **Alur alternatif:** Kepegawaian, Kabid, atau Kadis dapat menolak pada tahap kewenangannya; alasan penolakan dapat dilihat oleh pemohon yang menggunakan kode tracking.
+- **Alur alternatif:** Jika kode divisi tidak valid atau kuota habis, sistem menolak pendaftaran atau transisi persetujuan tanpa mengubah penempatan. Kabid tidak dapat melihat pengajuan atau memilih mentor dari divisi lain.
 - **Pascakondisi:** Pengajuan berstatus ditolak atau diterima dengan nomor dan surat resmi terbit.
 
 ### UC-15 — Melacak status pengajuan

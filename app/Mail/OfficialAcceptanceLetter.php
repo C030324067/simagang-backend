@@ -34,10 +34,17 @@ class OfficialAcceptanceLetter extends Mailable
     /** @return array<int, Attachment> */
     public function attachments(): array
     {
+        $extension = strtolower(pathinfo($this->letterPath, PATHINFO_EXTENSION));
+        $mimeType = match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            default => 'application/pdf',
+        };
+
         return [
             Attachment::fromStorageDisk('public', $this->letterPath)
-                ->as('Surat-Penerimaan-Magang.pdf')
-                ->withMime('application/pdf'),
+                ->as("Surat-Penerimaan-Magang.{$extension}")
+                ->withMime($mimeType),
         ];
     }
 }

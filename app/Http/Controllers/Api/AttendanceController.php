@@ -149,9 +149,9 @@ class AttendanceController extends Controller
             'photo' => [Rule::requiredIf($status === 'present'), 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'latitude' => [Rule::requiredIf($status === 'present'), 'nullable', 'numeric', 'between:-90,90'],
             'longitude' => [Rule::requiredIf($status === 'present'), 'nullable', 'numeric', 'between:-180,180'],
-            'dokumen_skd' => [Rule::requiredIf($status === 'sick'), 'nullable', 'file', 'mimes:pdf,jpg,jpeg', 'max:5120'],
-            'dokumen_izin' => [Rule::requiredIf($status === 'leave'), 'nullable', 'file', 'mimes:pdf,jpg,jpeg', 'max:5120'],
-            'notes' => ['nullable', 'string', 'max:500'],
+            'dokumen_skd' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg', 'max:5120'],
+            'dokumen_izin' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg', 'max:5120'],
+            'notes' => [Rule::requiredIf(in_array($status, ['sick', 'leave'], true)), 'nullable', 'string', 'max:500'],
         ]);
 
         $officeLatitude = config('attendance.office_lat');

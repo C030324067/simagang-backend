@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\OfficialAcceptanceLetter;
 use App\Models\Division;
 use App\Models\InternApplication;
+use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -208,6 +209,7 @@ class ApplicationController extends Controller
     public function myApplication(Request $request): JsonResponse
     {
         $application = InternApplication::with(['division', 'verifierKepegawaian', 'verifierKabid', 'verifierKadis'])
+            ->with('mentor:id,name,role')
             ->where('user_id', $request->user()->id)
             ->latest()
             ->first();
@@ -280,7 +282,7 @@ class ApplicationController extends Controller
             return $this->errorResponse('Akun Kepala Bidang belum terhubung dengan bidang.', 403);
         }
 
-        $query = InternApplication::with(['user', 'division'])
+        $query = InternApplication::with(['user', 'division', 'mentor:id,name,role'])
             ->whereIn('status', ['pending_kabid', 'review_kabid'])
             ->where('division_id', $request->user()->division_id)
             ->whereHas('user', fn ($query) => $query
@@ -288,6 +290,34 @@ class ApplicationController extends Controller
                 ->where('division_id', $request->user()->division_id));
 
         return $this->successResponse($query->latest()->get(), 'Antrean peninjauan bidang berhasil dimuat.');
+    }
+
+    public function mentors(Request $request, InternApplication $application): JsonResponse
+    {
+        $kabid = $request->user();
+        if (! $kabid->division_id || (int) $application->division_id !== (int) $kabid->division_id) {
+            return $this->errorResponse('Aplikasi ini berada di luar bidang Anda.', 403);
+        }
+
+        if (! in_array($application->status, ['pending_kabid', 'review_kabid'], true)
+            || ! $application->user()
+                ->where('role', 'applicant')
+                ->where('division_id', $kabid->division_id)
+                ->exists()) {
+            return $this->errorResponse('Pengajuan tidak tersedia untuk penunjukan pembimbing.', 404);
+        }
+
+        $mentors = User::query()
+            ->where('division_id', $kabid->division_id)
+            ->where('status_akun', 'approved')
+            ->where(function ($query) use ($kabid): void {
+                $query->where('role', 'mentor')->orWhere('id', $kabid->id);
+            })
+            ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$kabid->id])
+            ->orderBy('name')
+            ->get(['id', 'name', 'role']);
+
+        return $this->successResponse($mentors, 'Daftar pembimbing bidang berhasil dimuat.');
     }
 
     public function kadis(): JsonResponse
@@ -300,13 +330,30 @@ class ApplicationController extends Controller
 
     public function updateStatus(Request $request, InternApplication $application): JsonResponse
     {
+        $user = $request->user();
+        $approvingAsKabid = $user->role === 'kabid'
+            && in_array($request->input('status'), ['pending_kadis', 'review_kadis'], true);
+        $mentorRule = Rule::exists('users', 'id')->where(function ($query) use ($user): void {
+            $query->where('division_id', $user->division_id)
+                ->where('status_akun', 'approved')
+                ->where(function ($query) use ($user): void {
+                    $query->where('role', 'mentor')->orWhere('id', $user->id);
+                });
+        });
+
         $validated = $request->validate([
             'status' => ['required', Rule::in(['pending_kabid', 'review_kabid', 'pending_kadis', 'review_kadis', 'approved_by_kadis', 'approved_kadis', 'rejected'])],
             'rejection_note' => ['nullable', 'string', 'max:2000'],
             'division_id' => ['nullable', 'exists:divisions,id'],
+            'mentor_id' => [
+                Rule::requiredIf($approvingAsKabid),
+                Rule::prohibitedIf($user->role !== 'kabid'),
+                'nullable',
+                'integer',
+                $mentorRule,
+            ],
         ]);
 
-        $user = $request->user();
         $nextStatus = match ($validated['status']) {
             'review_kabid' => 'pending_kabid',
             'review_kadis' => 'pending_kadis',
@@ -393,6 +440,7 @@ class ApplicationController extends Controller
                     'status_kabid' => 'approved',
                     'verified_by_kabid' => $user->id,
                     'notes_kabid' => 'Permohonan diteruskan kepada Kadis.',
+                    'mentor_id' => $validated['mentor_id'],
                 ];
             } elseif ($nextStatus === 'approved_by_kadis') {
                 $changes += [
@@ -406,7 +454,7 @@ class ApplicationController extends Controller
             $lockedApplication->update($changes);
         });
 
-        return $this->successResponse($application->fresh(['user', 'division']), 'Status permohonan berhasil diperbarui.');
+        return $this->successResponse($application->fresh(['user', 'division', 'mentor']), 'Status permohonan berhasil diperbarui.');
     }
 
     /**
@@ -519,6 +567,18 @@ class ApplicationController extends Controller
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected'])],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'mentor_id' => [
+                Rule::requiredIf($request->input('status') === 'approved'),
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(function ($query) use ($request): void {
+                    $query->where('division_id', $request->user()->division_id)
+                        ->where('status_akun', 'approved')
+                        ->where(function ($query) use ($request): void {
+                            $query->where('role', 'mentor')->orWhere('id', $request->user()->id);
+                        });
+                }),
+            ],
         ]);
 
         if ($validated['status'] === 'approved') {
@@ -531,6 +591,7 @@ class ApplicationController extends Controller
                 'status' => 'pending_kadis',
                 'verified_by_kabid' => $request->user()->id,
                 'notes_kabid' => $validated['notes'] ?? 'Penempatan teknis bidang telah disetujui.',
+                'mentor_id' => $validated['mentor_id'],
             ]);
             $message = 'Pengajuan berhasil disetujui oleh Kabid dan diteruskan ke Kepala Dinas';
         } else {
@@ -639,11 +700,19 @@ class ApplicationController extends Controller
             return $this->errorResponse('Kuota untuk bidang ini sudah penuh.', 422);
         }
 
+        if (! $request->has('official_letter_number') && $request->has('letter_number')) {
+            $request->merge(['official_letter_number' => $request->input('letter_number')]);
+        }
+
+        if (! $request->hasFile('official_letter_file') && $request->hasFile('file')) {
+            $request->files->set('official_letter_file', $request->file('file'));
+        }
+
         $validated = $request->validate([
-            'official_letter_number' => ['required', 'string', 'max:255', Rule::unique('intern_applications', 'official_letter_number')],
-            'official_letter' => ['required', 'file', 'mimes:pdf', 'max:10240'],
+            'official_letter_number' => ['required', 'string', 'max:255', Rule::unique('intern_applications', 'official_letter_number')->ignore($application->id)],
+            'official_letter_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
-        $newPath = $validated['official_letter']->store('letters', 'public');
+        $newPath = $validated['official_letter_file']->store('letters', 'public');
         $oldPath = $application->official_letter_path;
 
         $application->loadMissing(['user', 'division']);

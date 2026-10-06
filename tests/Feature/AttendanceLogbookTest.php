@@ -59,6 +59,59 @@ class AttendanceLogbookTest extends TestCase
             ->assertJsonPath('success', true);
     }
 
+    public function test_intern_can_submit_leave_without_an_attachment_and_save_reason(): void
+    {
+        $response = $this->actingAs($this->intern, 'sanctum')->postJson('/api/attendances/check-in', [
+            'status' => 'leave',
+            'notes' => 'Izin menghadiri acara keluarga.',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'leave')
+            ->assertJsonPath('data.notes', 'Izin menghadiri acara keluarga.');
+
+        $this->assertDatabaseHas('attendances', [
+            'user_id' => $this->intern->id,
+            'status' => 'leave',
+            'notes' => 'Izin menghadiri acara keluarga.',
+            'attachment_path' => null,
+        ]);
+    }
+
+    public function test_intern_must_provide_a_reason_for_absence_attendance(): void
+    {
+        $response = $this->actingAs($this->intern, 'sanctum')->postJson('/api/attendances/check-in', [
+            'status' => 'sick',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('notes')
+            ->assertJsonPath('errors.notes.0', 'The notes field is required.');
+
+        $this->assertDatabaseMissing('attendances', [
+            'user_id' => $this->intern->id,
+            'date' => Carbon::today()->toDateString(),
+        ]);
+    }
+
+    public function test_intern_cannot_submit_an_unsupported_absence_attachment(): void
+    {
+        $response = $this->actingAs($this->intern, 'sanctum')->postJson('/api/attendances/check-in', [
+            'status' => 'sick',
+            'notes' => 'Sakit demam.',
+            'dokumen_skd' => UploadedFile::fake()->create('malware.exe', 10, 'application/octet-stream'),
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('dokumen_skd');
+
+        $this->assertDatabaseMissing('attendances', [
+            'user_id' => $this->intern->id,
+            'date' => Carbon::today()->toDateString(),
+        ]);
+    }
+
     public function test_intern_submits_logbook_and_mentor_verifies(): void
     {
         $file = UploadedFile::fake()->create('report.pdf', 500, 'application/pdf');

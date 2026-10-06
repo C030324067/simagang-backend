@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(180deg, #5b8def 0%, #a9c8f7 100%);
+  background: linear-gradient(to bottom right, #dbeafe 0%, #e0e7ff 50%, #f3e8ff 100%);
   color: #111;
   box-sizing: border-box;
 }
@@ -39,6 +39,8 @@
 }
 
 .register-container .register-back {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -49,6 +51,7 @@
   font: inherit;
   font-size: 13px;
   font-weight: 500;
+  pointer-events: auto;
   cursor: pointer;
 }
 
