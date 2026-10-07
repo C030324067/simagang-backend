@@ -6,7 +6,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
 use Throwable;
 
 class EffectiveWorkingDaysCalculator
@@ -56,7 +55,9 @@ class EffectiveWorkingDaysCalculator
             $apiKey = config('services.google_calendar.api_key');
 
             if (! is_string($apiKey) || $apiKey === '') {
-                throw new RuntimeException('Google Calendar API key belum dikonfigurasi.');
+                Log::warning('Google Calendar API key belum dikonfigurasi. Menggunakan kalkulasi tanpa hari libur nasional.');
+
+                return [];
             }
 
             $timeMin = CarbonImmutable::create($year, 1, 1, 0, 0, 0, 'Asia/Jakarta')->subSecond()->toRfc3339String();
@@ -84,7 +85,11 @@ class EffectiveWorkingDaysCalculator
                         ->get('https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode(self::HOLIDAY_CALENDAR_ID).'/events', $query);
 
                     if (! $response->successful()) {
-                        throw new RuntimeException('Google Calendar API mengembalikan HTTP '.$response->status().'.');
+                        Log::warning('Google Calendar API mengembalikan status non-200. Menggunakan kalkulasi tanpa hari libur nasional.', [
+                            'status' => $response->status(),
+                        ]);
+
+                        return [];
                     }
 
                     foreach ($response->json('items', []) as $event) {
@@ -97,12 +102,12 @@ class EffectiveWorkingDaysCalculator
                     $pageToken = $response->json('nextPageToken');
                 } while (is_string($pageToken) && $pageToken !== '');
             } catch (Throwable $exception) {
-                Log::warning('Gagal mengambil hari libur dari Google Calendar.', [
+                Log::warning('Gagal mengambil hari libur dari Google Calendar. Menggunakan kalkulasi tanpa hari libur nasional.', [
                     'year' => $year,
                     'message' => $exception->getMessage(),
                 ]);
 
-                throw new RuntimeException('Data hari libur nasional tidak dapat dimuat. Coba lagi nanti.', previous: $exception);
+                return [];
             }
 
             return array_values(array_unique($dates));
