@@ -143,6 +143,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::middleware('role:intern,mentor')->group(function () {
+            Route::post('/{task}/status', [TaskController::class, 'updateStatus']);
             Route::put('/{task}/status', [TaskController::class, 'updateStatus']);
         });
     });
