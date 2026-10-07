@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Upload, X } from 'lucide-react';
 import { apiRequest } from '../api';
+import { formatAttendanceStatus } from '../utils/attendanceStatus';
 
 const emptyLocation = { latitude: null, longitude: null };
 
@@ -169,8 +170,8 @@ export default function InternAttendance({ open, onClose, attendance, attendance
 
         {attendance ? (
           <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm">
-            <p className="font-bold text-indigo-950">Status hari ini: {attendance.status}</p>
-            <p className="mt-1 text-indigo-900">Persetujuan: {attendance.approval_status === 'pending_approval' ? 'Menunggu mentor' : attendance.approval_status}</p>
+            <p className="font-bold text-indigo-950">Status hari ini: {formatAttendanceStatus(attendance.status)}</p>
+            <p className="mt-1 text-indigo-900">Persetujuan: {formatAttendanceStatus(attendance.approval_status || 'approved')}</p>
             <p className="mt-1 text-indigo-900">Masuk: {attendance.clock_in_at || attendance.check_in_time || '—'} · Pulang: {attendance.clock_out_at || attendance.check_out_time || '—'}</p>
             {attendance.notes && <p className="mt-2 text-slate-700">Keterangan: {attendance.notes}</p>}
             {attendance.rejection_reason && <p className="mt-2 text-rose-700">Alasan penolakan: {attendance.rejection_reason}</p>}
@@ -306,7 +307,7 @@ export default function InternAttendance({ open, onClose, attendance, attendance
             {attendanceHistory.slice(0, 5).map((row) => (
               <li key={row.id} className="flex flex-wrap justify-between gap-x-3 gap-y-1 rounded-xl bg-slate-50 px-3 py-2">
                 <span>{row.date}</span>
-                <span className="capitalize">{row.status} · {row.approval_status || 'approved'}</span>
+                <span>{formatAttendanceStatus(row.status)} · {formatAttendanceStatus(row.approval_status || 'approved')}</span>
               </li>
             ))}
             {attendanceHistory.length === 0 && <li className="text-slate-500">Belum ada riwayat presensi.</li>}
