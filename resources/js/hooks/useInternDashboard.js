@@ -89,7 +89,6 @@ export default function useInternDashboard(user) {
     setSubmitting(true);
     try {
       const payload = new FormData();
-      payload.append('_method', 'PUT');
       payload.append('status', 'completed');
       
       // Fallback alias field catatan
@@ -103,7 +102,7 @@ export default function useInternDashboard(user) {
       }
 
       const response = await apiRequest(`/tasks/${selectedTask.id}/status`, { 
-        method: 'POST', 
+        method: 'POST',
         body: payload 
       });
 

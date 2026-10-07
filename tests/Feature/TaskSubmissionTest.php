@@ -14,7 +14,7 @@ class TaskSubmissionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_intern_can_submit_a_file_using_post_method_spoofing_and_mentor_can_see_it(): void
+    public function test_intern_can_submit_a_file_using_post_and_mentor_can_see_it(): void
     {
         Storage::fake('local');
         $division = Division::create([
@@ -44,7 +44,6 @@ class TaskSubmissionTest extends TestCase
 
         $this->actingAs($intern, 'sanctum')
             ->post("/api/tasks/{$task->id}/status", [
-                '_method' => 'PUT',
                 'status' => 'completed',
                 'submission_notes' => 'Laporan sudah selesai.',
                 'submission_file' => $submission,
@@ -95,7 +94,6 @@ class TaskSubmissionTest extends TestCase
 
         $this->actingAs($intern, 'sanctum')
             ->post("/api/tasks/{$task->id}/status", [
-                '_method' => 'PUT',
                 'submission_notes' => 'Laporan sudah selesai.',
             ], ['Accept' => 'application/json'])
             ->assertOk()
@@ -130,7 +128,6 @@ class TaskSubmissionTest extends TestCase
 
         $this->actingAs($intern, 'sanctum')
             ->post("/api/tasks/{$task->id}/status", [
-                '_method' => 'PUT',
                 'status' => '',
                 'submission_notes' => 'Laporan sudah selesai.',
             ], ['Accept' => 'application/json'])
