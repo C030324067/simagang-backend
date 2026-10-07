@@ -16,6 +16,37 @@ export function setToken(token) {
   }
 }
 
+export async function downloadAcceptanceLetter(applicationId) {
+  try {
+    const response = await fetch(`/pendaftaran/${applicationId}/cetak-surat`, {
+      headers: {
+        Accept: 'application/pdf, application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      return { success: false, message: error.message || 'Surat penerimaan gagal diunduh.' };
+    }
+
+    const objectUrl = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'Surat-Penerimaan-Magang.pdf';
+    link.href = objectUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+
+    return { success: true, message: 'Surat penerimaan berhasil diunduh.' };
+  } catch (error) {
+    return { success: false, message: error.message || 'Surat gagal diunduh. Periksa koneksi lalu coba lagi.' };
+  }
+}
+
 export async function apiRequest(endpoint, options = {}) {
   const token = getToken();
   const headers = {
@@ -63,4 +94,3 @@ export async function apiRequest(endpoint, options = {}) {
     };
   }
 }
-

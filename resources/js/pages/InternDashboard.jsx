@@ -58,6 +58,8 @@ export default function InternDashboard() {
     setIsCheckInModalOpen,
     selectedTask,
     setSelectedTask,
+    taskSubmitError,
+    setTaskSubmitError,
     logbookForm,
     setLogbookForm,
     taskForm,
@@ -72,6 +74,7 @@ export default function InternDashboard() {
 
   const openTaskSubmission = (task) => {
     setSelectedTask(task);
+    setTaskSubmitError('');
     setTaskForm({ submission_notes: task.submission_notes || '', submission_file: null });
   };
 
@@ -571,7 +574,7 @@ export default function InternDashboard() {
           <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-xl border border-slate-100">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
               <h3 className="font-bold text-[#0F2942]">Detail & Pengumpulan Tugas</h3>
-              <button onClick={() => setSelectedTask(null)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+              <button onClick={() => { setSelectedTask(null); setTaskSubmitError(''); }} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -585,7 +588,10 @@ export default function InternDashboard() {
                 <textarea
                   rows={2}
                   value={taskForm.submission_notes}
-                  onChange={(e) => setTaskForm({ ...taskForm, submission_notes: e.target.value })}
+                  onChange={(e) => {
+                    setTaskForm({ ...taskForm, submission_notes: e.target.value });
+                    if (taskSubmitError) setTaskSubmitError('');
+                  }}
                   placeholder="Tambah catatan..."
                   className="mt-1.5 w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500"
                 />
@@ -595,14 +601,22 @@ export default function InternDashboard() {
                 <input
                   id="task-submission-file"
                   type="file"
-                  onChange={(event) => setTaskForm({ ...taskForm, submission_file: event.target.files?.[0] || null })}
+                  onChange={(event) => {
+                    setTaskForm({ ...taskForm, submission_file: event.target.files?.[0] || null });
+                    if (taskSubmitError) setTaskSubmitError('');
+                  }}
                   className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:font-semibold file:text-[#4F46E5] hover:file:bg-indigo-100"
                 />
               </div>
+              {taskSubmitError && (
+                <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+                  {taskSubmitError}
+                </p>
+              )}
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedTask(null)}
+                  onClick={() => { setSelectedTask(null); setTaskSubmitError(''); }}
                   className="rounded-xl bg-slate-100 px-4 py-2 font-semibold text-slate-600 hover:bg-slate-200 cursor-pointer"
                 >
                   Batal

@@ -27,6 +27,7 @@ export default function useInternDashboard(user) {
   const [selectedTask, setSelectedTask] = useState(null);
   const [logbookForm, setLogbookForm] = useState(initialLogbookForm);
   const [taskForm, setTaskForm] = useState(initialTaskForm);
+  const [taskSubmitError, setTaskSubmitError] = useState('');
 
   const loadDashboard = useCallback(async () => {
     if (!user?.id) {
@@ -80,16 +81,28 @@ export default function useInternDashboard(user) {
 
   const submitTask = async (event) => {
     event.preventDefault(); if (!selectedTask) return;
+    setTaskSubmitError('');
     if (taskForm.submission_file && taskForm.submission_file.size > 30 * 1024 * 1024) {
-      return notify('Ukuran berkas pengumpulan maksimal 30 MB.', 'error');
+      setTaskSubmitError('Ukuran berkas pengumpulan maksimal 30 MB.');
+      return;
     }
     setSubmitting(true);
     try {
-      const payload = new FormData(); payload.append('status', 'completed'); payload.append('submission_notes', taskForm.submission_notes);
+      const payload = new FormData();
+      payload.append('_method', 'PUT');
+      payload.set('status', 'completed');
+      payload.append('submission_notes', taskForm.submission_notes);
       if (taskForm.submission_file) payload.append('submission_file', taskForm.submission_file);
-      const response = await apiRequest(`/tasks/${selectedTask.id}/status`, { method: 'PUT', body: payload });
+      const response = await apiRequest(`/tasks/${selectedTask.id}/status`, { method: 'POST', body: payload });
+      if (!response.success && response.status === 422) {
+        const validationMessages = Object.values(response.errors || {}).flat();
+        setTaskSubmitError(validationMessages.join(' ') || response.message || 'Periksa kembali catatan dan berkas pengumpulan.');
+        return;
+      }
       notify(response.message || (response.success ? 'Tugas berhasil dikumpulkan.' : 'Tugas gagal dikumpulkan.'), response.success ? 'success' : 'error');
       if (response.success) { setSelectedTask(null); setTaskForm(initialTaskForm); await loadDashboard(); }
+    } catch (error) {
+      setTaskSubmitError(error.message || 'Tugas gagal dikumpulkan. Periksa koneksi lalu coba lagi.');
     } finally { setSubmitting(false); }
   };
 
@@ -118,7 +131,7 @@ export default function useInternDashboard(user) {
   return {
     now, attendance, attendanceHistory, attendanceSummary, progressMetrics, tasks, logbooks, evaluation, certificate, application, loading, submitting, message,
     setMessage, isLogbookModalOpen, setIsLogbookModalOpen, isCheckInModalOpen, setIsCheckInModalOpen,
-    selectedTask, setSelectedTask,
+    selectedTask, setSelectedTask, taskSubmitError, setTaskSubmitError,
     logbookForm, setLogbookForm, taskForm, setTaskForm, activeTasks, greeting,
     institution: application?.institution_name || 'Institusi belum diatur',
     division: application?.division?.name || user?.division?.name || 'Bidang belum ditetapkan',

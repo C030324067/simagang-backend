@@ -5,6 +5,7 @@ import { buildAcceptanceWhatsAppUrl } from '../utils/whatsapp';
 export default function useKepegawaianDashboard() {
   const [pendingApps, setPendingApps] = useState([]);
   const [approvedApps, setApprovedApps] = useState([]);
+  const [acceptedApps, setAcceptedApps] = useState([]);
   const [letterFiles, setLetterFiles] = useState({});
   const [letterNumbers, setLetterNumbers] = useState({});
   const [divisions, setDivisions] = useState([]);
@@ -17,11 +18,20 @@ export default function useKepegawaianDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [appsRes, divRes] = await Promise.all([apiRequest('/applications/kepegawaian'), apiRequest('/divisions')]);
+      const [appsRes, divRes, acceptedRes] = await Promise.all([
+        apiRequest('/applications/kepegawaian'),
+        apiRequest('/divisions'),
+        apiRequest('/applications?final_status=accepted&per_page=100'),
+      ]);
       if (appsRes.success) {
         const applications = appsRes.data || [];
         setPendingApps(applications.filter((application) => application.status === 'pending_kepegawaian'));
         setApprovedApps(applications.filter((application) => ['approved_by_kadis', 'pending_letter_number', 'approved_kadis'].includes(application.status)));
+      }
+      if (acceptedRes.success) {
+        setAcceptedApps(acceptedRes.data?.data || []);
+      } else {
+        setMsg({ type: 'error', text: acceptedRes.message || 'Daftar peserta diterima gagal dimuat.' });
       }
       if (divRes.success) {
         setDivisions(divRes.data || []);
@@ -111,7 +121,7 @@ export default function useKepegawaianDashboard() {
   };
 
   return {
-    pendingApps, approvedApps, letterFiles, setLetterFiles, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
+    pendingApps, approvedApps, acceptedApps, letterFiles, setLetterFiles, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
     actionForm, setActionForm, loading, submitting, msg, setMsg, uploadLetter, openDocument, handleActionSubmit, sendAcceptanceWhatsApp,
   };
 }

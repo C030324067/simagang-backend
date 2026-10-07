@@ -1,5 +1,6 @@
 import React from 'react';
 import useKepegawaianDashboard from '../hooks/useKepegawaianDashboard';
+import { downloadAcceptanceLetter } from '../api';
 import { 
   Clock, 
   FileText, 
@@ -11,9 +12,17 @@ import {
 
 export default function KepegawaianDashboard() {
   const {
-    pendingApps, approvedApps, letterFiles, setLetterFiles, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
+    pendingApps, approvedApps, acceptedApps, letterFiles, setLetterFiles, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
     actionForm, setActionForm, loading, submitting, msg, setMsg, uploadLetter, openDocument, handleActionSubmit
   } = useKepegawaianDashboard();
+  const [downloadingId, setDownloadingId] = React.useState(null);
+
+  const printAcceptanceLetter = async (applicationId) => {
+    setDownloadingId(applicationId);
+    const response = await downloadAcceptanceLetter(applicationId);
+    setMsg({ type: response.success ? 'success' : 'error', text: response.message });
+    setDownloadingId(null);
+  };
 
   return (
     <div className="min-h-screen bg-[#F2F6FA] font-sans text-slate-800 py-8">
@@ -242,6 +251,38 @@ export default function KepegawaianDashboard() {
               </div>
             )}
           </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <FileText className="w-5 h-5 text-[#0F2942]" />
+            <h3 className="font-bold text-[#0F2942] text-base sm:text-lg">
+              Peserta Magang Diterima ({acceptedApps.length})
+            </h3>
+          </div>
+          {acceptedApps.length === 0 ? (
+            <p className="p-6 text-center text-xs text-slate-400">Belum ada peserta magang yang diterima.</p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {acceptedApps.map((app) => (
+                <div key={app.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-sm text-[#0F2942]">{app.user?.name}</p>
+                    <p className="text-xs text-slate-500">{app.institution_name} · {app.division?.name || 'Bidang belum tersedia'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={downloadingId === app.id}
+                    onClick={() => printAcceptanceLetter(app.id)}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs rounded-xl disabled:opacity-50"
+                  >
+                    <FileText className="w-4 h-4" />
+                    {downloadingId === app.id ? 'Menyiapkan PDF...' : 'Cetak Surat Balasan'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
       </main>

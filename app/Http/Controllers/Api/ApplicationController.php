@@ -8,14 +8,17 @@ use App\Models\Division;
 use App\Models\InternApplication;
 use App\Models\User;
 use App\Traits\ApiResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ApplicationController extends Controller
@@ -785,6 +788,41 @@ class ApplicationController extends Controller
         abort_unless($application->status === 'accepted' && $application->official_letter_path, 404);
 
         return Storage::disk('public')->download($application->official_letter_path, 'surat-penerimaan-magang.pdf');
+    }
+
+    public function cetakSuratBalasan(Request $request, int $id): Response
+    {
+        $application = InternApplication::with(['user', 'division', 'verifierKadis'])->findOrFail($id);
+
+        abort_unless(
+            $application->status === 'accepted' && $application->final_status === 'accepted',
+            404,
+            'Surat hanya tersedia untuk permohonan yang telah diterima.',
+        );
+
+        if ($request->user()->role === 'kabid') {
+            abort_unless(
+                $request->user()->division_id
+                    && (int) $application->division_id === (int) $request->user()->division_id
+                    && $application->user?->role === 'intern',
+                404,
+            );
+        }
+
+        abort_if(! $application->user || ! $application->division, 422, 'Data pendaftar atau divisi penempatan tidak lengkap.');
+
+        if (! $application->acceptance_letter_number) {
+            $application->acceptance_letter_number = $application->official_letter_number
+                ?: sprintf('SIMAGANG/%04d/%06d', now()->year, $application->id);
+            $application->save();
+        }
+
+        $filename = 'Surat-Balasan-'.(Str::slug($application->user->name) ?: 'pendaftar').'.pdf';
+
+        return Pdf::loadView('pdf.surat_penerimaan', [
+            'pendaftar' => $application,
+            'tanggalPenerbitan' => now()->locale('id'),
+        ])->setPaper('a4', 'portrait')->download($filename);
     }
 
     private function divisionHasRemainingQuota(int $divisionId): bool

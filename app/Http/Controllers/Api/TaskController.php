@@ -98,6 +98,10 @@ class TaskController extends Controller
             return $this->errorResponse('Anda tidak berhak memperbarui tugas ini.', 403);
         }
 
+        if ($user->role === 'intern' && blank($request->input('status'))) {
+            $request->merge(['status' => 'completed']);
+        }
+
         $statuses = $user->role === 'mentor'
             ? ['pending', 'in_progress', 'revision_needed', 'completed']
             : ['pending', 'in_progress', 'completed'];

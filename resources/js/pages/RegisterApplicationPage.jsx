@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import useDivisions from '../hooks/useDivisions';
 import '../../css/RegisterApplication.css';
 
-const empty = { application_type: 'mandiri', recommendation_letter_number: '', nama: '', email: '', bidang: '', institusi: '', jurusan: '', hp: '', tgl_mulai: '', tgl_selesai: '', pw: '', pw2: '' };
+const empty = { application_type: 'mandiri', recommendation_letter_number: '', nama: '', email: '', nim_nisn: '', bidang: '', institusi: '', jurusan: '', hp: '', tgl_mulai: '', tgl_selesai: '', pw: '', pw2: '' };
 const docs = [
   { key: 'b1', label: 'Surat pengantar institusi', accept: '.pdf,.jpg,.jpeg,.png' },
   { key: 'b2', label: 'Curriculum Vitae (CV)', accept: '.pdf,.jpg,.jpeg,.png' },
@@ -154,6 +154,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           {form.application_type === 'rekomendasi_kampus' && field('recommendation_letter_number', 'Nomor surat rekomendasi kampus')}
           {field('nama', 'Nama lengkap', 'text', { autoComplete: 'name' })}
           {field('email', 'Email address', 'email', { autoComplete: 'email' })}
+          {field('nim_nisn', 'NIM / NISN')}
           {field('bidang', 'Bidang yang diminati')}
           {field('institusi', 'Nama institusi')}
           {field('jurusan', 'Jurusan / program studi')}
