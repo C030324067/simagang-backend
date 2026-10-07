@@ -27,6 +27,7 @@ export default function useInternDashboard(user) {
   const [selectedTask, setSelectedTask] = useState(null);
   const [logbookForm, setLogbookForm] = useState(initialLogbookForm);
   const [taskForm, setTaskForm] = useState(initialTaskForm);
+  const [taskSubmitError, setTaskSubmitError] = useState('');
 
   const loadDashboard = useCallback(async () => {
     if (!user?.id) {
@@ -36,11 +37,28 @@ export default function useInternDashboard(user) {
 
     setLoading(true);
     try {
-      const [attendanceResponse, historyResponse, attendanceSummaryResponse, taskResponse, logbookResponse, evaluationResponse, certificateResponse, applicationResponse, metricsResponse] = await Promise.all([
-        apiRequest('/attendances/today'), apiRequest('/attendances?per_page=1000'), apiRequest('/attendances/summary'), apiRequest('/tasks'), apiRequest('/logbooks?per_page=1000'),
-        apiRequest('/evaluations'), apiRequest('/certificates/my-certificate'), apiRequest('/applications/my-application'),
+      const [
+        attendanceResponse, 
+        historyResponse, 
+        attendanceSummaryResponse, 
+        taskResponse, 
+        logbookResponse, 
+        evaluationResponse, 
+        certificateResponse, 
+        applicationResponse, 
+        metricsResponse
+      ] = await Promise.all([
+        apiRequest('/attendances/today'), 
+        apiRequest('/attendances?per_page=1000'), 
+        apiRequest('/attendances/summary'), 
+        apiRequest('/tasks'), 
+        apiRequest('/logbooks?per_page=1000'),
+        apiRequest('/evaluations'), 
+        apiRequest('/certificates/my-certificate'), 
+        apiRequest('/applications/my-application'),
         apiRequest(`/evaluations/metrics/${user.id}`),
       ]);
+
       if (attendanceResponse.success) setAttendance(attendanceResponse.data || null);
       if (historyResponse.success) setAttendanceHistory(getCollection(historyResponse));
       if (attendanceSummaryResponse.success) setAttendanceSummary(attendanceSummaryResponse.data || null);
@@ -67,30 +85,80 @@ export default function useInternDashboard(user) {
   };
 
   const submitLogbook = async (event) => {
-    event.preventDefault(); setSubmitting(true);
+    event.preventDefault(); 
+    setSubmitting(true);
     try {
       const payload = new FormData();
-      payload.append('date', logbookForm.date); payload.append('activity_description', logbookForm.activity_description);
+      payload.append('date', logbookForm.date); 
+      payload.append('activity_description', logbookForm.activity_description);
       if (logbookForm.attachment) payload.append('attachment', logbookForm.attachment);
+      
       const response = await apiRequest('/logbooks', { method: 'POST', body: payload });
       notify(response.message || (response.success ? 'Logbook berhasil dikirim.' : 'Logbook gagal dikirim.'), response.success ? 'success' : 'error');
-      if (response.success) { setIsLogbookModalOpen(false); setLogbookForm(initialLogbookForm); await loadDashboard(); }
-    } finally { setSubmitting(false); }
+      
+      if (response.success) { 
+        setIsLogbookModalOpen(false); 
+        setLogbookForm(initialLogbookForm); 
+        await loadDashboard(); 
+      }
+    } finally { 
+      setSubmitting(false); 
+    }
   };
 
   const submitTask = async (event) => {
-    event.preventDefault(); if (!selectedTask) return;
+    event.preventDefault(); 
+    if (!selectedTask) return;
+    setTaskSubmitError('');
+
     if (taskForm.submission_file && taskForm.submission_file.size > 30 * 1024 * 1024) {
-      return notify('Ukuran berkas pengumpulan maksimal 30 MB.', 'error');
+      setTaskSubmitError('Ukuran berkas pengumpulan maksimal 30 MB.');
+      return;
     }
+
     setSubmitting(true);
     try {
-      const payload = new FormData(); payload.append('status', 'completed'); payload.append('submission_notes', taskForm.submission_notes);
-      if (taskForm.submission_file) payload.append('submission_file', taskForm.submission_file);
-      const response = await apiRequest(`/tasks/${selectedTask.id}/status`, { method: 'PUT', body: payload });
+      const payload = new FormData();
+      // 1. Method spoofing agar Laravel membaca multipart/form-data
+      payload.append('_method', 'PUT');
+      
+      // 2. Field status wajib untuk validasi Laravel
+      payload.append('status', 'completed');
+
+      // 3. Catatan pengumpulan (dikirim ganda untuk mendukung validator submission_notes/notes)
+      payload.append('submission_notes', taskForm.submission_notes || '');
+      payload.append('notes', taskForm.submission_notes || '');
+
+      // 4. File pengumpulan (dikirim ganda untuk mendukung validator submission_file/file)
+      if (taskForm.submission_file) {
+        payload.append('submission_file', taskForm.submission_file);
+        payload.append('file', taskForm.submission_file);
+      }
+
+      // Kirim lewat POST (dikombinasikan dengan _method: PUT)
+      const response = await apiRequest(`/tasks/${selectedTask.id}/status`, { 
+        method: 'POST', 
+        body: payload 
+      });
+
+      if (!response.success && response.status === 422) {
+        const validationMessages = Object.values(response.errors || {}).flat();
+        setTaskSubmitError(validationMessages.join(' ') || response.message || 'Periksa kembali catatan dan berkas pengumpulan.');
+        return;
+      }
+
       notify(response.message || (response.success ? 'Tugas berhasil dikumpulkan.' : 'Tugas gagal dikumpulkan.'), response.success ? 'success' : 'error');
-      if (response.success) { setSelectedTask(null); setTaskForm(initialTaskForm); await loadDashboard(); }
-    } finally { setSubmitting(false); }
+      
+      if (response.success) { 
+        setSelectedTask(null); 
+        setTaskForm(initialTaskForm); 
+        await loadDashboard(); 
+      }
+    } catch (error) {
+      setTaskSubmitError(error.message || 'Tugas gagal dikumpulkan. Periksa koneksi lalu coba lagi.');
+    } finally { 
+      setSubmitting(false); 
+    }
   };
 
   const downloadTaskFile = async (task) => {
@@ -108,7 +176,11 @@ export default function useInternDashboard(user) {
     const response = await fetch(`/storage/${certificate.pdf_path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
     if (!response.ok) return notify('Sertifikat belum dapat diunduh.', 'error');
     const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement('a'); link.href = url; link.download = 'sertifikat-magang.pdf'; link.click(); URL.revokeObjectURL(url);
+    const link = document.createElement('a'); 
+    link.href = url; 
+    link.download = 'sertifikat-magang.pdf'; 
+    link.click(); 
+    URL.revokeObjectURL(url);
   };
 
   const activeTasks = useMemo(() => tasks.filter((task) => task.status !== 'completed'), [tasks]);
@@ -118,7 +190,7 @@ export default function useInternDashboard(user) {
   return {
     now, attendance, attendanceHistory, attendanceSummary, progressMetrics, tasks, logbooks, evaluation, certificate, application, loading, submitting, message,
     setMessage, isLogbookModalOpen, setIsLogbookModalOpen, isCheckInModalOpen, setIsCheckInModalOpen,
-    selectedTask, setSelectedTask,
+    selectedTask, setSelectedTask, taskSubmitError, setTaskSubmitError,
     logbookForm, setLogbookForm, taskForm, setTaskForm, activeTasks, greeting,
     institution: application?.institution_name || 'Institusi belum diatur',
     division: application?.division?.name || user?.division?.name || 'Bidang belum ditetapkan',

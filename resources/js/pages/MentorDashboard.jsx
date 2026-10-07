@@ -17,7 +17,8 @@ import {
   X,
   User,
   Star,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 
 export default function MentorDashboard() {
@@ -115,7 +116,7 @@ export default function MentorDashboard() {
         </button>
 
         <button
-          onClick={() => setActiveTab('tasks')}
+          onClick={() => { setActiveTab('tasks'); void loadData(); }}
           className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeTab === 'tasks'
               ? 'bg-[#4F46E5] text-white shadow-xs'
@@ -124,6 +125,11 @@ export default function MentorDashboard() {
         >
           <ListTodo className="w-4 h-4" />
           Daftar Penugasan ( {tasks.length} )
+          {tasks.filter((task) => task.status === 'completed' && (task.submission_notes || task.submission_file)).length > 0 && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700">
+              {tasks.filter((task) => task.status === 'completed' && (task.submission_notes || task.submission_file)).length} dikumpulkan
+            </span>
+          )}
         </button>
 
         <button
@@ -286,9 +292,20 @@ export default function MentorDashboard() {
       {/* TAB: DAFTAR PENUGASAN */}
       {activeTab === 'tasks' && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-6 space-y-6">
-          <div className="flex items-center gap-2 text-[#0F172A]">
-            <ListTodo className="w-4 h-4 text-slate-700" />
-            <h3 className="font-bold text-sm">Daftar Penugasan Anak Magang</h3>
+          <div className="flex items-center justify-between gap-3 text-[#0F172A]">
+            <div className="flex items-center gap-2">
+              <ListTodo className="w-4 h-4 text-slate-700" />
+              <h3 className="font-bold text-sm">Daftar Penugasan Anak Magang</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadData()}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Muat ulang
+            </button>
           </div>
 
           {tasks.length === 0 ? (

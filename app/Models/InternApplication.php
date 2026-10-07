@@ -15,6 +15,7 @@ class InternApplication extends Model
         'application_type',
         'institution_name',
         'major',
+        'student_number',
         'cover_letter_path',
         'transcript_path',
         'student_card_path',

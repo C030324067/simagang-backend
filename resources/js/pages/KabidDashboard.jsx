@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { apiRequest } from '../api';
+import { apiRequest, downloadAcceptanceLetter } from '../api';
 import useApplicationReviewDashboard from '../hooks/useApplicationReviewDashboard';
 import useDivisions from '../hooks/useDivisions';
 import { 
@@ -9,7 +9,8 @@ import {
   Clock, 
   AlertCircle,
   X,
-  ExternalLink
+  ExternalLink,
+  FileText
 } from 'lucide-react';
 
 export default function KabidDashboard() {
@@ -28,8 +29,33 @@ export default function KabidDashboard() {
   const [modalErr, setModalErr] = useState('');
   const [mentors, setMentors] = useState([]);
   const [mentorsLoading, setMentorsLoading] = useState(false);
+  const [acceptedApps, setAcceptedApps] = useState([]);
+  const [downloadingId, setDownloadingId] = useState(null);
   const { divisions, error: quotaError } = useDivisions();
   const quota = divisions.find((division) => Number(division.id) === Number(user?.division_id));
+
+  useEffect(() => {
+    let active = true;
+    apiRequest('/applications?final_status=accepted&per_page=100').then((response) => {
+      if (!active) return;
+      if (response.success) {
+        setAcceptedApps(response.data?.data || []);
+      } else {
+        setMsg({ type: 'error', text: response.message || 'Daftar peserta diterima gagal dimuat.' });
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const printAcceptanceLetter = async (applicationId) => {
+    setDownloadingId(applicationId);
+    const response = await downloadAcceptanceLetter(applicationId);
+    setMsg({ type: response.success ? 'success' : 'error', text: response.message });
+    setDownloadingId(null);
+  };
 
   useEffect(() => {
     if (!selectedApp) {
@@ -206,6 +232,38 @@ export default function KabidDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden p-6 sm:p-8 space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <h2 className="font-bold text-sm sm:text-base text-[#0F172A]">
+              Peserta Magang Diterima ({acceptedApps.length})
+            </h2>
+          </div>
+          {acceptedApps.length === 0 ? (
+            <p className="py-6 text-center text-xs text-slate-400">Belum ada peserta magang diterima di bidang Anda.</p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {acceptedApps.map((app) => (
+                <div key={app.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-sm text-[#0F172A]">{app.user?.name}</p>
+                    <p className="text-xs text-slate-500">{app.institution_name} · {app.division?.name || 'Bidang'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={downloadingId === app.id}
+                    onClick={() => printAcceptanceLetter(app.id)}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs rounded-xl disabled:opacity-50"
+                  >
+                    <FileText className="w-4 h-4" />
+                    {downloadingId === app.id ? 'Menyiapkan PDF...' : 'Cetak Surat Balasan'}
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </section>
