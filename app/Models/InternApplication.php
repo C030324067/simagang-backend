@@ -5,10 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class InternApplication extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::creating(function (InternApplication $application): void {
+            if (! empty($application->tracking_code)) {
+                return;
+            }
+
+            do {
+                $trackingCode = 'TRK-'.Str::upper(Str::random(12));
+            } while (static::query()->where('tracking_code', $trackingCode)->exists());
+
+            $application->tracking_code = $trackingCode;
+        });
+    }
 
     protected $fillable = [
         'user_id',

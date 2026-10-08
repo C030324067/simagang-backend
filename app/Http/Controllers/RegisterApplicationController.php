@@ -86,7 +86,6 @@ class RegisterApplicationController extends Controller
                 $stored[$key] = $request->file($key)->store('documents', 'public');
             }
 
-            $trackingCode = 'TRK-'.Str::upper(Str::random(12));
             $application = InternApplication::create([
                 'user_id' => $user->id,
                 'application_type' => $validated['application_type'],
@@ -104,7 +103,6 @@ class RegisterApplicationController extends Controller
                 'start_date' => $validated['tgl_mulai'],
                 'end_date' => $validated['tgl_selesai'],
                 'division_id' => $division?->id,
-                'tracking_code' => $trackingCode,
             ]);
 
             DB::commit();
@@ -113,8 +111,8 @@ class RegisterApplicationController extends Controller
                 'status' => 'success',
                 'message' => 'Pendaftaran berhasil! Berkas Anda sedang ditinjau oleh pihak Diskominfo. Akun Anda akan diaktifkan setelah pendaftaran DITERIMA.',
                 'redirect_url' => url('/login'),
-                'tracking_code' => $trackingCode,
-                'data' => ['tracking_code' => $trackingCode, 'status' => $application->status],
+                'tracking_code' => $application->tracking_code,
+                'data' => ['tracking_code' => $application->tracking_code, 'status' => $application->status],
             ], 201);
         } catch (Throwable $exception) {
             DB::rollBack();
