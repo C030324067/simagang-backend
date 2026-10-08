@@ -84,8 +84,24 @@ class AttendanceController extends Controller
             ], 'Peserta belum memiliki periode magang aktif.');
         }
 
+        $startDate = Carbon::parse($application->start_date)->startOfDay();
+        $endDate = Carbon::parse($application->end_date)->startOfDay();
+        $today = Carbon::today();
+
+        if ($today->lt($startDate)) {
+            return $this->successResponse([
+                'total_hadir' => 0,
+                'total_hari_kerja_efektif' => 0,
+                'attendance_percentage' => 0,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ], 'Periode magang belum dimulai.');
+        }
+
+        $endDateForCalculation = $today->gt($endDate) ? $endDate->toDateString() : $today->toDateString();
+
         try {
-            $workingDates = $workingDays->getEffectiveWorkingDates($application->start_date, $application->end_date);
+            $workingDates = $workingDays->getEffectiveWorkingDates($application->start_date, $endDateForCalculation);
         } catch (Throwable $exception) {
             Log::error('Ringkasan kehadiran gagal menghitung hari kerja efektif.', [
                 'intern_id' => $intern->id,
@@ -97,7 +113,7 @@ class AttendanceController extends Controller
 
         $totalHadir = count($workingDates) === 0 ? 0 : Attendance::query()
             ->where('user_id', $intern->id)
-            ->whereBetween('date', [$application->start_date, $application->end_date])
+            ->whereBetween('date', [$application->start_date, $endDateForCalculation])
             ->whereIn('date', $workingDates)
             ->whereIn('status', ['present', 'late'])
             ->where('approval_status', 'approved')
@@ -108,8 +124,8 @@ class AttendanceController extends Controller
             'total_hadir' => $totalHadir,
             'total_hari_kerja_efektif' => $effectiveDays,
             'attendance_percentage' => $effectiveDays === 0 ? 0 : round(($totalHadir / $effectiveDays) * 100, 2),
-            'start_date' => Carbon::parse($application->start_date)->toDateString(),
-            'end_date' => Carbon::parse($application->end_date)->toDateString(),
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
         ], 'Ringkasan kehadiran berhasil dihitung.');
     }
 

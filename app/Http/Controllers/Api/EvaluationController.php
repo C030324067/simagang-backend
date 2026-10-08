@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\EffectiveWorkingDaysCalculator;
 use App\Traits\ApiResponse;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -104,7 +105,9 @@ class EvaluationController extends Controller
         if (! $application) {
             return $this->errorResponse('Peserta belum memiliki periode magang yang disetujui.', 422);
         }
-        if (now()->toDateString() < $application->end_date->toDateString()) {
+
+        $endDateStr = Carbon::parse($application->end_date)->toDateString();
+        if (now()->toDateString() < $endDateStr) {
             return $this->errorResponse('Evaluasi akhir baru dapat diberikan setelah periode magang selesai.', 422);
         }
 
@@ -186,10 +189,18 @@ class EvaluationController extends Controller
             throw new \RuntimeException('Peserta belum memiliki periode magang yang disetujui.');
         }
 
-        $workingDates = array_values(array_filter(
-            $workingDays->getEffectiveWorkingDates($application->start_date, $application->end_date),
-            fn (string $date): bool => $date <= now()->toDateString(),
-        ));
+        $startDate = Carbon::parse($application->start_date)->toDateString();
+        $endDate = Carbon::parse($application->end_date)->toDateString();
+        $today = now()->toDateString();
+
+        if ($today < $startDate) {
+            $workingDates = [];
+            $endDateForCalculation = $startDate;
+        } else {
+            $endDateForCalculation = $endDate < $today ? $endDate : $today;
+            $workingDates = $workingDays->getEffectiveWorkingDates($startDate, $endDateForCalculation);
+        }
+
         $totalWorkingDays = count($workingDates);
         $filledDays = $totalWorkingDays === 0 ? 0 : Logbook::query()
             ->where('user_id', $intern->id)
@@ -202,9 +213,11 @@ class EvaluationController extends Controller
         $completedTasks = (clone $tasks)->where('status', 'completed')->count();
         $inProgressTasks = (clone $tasks)->where('status', 'in_progress')->count();
         $revisionTasks = (clone $tasks)->where('status', 'revision_needed')->count();
+        $taskPercentage = $totalTasks === 0 ? 100 : round(($completedTasks / $totalTasks) * 100, 2);
+
         $attendanceTotal = $totalWorkingDays === 0 ? 0 : Attendance::query()
             ->where('user_id', $intern->id)
-            ->whereBetween('date', [$application->start_date, $application->end_date])
+            ->whereBetween('date', [$startDate, $endDateForCalculation])
             ->whereIn('date', $workingDates)
             ->whereIn('status', ['present', 'late'])
             ->where('approval_status', 'approved')
@@ -215,6 +228,7 @@ class EvaluationController extends Controller
             'completed_tasks' => $completedTasks,
             'in_progress_tasks' => $inProgressTasks,
             'revision_tasks' => $revisionTasks,
+            'task_completion_percentage' => $taskPercentage,
             'logbook_completion_percentage' => $totalWorkingDays === 0 ? 0 : round(($filledDays / $totalWorkingDays) * 100, 2),
             'filled_working_days' => $filledDays,
             'total_working_days' => $totalWorkingDays,
