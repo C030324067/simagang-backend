@@ -384,6 +384,13 @@ export default function MentorDashboard() {
                       </div>
                     )}
 
+                    {t.status === 'revision_needed' && t.catatan_revisi && (
+                      <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 text-rose-800 space-y-1">
+                        <span className="font-bold block text-xs">Catatan Revisi:</span>
+                        <p className="text-xs whitespace-pre-wrap">{t.catatan_revisi}</p>
+                      </div>
+                    )}
+
                     {t.submission_file && (
                       <a 
                         href={`/api/tasks/${t.id}/submission`}
@@ -669,7 +676,7 @@ export default function MentorDashboard() {
             </div>
             <form onSubmit={submitRevisionNote} className="space-y-4">
               <div>
-                <label htmlFor="task-revision-note" className="mb-1.5 block text-xs font-bold text-slate-700">Catatan Revisi</label>
+                <label htmlFor="task-revision-note" className="mb-1.5 block text-xs font-bold text-slate-700">Catatan Revisi dari Mentor</label>
                 <textarea
                   id="task-revision-note"
                   required
@@ -694,7 +701,7 @@ export default function MentorDashboard() {
                   disabled={savingRevision || !revisionNote.trim()}
                   className="rounded-xl bg-[#4F46E5] px-5 py-2.5 text-xs font-bold text-white transition hover:bg-[#4338CA] disabled:opacity-50"
                 >
-                  {savingRevision ? 'Menyimpan...' : 'Kirim Catatan Revisi'}
+                  {savingRevision ? 'Mengirim...' : 'Kirim Revisi'}
                 </button>
               </div>
             </form>

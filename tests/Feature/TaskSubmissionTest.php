@@ -171,6 +171,11 @@ class TaskSubmissionTest extends TestCase
             ->assertJsonPath('data.status', 'revision_needed')
             ->assertJsonPath('data.catatan_revisi', 'Lengkapi bagian kesimpulan dan lampirkan sumber data.');
 
+        $this->actingAs($mentor, 'sanctum')
+            ->getJson('/api/tasks')
+            ->assertOk()
+            ->assertJsonPath('data.data.0.catatan_revisi', 'Lengkapi bagian kesimpulan dan lampirkan sumber data.');
+
         $this->actingAs($intern, 'sanctum')
             ->post("/api/tasks/{$task->id}/status", [
                 'status' => 'completed',
