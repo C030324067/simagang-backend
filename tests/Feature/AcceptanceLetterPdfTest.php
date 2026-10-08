@@ -40,6 +40,53 @@ class AcceptanceLetterPdfTest extends TestCase
         ]);
     }
 
+    public function test_pdf_uses_the_selected_applicants_data_when_multiple_applications_exist(): void
+    {
+        $division = $this->createDivision('ikp');
+        $firstApplicant = User::factory()->create([
+            'name' => 'Pendaftar Pertama',
+            'role' => 'intern',
+            'status_akun' => 'approved',
+            'division_id' => $division->id,
+        ]);
+        $selectedApplicant = User::factory()->create([
+            'name' => 'Jaya Ramadhani',
+            'role' => 'intern',
+            'status_akun' => 'approved',
+            'division_id' => $division->id,
+        ]);
+        $firstApplication = $this->createAcceptedApplication($firstApplicant, $division);
+        $selectedApplication = $this->createAcceptedApplication($selectedApplicant, $division);
+        $firstApplication->update([
+            'institution_name' => 'Institusi Pertama',
+            'student_number' => '1111111111',
+            'major' => 'Jurusan Pertama',
+        ]);
+        $selectedApplication->update([
+            'institution_name' => 'Universitas Jaya',
+            'student_number' => '2222222222',
+            'major' => 'Teknik Informatika',
+        ]);
+        $admin = User::factory()->create(['role' => 'admin_kepegawaian']);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->get("/pendaftaran/{$selectedApplication->id}/cetak-surat");
+
+        $response->assertOk()
+            ->assertHeader('content-disposition', 'attachment; filename=Surat-Balasan-jaya-ramadhani.pdf');
+
+        $renderedLetter = view('pdf.surat_penerimaan', [
+            'pendaftar' => $selectedApplication->fresh(['user', 'division', 'verifierKadis']),
+            'tanggalPenerbitan' => now()->locale('id'),
+        ])->render();
+
+        $this->assertStringContainsString('Jaya Ramadhani', $renderedLetter);
+        $this->assertStringContainsString('Universitas Jaya', $renderedLetter);
+        $this->assertStringContainsString('2222222222', $renderedLetter);
+        $this->assertStringNotContainsString('Pendaftar Pertama', $renderedLetter);
+        $this->assertStringNotContainsString('1111111111', $renderedLetter);
+    }
+
     public function test_kabid_can_download_only_an_accepted_application_in_their_division(): void
     {
         $ownDivision = $this->createDivision('ikp');

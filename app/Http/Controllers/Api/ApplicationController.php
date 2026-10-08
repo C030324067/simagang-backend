@@ -790,9 +790,9 @@ class ApplicationController extends Controller
         return Storage::disk('public')->download($application->official_letter_path, 'surat-penerimaan-magang.pdf');
     }
 
-    public function cetakSuratBalasan(Request $request, int $id): Response
+    public function cetakSuratBalasan(Request $request, InternApplication $application): Response
     {
-        $application = InternApplication::with(['user', 'division', 'verifierKadis'])->findOrFail($id);
+        $application->load(['user', 'division', 'verifierKadis']);
 
         abort_unless(
             $application->status === 'accepted' && $application->final_status === 'accepted',

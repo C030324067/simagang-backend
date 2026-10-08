@@ -9,8 +9,8 @@ Route::post('/register-application', [RegisterApplicationController::class, 'sto
 Route::view('/reset-password/{token}', 'app')->name('password.reset');
 
 Route::middleware(['auth:sanctum', 'role:admin_kepegawaian,kabid'])
-    ->get('/pendaftaran/{id}/cetak-surat', [ApplicationController::class, 'cetakSuratBalasan'])
-    ->whereNumber('id')
+    ->get('/pendaftaran/{application}/cetak-surat', [ApplicationController::class, 'cetakSuratBalasan'])
+    ->whereNumber('application')
     ->name('pendaftaran.cetak-surat');
 
 Route::get('/{any?}', function () {
