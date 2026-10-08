@@ -105,10 +105,14 @@ class TaskController extends Controller
         $statuses = $user->role === 'mentor'
             ? ['pending', 'in_progress', 'revision_needed', 'completed']
             : ['pending', 'in_progress', 'completed'];
+        $revisionNoteRules = $user->role === 'mentor' && $request->input('status') === 'revision_needed'
+            ? ['required', 'string', 'max:2000']
+            : ['nullable', 'string', 'max:2000'];
         $validated = $request->validate([
             'status' => ['required', Rule::in($statuses)],
             'submission_notes' => ['nullable', 'string', 'max:1000'],
             'submission_file' => ['nullable', 'file', 'max:30720'],
+            'catatan_revisi' => $revisionNoteRules,
         ]);
 
         if ($validated['status'] === 'completed'
@@ -126,12 +130,18 @@ class TaskController extends Controller
             $submissionFileName = mb_substr($submissionFile->getClientOriginalName(), 0, 255);
         }
 
-        $task->update([
+        $taskUpdates = [
             'status' => $validated['status'],
             'submission_notes' => $validated['submission_notes'] ?? $task->submission_notes,
             'submission_file' => $submissionFilePath,
             'submission_file_name' => $submissionFileName,
-        ]);
+        ];
+
+        if ($user->role === 'mentor' && $validated['status'] === 'revision_needed') {
+            $taskUpdates['catatan_revisi'] = $validated['catatan_revisi'];
+        }
+
+        $task->update($taskUpdates);
 
         $task->load(['assignedUser', 'creator']);
 

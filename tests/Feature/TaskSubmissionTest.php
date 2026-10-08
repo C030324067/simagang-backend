@@ -134,4 +134,85 @@ class TaskSubmissionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'completed');
     }
+
+    public function test_mentor_revision_note_is_saved_and_intern_resubmission_marks_task_as_submitted(): void
+    {
+        Storage::fake('local');
+        $division = Division::create([
+            'name' => 'Bidang IKP',
+            'code' => 'ikp',
+            'quota' => 5,
+        ]);
+        $mentor = User::factory()->create([
+            'role' => 'mentor',
+            'status_akun' => 'approved',
+            'division_id' => $division->id,
+        ]);
+        $intern = User::factory()->create([
+            'role' => 'intern',
+            'status_akun' => 'approved',
+            'division_id' => $division->id,
+        ]);
+        $task = Task::create([
+            'title' => 'Laporan kegiatan',
+            'assigned_to' => $intern->id,
+            'created_by' => $mentor->id,
+            'division_id' => $division->id,
+            'status' => 'completed',
+            'submission_notes' => 'Pengumpulan awal.',
+        ]);
+
+        $this->actingAs($mentor, 'sanctum')
+            ->putJson("/api/tasks/{$task->id}/status", [
+                'status' => 'revision_needed',
+                'catatan_revisi' => 'Lengkapi bagian kesimpulan dan lampirkan sumber data.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'revision_needed')
+            ->assertJsonPath('data.catatan_revisi', 'Lengkapi bagian kesimpulan dan lampirkan sumber data.');
+
+        $this->actingAs($intern, 'sanctum')
+            ->post("/api/tasks/{$task->id}/status", [
+                'status' => 'completed',
+                'submission_notes' => 'Laporan sudah diperbaiki.',
+                'submission_file' => UploadedFile::fake()->create('laporan-revisi.pdf', 100, 'application/pdf'),
+            ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.catatan_revisi', 'Lengkapi bagian kesimpulan dan lampirkan sumber data.')
+            ->assertJsonPath('data.submission_notes', 'Laporan sudah diperbaiki.');
+
+        $this->assertSame('completed', $task->fresh()->status);
+    }
+
+    public function test_mentor_must_provide_a_revision_note_when_requesting_revision(): void
+    {
+        $division = Division::create([
+            'name' => 'Bidang IKP',
+            'code' => 'ikp',
+            'quota' => 5,
+        ]);
+        $mentor = User::factory()->create([
+            'role' => 'mentor',
+            'status_akun' => 'approved',
+            'division_id' => $division->id,
+        ]);
+        $intern = User::factory()->create([
+            'role' => 'intern',
+            'status_akun' => 'approved',
+            'division_id' => $division->id,
+        ]);
+        $task = Task::create([
+            'title' => 'Laporan kegiatan',
+            'assigned_to' => $intern->id,
+            'created_by' => $mentor->id,
+            'division_id' => $division->id,
+            'status' => 'completed',
+        ]);
+
+        $this->actingAs($mentor, 'sanctum')
+            ->putJson("/api/tasks/{$task->id}/status", ['status' => 'revision_needed'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['catatan_revisi']);
+    }
 }

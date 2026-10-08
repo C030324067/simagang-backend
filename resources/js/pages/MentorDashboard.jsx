@@ -22,6 +22,9 @@ import {
 } from 'lucide-react';
 
 export default function MentorDashboard() {
+  const [taskToRevise, setTaskToRevise] = React.useState(null);
+  const [revisionNote, setRevisionNote] = React.useState('');
+  const [savingRevision, setSavingRevision] = React.useState(false);
   const {
     activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg,
     selectedLogbook, setSelectedLogbook, logbookVerifyForm, setLogbookVerifyForm, showTaskModal, setShowTaskModal,
@@ -31,6 +34,27 @@ export default function MentorDashboard() {
   } = useMentorDashboard();
 
   const pendingLogbooksCount = logbooks.filter(l => l.verification_status === 'pending').length;
+
+  const updateTaskStatus = async (task, status) => {
+    if (status === 'revision_needed') {
+      setTaskToRevise(task);
+      setRevisionNote(task.catatan_revisi || '');
+      return;
+    }
+    await handleUpdateTaskStatus(task, status);
+  };
+
+  const submitRevisionNote = async (event) => {
+    event.preventDefault();
+    if (!taskToRevise || !revisionNote.trim()) return;
+    setSavingRevision(true);
+    try {
+      const response = await handleUpdateTaskStatus(taskToRevise, 'revision_needed', revisionNote.trim());
+      if (response.success) setTaskToRevise(null);
+    } finally {
+      setSavingRevision(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6 font-sans text-slate-800 bg-[#F8FAFC] min-h-screen">
@@ -375,7 +399,7 @@ export default function MentorDashboard() {
                       <span className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Ubah Status Tasks</span>
                       <select 
                         value={t.status === 'todo' ? 'pending' : t.status} 
-                        onChange={(event) => handleUpdateTaskStatus(t, event.target.value)} 
+                        onChange={(event) => updateTaskStatus(t, event.target.value)} 
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="pending">Menunggu</option>
@@ -623,6 +647,58 @@ export default function MentorDashboard() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {taskToRevise && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <section role="dialog" aria-modal="true" aria-labelledby="revision-note-title" className="w-full max-w-lg space-y-5 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 id="revision-note-title" className="font-bold text-[#0F2942]">Minta Revisi Tugas</h3>
+                <p className="mt-1 text-xs text-slate-500">{taskToRevise.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTaskToRevise(null)}
+                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Tutup"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={submitRevisionNote} className="space-y-4">
+              <div>
+                <label htmlFor="task-revision-note" className="mb-1.5 block text-xs font-bold text-slate-700">Catatan Revisi</label>
+                <textarea
+                  id="task-revision-note"
+                  required
+                  maxLength={2000}
+                  rows={5}
+                  value={revisionNote}
+                  onChange={(event) => setRevisionNote(event.target.value)}
+                  placeholder="Jelaskan bagian yang perlu diperbaiki oleh intern..."
+                  className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTaskToRevise(null)}
+                  className="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingRevision || !revisionNote.trim()}
+                  className="rounded-xl bg-[#4F46E5] px-5 py-2.5 text-xs font-bold text-white transition hover:bg-[#4338CA] disabled:opacity-50"
+                >
+                  {savingRevision ? 'Menyimpan...' : 'Kirim Catatan Revisi'}
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
       )}
 

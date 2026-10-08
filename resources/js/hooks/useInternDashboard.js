@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiRequest, getToken } from '../api';
 import { formatLocalTime, formatWitaDateTime } from '../utils/dateFormatter';
 import { getGrade } from '../utils/evaluation';
@@ -136,7 +136,6 @@ export default function useInternDashboard(user) {
     const link = document.createElement('a'); link.href = url; link.download = 'sertifikat-magang.pdf'; link.click(); URL.revokeObjectURL(url);
   };
 
-  const activeTasks = useMemo(() => tasks.filter((task) => task.status !== 'completed'), [tasks]);
   const hour = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Makassar' }).format(now));
   const greeting = hour < 11 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
 
@@ -144,7 +143,7 @@ export default function useInternDashboard(user) {
     now, attendance, attendanceHistory, attendanceSummary, progressMetrics, tasks, logbooks, evaluation, certificate, application, loading, submitting, message,
     setMessage, isLogbookModalOpen, setIsLogbookModalOpen, isCheckInModalOpen, setIsCheckInModalOpen,
     selectedTask, setSelectedTask, taskSubmitError, setTaskSubmitError,
-    logbookForm, setLogbookForm, taskForm, setTaskForm, activeTasks, greeting,
+    logbookForm, setLogbookForm, taskForm, setTaskForm, greeting,
     institution: application?.institution_name || 'Institusi belum diatur',
     division: application?.division?.name || user?.division?.name || 'Bidang belum ditetapkan',
     checkedInAt: formatLocalTime(attendance?.check_in_time), checkedOutAt: formatLocalTime(attendance?.check_out_time),

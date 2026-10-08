@@ -56,10 +56,14 @@ export default function useMentorDashboard() {
     if (response.success) { setShowTaskModal(false); setTaskForm({ title: '', description: '', assigned_to: '', deadline: '' }); await loadData(); }
   };
 
-  const handleUpdateTaskStatus = async (task, status) => {
-    const response = await apiRequest(`/tasks/${task.id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+  const handleUpdateTaskStatus = async (task, status, catatanRevisi = '') => {
+    const response = await apiRequest(`/tasks/${task.id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, ...(status === 'revision_needed' ? { catatan_revisi: catatanRevisi } : {}) }),
+    });
     setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Status tugas gagal diperbarui.' });
     if (response.success) await loadData();
+    return response;
   };
 
   const handleGenerateCert = async (internId) => {

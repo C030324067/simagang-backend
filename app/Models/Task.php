@@ -21,6 +21,7 @@ class Task extends Model
         'submission_file',
         'submission_file_name',
         'submission_notes',
+        'catatan_revisi',
     ];
 
     protected function casts(): array

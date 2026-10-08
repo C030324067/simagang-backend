@@ -64,7 +64,6 @@ export default function InternDashboard() {
     setLogbookForm,
     taskForm,
     setTaskForm,
-    activeTasks,
     downloadCertificate,
     loadDashboard,
     submitLogbook,
@@ -265,24 +264,21 @@ export default function InternDashboard() {
                       <th className="pb-3 px-3 font-bold">Judul Tugas</th>
                       <th className="pb-3 px-3 font-bold">Deskripsi</th>
                       <th className="pb-3 pl-3 font-bold">Status</th>
+                      <th className="pb-3 pl-3 font-bold">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {activeTasks.length === 0 ? (
+                    {tasks.length === 0 ? (
                       <tr>
-                        <td colSpan="4" className="py-8 text-center text-slate-400">
+                        <td colSpan="5" className="py-8 text-center text-slate-400">
                           Belum ada tugas dari pembimbing.
                         </td>
                       </tr>
                     ) : (
-                      activeTasks.slice(0, 4).map((task) => {
+                      tasks.slice(0, 4).map((task) => {
                         const badge = taskStatusStyle[task.status] || taskStatusStyle.pending;
                         return (
-                          <tr 
-                            key={task.id} 
-                            onClick={() => openTaskSubmission(task)} 
-                            className="hover:bg-slate-50/80 transition cursor-pointer"
-                          >
+                          <tr key={task.id} className="hover:bg-slate-50/80 transition">
                             <td className="py-3.5 pr-3 font-bold text-[#0F2942] whitespace-nowrap">
                               {formatDate(task.deadline)}
                             </td>
@@ -294,8 +290,27 @@ export default function InternDashboard() {
                             </td>
                             <td className="py-3.5 pl-3">
                               <span className={`inline-block rounded-full px-3 py-1 text-[11px] whitespace-nowrap ${badge.style}`}>
-                                {badge.label}
+                                {task.status === 'completed' ? 'Telah Dikumpulkan' : badge.label}
                               </span>
+                            </td>
+                            <td className="py-3.5 pl-3">
+                              {task.status === 'completed' ? (
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="cursor-not-allowed rounded-lg bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700"
+                                >
+                                  Telah Dikumpulkan
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openTaskSubmission(task)}
+                                  className="rounded-lg bg-indigo-50 px-3 py-1.5 text-[11px] font-bold text-[#4F46E5] transition hover:bg-indigo-100"
+                                >
+                                  {task.status === 'revision_needed' ? 'Perbaiki Tugas' : 'Detail / Upload'}
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -583,6 +598,12 @@ export default function InternDashboard() {
                 <p className="font-bold text-[#0F2942]">{selectedTask.title}</p>
                 <p className="text-slate-500">{selectedTask.description || 'Tidak ada deskripsi.'}</p>
               </div>
+              {selectedTask.status === 'revision_needed' && selectedTask.catatan_revisi && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800">
+                  <p className="font-bold">Catatan Revisi dari Pembimbing</p>
+                  <p className="mt-1 whitespace-pre-wrap">{selectedTask.catatan_revisi}</p>
+                </div>
+              )}
               <div>
                 <label className="block font-semibold text-slate-700">Catatan Pengumpulan</label>
                 <textarea
