@@ -205,6 +205,7 @@ export default function KepegawaianDashboard() {
                   {/* Nomor Surat Resmi */}
                   <input
                     type="text"
+                    id={`official-letter-number-${app.id}`}
                     value={letterNumbers[app.id] || ''}
                     onChange={(event) => setLetterNumbers((previous) => ({ ...previous, [app.id]: event.target.value }))}
                     placeholder="Masukkan Nomor Surat Resmi"
@@ -237,7 +238,11 @@ export default function KepegawaianDashboard() {
                 {/* Action Submit Button */}
                 <button 
                   disabled={submitting || !letterFiles[app.id] || !letterNumbers[app.id]?.trim()}
-                  onClick={() => uploadLetter(app.id)} 
+                  onClick={() => {
+                    const officialLetterNumberInput = document.getElementById(`official-letter-number-${app.id}`);
+                    const officialLetterNumber = officialLetterNumberInput?.value || '';
+                    uploadLetter(app.id, officialLetterNumber);
+                  }}
                   className="px-5 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs transition disabled:opacity-50 shadow-xs cursor-pointer whitespace-nowrap self-start lg:self-auto"
                 >
                   Unggah & Terima

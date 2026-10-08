@@ -43,17 +43,18 @@ export default function useKepegawaianDashboard() {
 
   useEffect(() => { loadData(); }, []);
 
-  const uploadLetter = async (applicationId) => {
+  const uploadLetter = async (applicationId, officialLetterNumberValue) => {
     const file = letterFiles[applicationId];
-    const officialLetterNumber = letterNumbers[applicationId]?.trim();
+    const officialLetterNumber = officialLetterNumberValue?.trim();
     if (!officialLetterNumber) { setMsg({ type: 'error', text: 'Masukkan nomor surat resmi terlebih dahulu.' }); return; }
     if (!file) { setMsg({ type: 'error', text: 'Pilih file surat penerimaan terlebih dahulu.' }); return; }
-    const data = new FormData();
-    data.append('official_letter_number', officialLetterNumber);
-    data.append('official_letter_file', file);
+    const payload = new FormData();
+    payload.append('official_letter_number', officialLetterNumber);
+    payload.append('official_letter_file', file);
     setSubmitting(true);
     try {
-      const response = await apiRequest(`/applications/${applicationId}/upload-letter`, { method: 'POST', body: data });
+      console.log('Payload dikirim:', payload);
+      const response = await apiRequest(`/applications/${applicationId}/upload-letter`, { method: 'POST', body: payload });
       setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Gagal mengunggah surat.' });
       if (response.success) {
         setLetterFiles((previous) => ({ ...previous, [applicationId]: null }));
