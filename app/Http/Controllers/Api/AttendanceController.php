@@ -113,7 +113,7 @@ class AttendanceController extends Controller
 
         $totalHadir = count($workingDates) === 0 ? 0 : Attendance::query()
             ->where('user_id', $intern->id)
-            ->whereBetween('date', [$application->start_date, $endDateForCalculation])
+            ->whereBetween('date', [$startDate->toDateString(), $endDateForCalculation])
             ->whereIn('date', $workingDates)
             ->whereIn('status', ['present', 'late'])
             ->where('approval_status', 'approved')
@@ -132,22 +132,32 @@ class AttendanceController extends Controller
     /**
      * Get current user's today attendance status.
      */
-    public function today(Request $request): JsonResponse
+    public function today(Request $request, EffectiveWorkingDaysCalculator $workingDays): JsonResponse
     {
         $today = Carbon::today()->toDateString();
         $attendance = Attendance::where('user_id', $request->user()->id)
             ->where('date', $today)
             ->first();
 
-        return $this->successResponse($attendance, 'Status presensi hari ini');
+        return response()->json([
+            'success' => true,
+            'message' => 'Status presensi hari ini',
+            'data' => $attendance,
+            'attendance_day' => $workingDays->getDayStatus(Carbon::today()),
+        ]);
     }
 
     /**
      * Perform check-in (Intern role).
      */
-    public function checkIn(Request $request): JsonResponse
+    public function checkIn(Request $request, EffectiveWorkingDaysCalculator $workingDays): JsonResponse
     {
         $user = $request->user();
+        $attendanceDay = $workingDays->getDayStatus(Carbon::today());
+        if (! $attendanceDay['is_attendance_open']) {
+            return $this->errorResponse($attendanceDay['message'] ?? 'Presensi tidak dibuka pada hari libur.', 422);
+        }
+
         $today = Carbon::today()->toDateString();
         $now = now();
 
@@ -226,9 +236,14 @@ class AttendanceController extends Controller
     /**
      * Perform check-out (Intern role).
      */
-    public function checkOut(Request $request): JsonResponse
+    public function checkOut(Request $request, EffectiveWorkingDaysCalculator $workingDays): JsonResponse
     {
         $user = $request->user();
+        $attendanceDay = $workingDays->getDayStatus(Carbon::today());
+        if (! $attendanceDay['is_attendance_open']) {
+            return $this->errorResponse($attendanceDay['message'] ?? 'Presensi tidak dibuka pada hari libur.', 422);
+        }
+
         $today = Carbon::today()->toDateString();
         $now = now();
 

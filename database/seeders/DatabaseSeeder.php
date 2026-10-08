@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             DivisionSeeder::class,
             MentorSeeder::class,
+            HolidaySeeder::class,
         ]);
 
         $defaultPassword = Hash::make('password123');

@@ -11,6 +11,7 @@ const initialTaskForm = { submission_notes: '', submission_file: null };
 export default function useInternDashboard(user) {
   const [now, setNow] = useState(new Date());
   const [attendance, setAttendance] = useState(null);
+  const [attendanceDay, setAttendanceDay] = useState(null);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [attendanceSummary, setAttendanceSummary] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -42,7 +43,10 @@ export default function useInternDashboard(user) {
         apiRequest('/evaluations'), apiRequest('/certificates/my-certificate'), apiRequest('/applications/my-application'),
         apiRequest(`/evaluations/metrics/${user.id}`),
       ]);
-      if (attendanceResponse.success) setAttendance(attendanceResponse.data || null);
+      if (attendanceResponse.success) {
+        setAttendance(attendanceResponse.data || null);
+        setAttendanceDay(attendanceResponse.attendance_day || null);
+      }
       if (historyResponse.success) setAttendanceHistory(getCollection(historyResponse));
       if (attendanceSummaryResponse.success) setAttendanceSummary(attendanceSummaryResponse.data || null);
       if (taskResponse.success) setTasks(getCollection(taskResponse));
@@ -140,7 +144,7 @@ export default function useInternDashboard(user) {
   const greeting = hour < 11 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
 
   return {
-    now, attendance, attendanceHistory, attendanceSummary, progressMetrics, tasks, logbooks, evaluation, certificate, application, loading, submitting, message,
+    now, attendance, attendanceDay, attendanceHistory, attendanceSummary, progressMetrics, tasks, logbooks, evaluation, certificate, application, loading, submitting, message,
     setMessage, isLogbookModalOpen, setIsLogbookModalOpen, isCheckInModalOpen, setIsCheckInModalOpen,
     selectedTask, setSelectedTask, taskSubmitError, setTaskSubmitError,
     logbookForm, setLogbookForm, taskForm, setTaskForm, greeting,

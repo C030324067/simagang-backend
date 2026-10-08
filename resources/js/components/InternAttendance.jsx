@@ -5,7 +5,7 @@ import { formatAttendanceStatus } from '../utils/attendanceStatus';
 
 const emptyLocation = { latitude: null, longitude: null };
 
-export default function InternAttendance({ open, onClose, attendance, attendanceHistory = [], onUpdated }) {
+export default function InternAttendance({ open, onClose, attendance, attendanceDay, attendanceHistory = [], onUpdated }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [status, setStatus] = useState('present');
@@ -45,6 +45,7 @@ export default function InternAttendance({ open, onClose, attendance, attendance
   }, [selfie]);
 
   if (!open) return null;
+  const attendanceClosed = attendanceDay && !attendanceDay.is_attendance_open;
 
   const startCamera = async () => {
     setErrorMessage('');
@@ -168,6 +169,13 @@ export default function InternAttendance({ open, onClose, attendance, attendance
           </button>
         </div>
 
+        {attendanceClosed && (
+          <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-bold">Hari Ini Libur (Tidak Ada Presensi)</p>
+            <p className="mt-1">{attendanceDay.holiday_name || attendanceDay.message}</p>
+          </div>
+        )}
+
         {attendance ? (
           <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm">
             <p className="font-bold text-indigo-950">Status hari ini: {formatAttendanceStatus(attendance.status)}</p>
@@ -175,13 +183,13 @@ export default function InternAttendance({ open, onClose, attendance, attendance
             <p className="mt-1 text-indigo-900">Masuk: {attendance.clock_in_at || attendance.check_in_time || '—'} · Pulang: {attendance.clock_out_at || attendance.check_out_time || '—'}</p>
             {attendance.notes && <p className="mt-2 text-slate-700">Keterangan: {attendance.notes}</p>}
             {attendance.rejection_reason && <p className="mt-2 text-rose-700">Alasan penolakan: {attendance.rejection_reason}</p>}
-            {!attendance.clock_out_at && attendance.status !== 'sick' && attendance.status !== 'leave' && (
+            {!attendanceClosed && !attendance.clock_out_at && attendance.status !== 'sick' && attendance.status !== 'leave' && (
               <button type="button" disabled={submitting} onClick={clockOut} className="mt-3 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">
                 {submitting ? 'Mengirim…' : 'Presensi Pulang'}
               </button>
             )}
           </div>
-        ) : (
+        ) : attendanceClosed ? null : (
           <form onSubmit={submitAttendance} className="space-y-5">
             <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
               {[

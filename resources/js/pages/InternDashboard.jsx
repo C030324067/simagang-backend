@@ -42,6 +42,7 @@ export default function InternDashboard() {
   const {
     logbooks,
     attendance,
+    attendanceDay,
     attendanceHistory,
     attendanceSummary,
     tasks,
@@ -183,8 +184,12 @@ export default function InternDashboard() {
           
           {/* CARD PRESENSI */}
           <div 
-            onClick={() => setIsCheckInModalOpen(true)}
-            className="group flex items-center justify-between bg-white rounded-2xl p-5 border border-slate-100 shadow-xs hover:shadow-md transition cursor-pointer"
+            onClick={() => {
+              if (attendanceDay?.is_attendance_open) setIsCheckInModalOpen(true);
+            }}
+            className={`group flex items-center justify-between bg-white rounded-2xl p-5 border border-slate-100 shadow-xs transition ${
+              attendanceDay?.is_attendance_open ? 'hover:shadow-md cursor-pointer' : 'cursor-not-allowed'
+            }`}
           >
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-[#4F46E5] shrink-0">
@@ -194,12 +199,16 @@ export default function InternDashboard() {
                 <h3 className="text-sm sm:text-base font-bold text-[#0F2942] group-hover:text-[#4F46E5] transition-colors">
                   Presensi
                 </h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  Lakukan presensi kehadiran selama kegiatan magang.
+                <p className={`text-xs font-medium mt-0.5 ${attendanceDay?.is_attendance_open ? 'text-slate-400' : 'text-amber-700'}`}>
+                  {attendanceDay?.is_attendance_open
+                    ? 'Lakukan presensi kehadiran selama kegiatan magang.'
+                    : attendanceDay?.holiday_name || attendanceDay?.message || 'Memuat status hari kerja...'}
                 </p>
               </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-[#4F46E5] transition-transform group-hover:translate-x-1 shrink-0" />
+            {attendanceDay?.is_attendance_open && (
+              <ChevronRight className="h-5 w-5 text-[#4F46E5] transition-transform group-hover:translate-x-1 shrink-0" />
+            )}
           </div>
 
           {/* CARD SERTIFIKAT */}
@@ -494,7 +503,7 @@ export default function InternDashboard() {
       )}
 
       {/* COMPONENT PRESENSI */}
-      <InternAttendance open={isCheckInModalOpen} onClose={() => setIsCheckInModalOpen(false)} attendance={attendance} attendanceHistory={attendanceHistory} onUpdated={loadDashboard} />
+      <InternAttendance open={isCheckInModalOpen} onClose={() => setIsCheckInModalOpen(false)} attendance={attendance} attendanceDay={attendanceDay} attendanceHistory={attendanceHistory} onUpdated={loadDashboard} />
 
       {/* MODAL TAMBAH KEGIATAN (SESUAI UI REFERENSI) */}
       {isLogbookModalOpen && (
