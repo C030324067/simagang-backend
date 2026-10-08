@@ -63,6 +63,45 @@ class OfficialLetterUploadTest extends TestCase
         }
     }
 
+    public function test_official_letter_number_already_saved_on_same_application_is_allowed(): void
+    {
+        Storage::fake('public');
+        $kepegawaian = User::factory()->create(['role' => 'admin_kepegawaian']);
+        $division = Division::create([
+            'name' => 'Bidang Aplikasi Informatika',
+            'code' => 'APTIKA',
+            'quota' => 5,
+        ]);
+        $applicant = User::factory()->create([
+            'role' => 'applicant',
+            'status_akun' => 'pending',
+        ]);
+        $letterNumber = 'SK/APTIKA/2026/001';
+        $application = InternApplication::create([
+            'user_id' => $applicant->id,
+            'application_type' => 'mandiri',
+            'institution_name' => 'Universitas Tabalong',
+            'start_date' => '2026-11-01',
+            'end_date' => '2027-01-31',
+            'division_id' => $division->id,
+            'status_kadis' => 'approved',
+            'status' => 'approved_by_kadis',
+            'final_status' => 'in_review',
+            'official_letter_number' => $letterNumber,
+        ]);
+
+        $this->actingAs($kepegawaian, 'sanctum')
+            ->post("/api/applications/{$application->id}/upload-letter", [
+                'official_letter_number' => $letterNumber,
+                'official_letter_file' => UploadedFile::fake()->create('letter.pdf', 100, 'application/pdf'),
+            ], [
+                'Accept' => 'application/json',
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.official_letter_number', $letterNumber);
+    }
+
     public function test_official_letter_upload_requires_the_correct_file_field(): void
     {
         Storage::fake('public');
