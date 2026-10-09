@@ -460,9 +460,21 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
             </p>
 
             <div className="flex items-center gap-2 pt-1">
-              {['f', '𝕏', '📷', '▶'].map((icon, idx) => (
-                <a key={idx} href="#" className="w-8 h-8 rounded-lg bg-white hover:bg-[#0284c7] hover:text-white text-[#0f172a] flex items-center justify-center transition-all text-xs border border-[#bae6fd]/60">
-                  {icon}
+              {[
+                { label: 'Facebook', href: 'https://www.facebook.com/mctabalong', icon: 'f' },
+                { label: 'X / Twitter', href: 'https://x.com/mc_tabalong', icon: '𝕏' },
+                { label: 'Instagram', href: 'https://www.instagram.com/mc_tabalong', icon: '◎' },
+                { label: 'YouTube', href: 'https://www.youtube.com/@diskominfo_tabalong/videos', icon: '▶' },
+              ].map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                  className="w-8 h-8 rounded-lg bg-white hover:bg-[#0284c7] hover:text-white text-[#0f172a] flex items-center justify-center transition-all text-xs border border-[#bae6fd]/60"
+                >
+                  {social.icon}
                 </a>
               ))}
             </div>
@@ -507,28 +519,56 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
             </h4>
             <ul className="space-y-2.5 text-xs text-[#64748b] leading-relaxed font-medium">
               <li className="flex items-start gap-2">
-                <span>📞</span>
-                <span>+62 526-2023169 (Kantor)</span>
+                <span className="mt-0.5">📞</span>
+                <a
+                  href="tel:+625262023169"
+                  className="hover:text-[#0284c7] transition-colors"
+                >
+                  +62526-2023169
+                </a>
               </li>
               <li className="flex items-start gap-2">
-                <span>✉</span>
-                <span>diskominfo@tabalongkab.go.id</span>
+                <span className="mt-0.5">💬</span>
+                <a
+                  href="https://wa.me/6285166610637"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#16a34a] transition-colors font-semibold"
+                >
+                  +62851 6661 0637
+                </a>
               </li>
-              <li className="flex items-start gap-2 pt-1">
-                <span>💬</span>
-                <div>
-                  <strong className="text-[#0f172a] block">Bantuan Teknis System:</strong>
-                  <a
-                    href="https://wa.me/6283809862480"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#16a34a] hover:underline font-bold"
-                  >
-                    +62 838-0986-2480 (WA Helpdesk)
-                  </a>
-                </div>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5">✉</span>
+                <a
+                  href="mailto:diskominfo@tabalongkab.go.id"
+                  className="hover:text-[#0284c7] transition-colors"
+                >
+                  diskominfo@tabalongkab.go.id
+                </a>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5">💬</span>
+                <a
+                  href="https://wa.me/6285147786469"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#16a34a] transition-colors font-semibold"
+                >
+                  +6285147786469
+                </a>
               </li>
             </ul>
+
+            <div className="mt-4 overflow-hidden rounded-2xl border border-[#bae6fd]/60 bg-white/70 shadow-sm">
+              <iframe
+                title="Google Maps Diskominfo Kabupaten Tabalong"
+                src="https://www.google.com/maps?q=Diskominfo%20Kabupaten%20Tabalong&z=15&output=embed"
+                className="w-full h-40 border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
           </div>
 
           <div className="space-y-3">
