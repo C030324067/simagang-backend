@@ -68,6 +68,21 @@ class CertificateController extends Controller
         return $this->successResponse($certificate, 'Sertifikat magang digital dengan kode QR berhasil diterbitkan', 201);
     }
 
+    public function generateFromEvaluation(Request $request, Evaluation $evaluation): JsonResponse
+    {
+        $mentor = $request->user();
+        if ($mentor->role !== 'mentor'
+            || (int) $evaluation->mentor_id !== (int) $mentor->id
+            || ! $mentor->division_id
+            || (int) User::query()->whereKey($evaluation->intern_id)->value('division_id') !== (int) $mentor->division_id) {
+            return $this->errorResponse('Anda tidak berhak menerbitkan sertifikat untuk evaluasi ini.', 403);
+        }
+
+        $request->merge(['intern_id' => $evaluation->intern_id]);
+
+        return $this->generate($request);
+    }
+
     /**
      * Public verification endpoint for QR code validation.
      */

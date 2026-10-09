@@ -15,7 +15,6 @@ import {
   Calendar,
   AlertCircle,
   X,
-  User,
   Star,
   FileText,
   RefreshCw
@@ -24,13 +23,16 @@ import {
 export default function MentorDashboard() {
   const [taskToRevise, setTaskToRevise] = React.useState(null);
   const [revisionNote, setRevisionNote] = React.useState('');
+  const [revisionFile, setRevisionFile] = React.useState(null);
   const [savingRevision, setSavingRevision] = React.useState(false);
+  const [taskStatusSelections, setTaskStatusSelections] = React.useState({});
   const {
     activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg,
-    selectedLogbook, setSelectedLogbook, logbookVerifyForm, setLogbookVerifyForm, showTaskModal, setShowTaskModal,
-    taskForm, setTaskForm, loadData, handleUpdateTaskStatus,
+    selectedLogbook, setSelectedLogbook, selectedApplication, setSelectedApplication,
+    logbookVerifyForm, setLogbookVerifyForm, showTaskModal, setShowTaskModal,
+    taskForm, setTaskForm, loadData, handleLoadApplication, handleUpdateTaskStatus,
     handleVerifyLogbook, handleCreateTask,
-    handleGenerateCert, handleDownloadTaskSubmission,
+    handleGenerateCert, handleDownloadTaskFile,
   } = useMentorDashboard();
 
   const pendingLogbooksCount = logbooks.filter(l => l.verification_status === 'pending').length;
@@ -39,6 +41,7 @@ export default function MentorDashboard() {
     if (status === 'revision_needed') {
       setTaskToRevise(task);
       setRevisionNote(task.catatan_revisi || '');
+      setRevisionFile(null);
       return;
     }
     await handleUpdateTaskStatus(task, status);
@@ -47,13 +50,26 @@ export default function MentorDashboard() {
   const submitRevisionNote = async (event) => {
     event.preventDefault();
     if (!taskToRevise || !revisionNote.trim()) return;
+    if (revisionFile && revisionFile.size > 30 * 1024 * 1024) {
+      setMsg({ type: 'error', text: 'Ukuran berkas revisi maksimal 30 MB.' });
+      return;
+    }
     setSavingRevision(true);
     try {
-      const response = await handleUpdateTaskStatus(taskToRevise, 'revision_needed', revisionNote.trim());
-      if (response.success) setTaskToRevise(null);
+      const response = await handleUpdateTaskStatus(taskToRevise, 'revision_needed', revisionNote.trim(), revisionFile);
+      if (response.success) {
+        setTaskToRevise(null);
+        setRevisionFile(null);
+      }
     } finally {
       setSavingRevision(false);
     }
+  };
+
+  const saveTaskStatus = (task) => {
+    const selectedStatus = taskStatusSelections[task.id]
+      || (task.status === 'completed' ? 'completed' : 'revision_needed');
+    void updateTaskStatus(task, selectedStatus);
   };
 
   return (
@@ -189,16 +205,16 @@ export default function MentorDashboard() {
         <section className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden p-6 space-y-6">
           <div className="flex items-center gap-2 text-[#0F172A]">
             <Clock className="w-4 h-4 text-slate-700" />
-            <h3 className="font-bold text-sm">Permohonan Menunggu Peninjauan</h3>
+            <h3 className="font-bold text-sm">Intern Aktif dalam Bimbingan</h3>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="text-slate-500 font-bold border-b border-slate-100 pb-3">
-                  <th className="py-3 px-2">Pemohon</th>
-                  <th className="py-3 px-2">Institusi / Bidang</th>
-                  <th className="py-3 px-2">Dokumen</th>
+                  <th className="py-3 px-2">Intern</th>
+                  <th className="py-3 px-2">Institusi</th>
+                  <th className="py-3 px-2">Divisi & Periode Magang</th>
                   <th className="py-3 px-2 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -206,29 +222,33 @@ export default function MentorDashboard() {
                 {interns.length === 0 ? (
                   <tr>
                     <td colSpan="4" className="py-12 text-center text-slate-400 font-medium">
-                      Tidak ada permohonan menunggu.
+                      Tidak ada intern aktif di divisi bimbingan Anda.
                     </td>
                   </tr>
                 ) : (
                   interns.map((intern) => (
-                    <tr key={intern.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={intern.application_id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-4 px-2 font-bold text-slate-800">
                         {intern.name}
-                        <span className="block font-normal text-slate-400 text-[11px]">{intern.email}</span>
+                        <span className="block font-normal text-slate-400 text-[11px]">ID {intern.intern_id} · {intern.email}</span>
                       </td>
-                      <td className="py-4 px-2 text-slate-600 font-medium">{intern.division?.name || 'Bidang Aplikasi Informatika'}</td>
-                      <td className="py-4 px-2 text-slate-500 font-medium">Berkas_Permohonan.pdf</td>
-                      <td className="py-4 px-2 text-right">
+                      <td className="py-4 px-2 text-slate-600 font-medium">{intern.institution}</td>
+                      <td className="py-4 px-2 text-slate-600 font-medium">
+                        <span className="block">{intern.division?.name || '—'}</span>
+                        <span className="text-[11px] text-slate-400">{intern.start_date || '—'} – {intern.end_date || '—'}</span>
+                      </td>
+                      <td className="py-4 px-2 text-right whitespace-nowrap">
+                        <button type="button" onClick={() => void handleLoadApplication(intern.application_id)} className="mr-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
+                          Detail
+                        </button>
                         <button
                           type="button"
                           onClick={() => {
-                            setTaskForm((previous) => ({ ...previous, assigned_to: intern.id }));
+                            setTaskForm((previous) => ({ ...previous, assigned_to: intern.intern_id }));
                             setShowTaskModal(true);
                           }}
                           className="px-4 py-2 bg-[#6366F1] hover:bg-[#4F46E5] text-white rounded-xl text-xs font-bold transition cursor-pointer"
-                        >
-                          Beri Tugas
-                        </button>
+                        >Beri Tugas</button>
                       </td>
                     </tr>
                   ))
@@ -343,78 +363,102 @@ export default function MentorDashboard() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {tasks.map((t) => (
-                <div key={t.id} className="p-5 rounded-2xl border border-slate-200/70 space-y-4 flex flex-col justify-between hover:border-indigo-200 transition bg-white">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-extrabold text-[#0F172A] text-sm leading-snug">{t.title}</h4>
-                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
+                <div key={t.id} className="flex flex-col justify-between rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition hover:border-indigo-200">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Tugas Magang</span>
+                        <h4 className="text-base font-extrabold leading-snug text-[#0F172A]">{t.title}</h4>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${
                         t.status === 'completed'
-                          ? 'bg-emerald-100 text-emerald-700'
+                          ? 'bg-emerald-50 text-emerald-700'
                           : t.status === 'revision_needed'
-                          ? 'bg-rose-100 text-rose-700'
-                          : t.status === 'in_progress'
-                          ? 'bg-sky-100 text-sky-700'
-                          : 'bg-slate-100 text-slate-600'
+                          ? 'bg-rose-50 text-rose-700'
+                          : 'bg-blue-50 text-blue-700'
                       }`}>
-                        {{ pending: 'Menunggu', todo: 'Menunggu', in_progress: 'IN_PROGRESS', revision_needed: 'Revisi', completed: 'COMPLETED' }[t.status] || t.status}
+                        {t.status === 'completed' ? 'Selesai' : t.status === 'revision_needed' ? 'Perlu Revisi' : 'Dalam Proses'}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed font-normal">{t.description}</p>
-                  </div>
+                    {t.description && <p className="text-sm leading-relaxed text-slate-500">{t.description}</p>}
 
-                  <div className="space-y-2 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                    <div>
-                      <span>Diberikan kepada: </span>
-                      <span className="font-bold text-slate-800">{t.assigned_user?.name} (Pemohon Magang)</span>
-                    </div>
-
-                    {t.deadline && (
-                      <div>
-                        <span>Tenggat: </span>
-                        <span className="font-bold text-slate-800">
-                          {new Date(t.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' })}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <span className="block text-xs text-slate-500">Diberikan kepada</span>
+                        <span className="mt-1 block truncate text-sm font-bold text-[#0F172A]">{t.assigned_user?.name || '—'}</span>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <span className="block text-xs text-slate-500">Tenggat</span>
+                        <span className="mt-1 block text-sm font-bold text-[#0F172A]">
+                          {t.deadline
+                            ? new Date(t.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                            : 'Tidak ditentukan'}
                         </span>
                       </div>
+                    </div>
+
+                    {t.submission_file && (
+                      <button type="button" onClick={() => handleDownloadTaskFile(t, 'submission')} className="w-full rounded-xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50/40">
+                        <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Berkas Kiriman Intern</span>
+                        <span className="mt-1 block truncate text-sm font-bold text-[#0F172A]">{t.submission_file_name || 'Unduh berkas kiriman'}</span>
+                      </button>
                     )}
 
                     {t.submission_notes && (
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 space-y-1">
-                        <span className="font-bold block text-xs text-[#0F172A]">Catatan Pengumpulan:</span>
-                        <p className="text-xs text-slate-600">{t.submission_notes}</p>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <span className="block text-xs font-bold text-[#0F172A]">Catatan Pengumpulan</span>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{t.submission_notes}</p>
                       </div>
                     )}
 
                     {t.status === 'revision_needed' && t.catatan_revisi && (
-                      <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 text-rose-800 space-y-1">
-                        <span className="font-bold block text-xs">Catatan Revisi:</span>
-                        <p className="text-xs whitespace-pre-wrap">{t.catatan_revisi}</p>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <span className="block text-xs font-bold text-[#0F172A]">Catatan Revisi untuk Intern</span>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{t.catatan_revisi}</p>
                       </div>
                     )}
 
-                    {t.submission_file && (
-                      <a 
-                        href={`/api/tasks/${t.id}/submission`}
-                        onClick={(event) => { event.preventDefault(); handleDownloadTaskSubmission(t); }}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4F46E5] hover:underline pt-1"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        Unduh Berkas: {t.submission_file_name || 'Pengumpulan tugas'}
-                      </a>
+                    {t.task_file_path && (
+                      <button type="button" onClick={() => handleDownloadTaskFile(t, 'attachment')} className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:underline">
+                        <FileText className="h-3.5 w-3.5" /> Instruksi: {t.task_file_name || 'Unduh berkas mentor'}
+                      </button>
                     )}
+                    {t.revision_file_path && (
+                      <button type="button" onClick={() => handleDownloadTaskFile(t, 'revision')} className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 hover:underline">
+                        <FileText className="h-3.5 w-3.5" /> Berkas revisi: {t.revision_file_name || 'Unduh berkas revisi'}
+                      </button>
+                    )}
+                  </div>
 
-                    <label className="block pt-2">
-                      <span className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Ubah Status Tasks</span>
-                      <select 
-                        value={t.status === 'todo' ? 'pending' : t.status} 
-                        onChange={(event) => updateTaskStatus(t, event.target.value)} 
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                  <div className="mt-5 space-y-3 border-t border-slate-100 pt-4">
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-bold text-[#0F172A]">Perbarui status</span>
+                      <select
+                        value={taskStatusSelections[t.id] || (t.status === 'completed' ? 'completed' : 'revision_needed')}
+                        onChange={(event) => setTaskStatusSelections((previous) => ({ ...previous, [t.id]: event.target.value }))}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                       >
-                        <option value="pending">Menunggu</option>
-                        <option value="in_progress">Dalam Proses</option>
                         <option value="revision_needed">Perlu Revisi</option>
                         <option value="completed">Selesai</option>
                       </select>
                     </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => saveTaskStatus(t)}
+                        className="rounded-xl bg-indigo-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
+                      >
+                        Simpan Status
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!t.submission_file}
+                        onClick={() => handleDownloadTaskFile(t, 'submission')}
+                        className="rounded-xl border border-indigo-400 bg-white px-3 py-3 text-sm font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Unduh Kiriman
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -447,9 +491,9 @@ export default function MentorDashboard() {
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-500 font-bold">
                     <th className="py-3 px-2">Nama Anak Magang</th>
-                    <th className="py-3 px-2">Kedisiplinan (30%)</th>
-                    <th className="py-3 px-2">Keterampilan Teknis (40%)</th>
-                    <th className="py-3 px-2">Soft Skill (30%)</th>
+                    <th className="py-3 px-2">Divisi</th>
+                    <th className="py-3 px-2">Skor Kedisiplinan</th>
+                    <th className="py-3 px-2">Skor Tugas</th>
                     <th className="py-3 px-2">Nilai Akhir</th>
                     <th className="py-3 px-2 text-right">Sertifikat QR</th>
                   </tr>
@@ -459,21 +503,21 @@ export default function MentorDashboard() {
                     evaluations.map((evaluation) => (
                       <tr key={evaluation.id} className="hover:bg-slate-50/50 transition">
                         <td className="py-4 px-2">
-                          <strong className="text-[#0F172A] font-bold">{evaluation.intern?.name} (Pemohon Magang)</strong>
-                          <p className="text-slate-400 text-[11px] mt-0.5">{evaluation.intern?.division?.name || 'Bidang Aplikasi Informatika'}</p>
+                          <strong className="text-[#0F172A] font-bold">{evaluation.intern?.name || '—'}</strong>
+                          <p className="text-slate-400 text-[11px] mt-0.5">{evaluation.intern?.email || ''}</p>
                         </td>
-                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.discipline_score || '92.50'}</td>
-                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.technical_score || '95.00'}</td>
-                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.soft_skill_score || '90.00'}</td>
+                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.intern?.division?.name || '—'}</td>
+                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.score_discipline ?? evaluation.discipline_score ?? '—'}</td>
+                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.task_average ?? '—'}</td>
                         <td className="py-4 px-2">
                           <span className="rounded-full bg-emerald-100 px-3 py-1 font-bold text-emerald-700 text-xs">
-                            {evaluation.final_score || '92.75'}
+                            {evaluation.final_score ?? '—'}
                           </span>
                         </td>
                         <td className="py-4 px-2 text-right">
                           <button 
                             type="button" 
-                            onClick={() => handleGenerateCert(evaluation.intern_id)} 
+                            onClick={() => handleGenerateCert(evaluation)} 
                             className="rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] px-4 py-2 font-bold text-white transition cursor-pointer"
                           >
                             Terbitkan Sertifikat QR
@@ -637,6 +681,18 @@ export default function MentorDashboard() {
                 />
               </div>
 
+              <div>
+                <label htmlFor="mentor-task-file" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Berkas Instruksi (opsional, maksimal 30 MB)
+                </label>
+                <input
+                  id="mentor-task-file"
+                  type="file"
+                  onChange={(event) => setTaskForm({ ...taskForm, task_file: event.target.files?.[0] || null })}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800"
+                />
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -680,12 +736,22 @@ export default function MentorDashboard() {
                 <textarea
                   id="task-revision-note"
                   required
-                  maxLength={2000}
+                  maxLength={1000}
                   rows={5}
                   value={revisionNote}
                   onChange={(event) => setRevisionNote(event.target.value)}
                   placeholder="Jelaskan bagian yang perlu diperbaiki oleh intern..."
                   className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+                <p className="mt-1 text-right text-[11px] text-slate-400">{revisionNote.length}/1000</p>
+              </div>
+              <div>
+                <label htmlFor="task-revision-file" className="mb-1.5 block text-xs font-bold text-slate-700">Berkas Revisi (opsional, maksimal 30 MB)</label>
+                <input
+                  id="task-revision-file"
+                  type="file"
+                  onChange={(event) => setRevisionFile(event.target.files?.[0] || null)}
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs"
                 />
               </div>
               <div className="flex justify-end gap-2">
@@ -705,6 +771,33 @@ export default function MentorDashboard() {
                 </button>
               </div>
             </form>
+          </section>
+        </div>
+      )}
+
+      {selectedApplication && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <section role="dialog" aria-modal="true" aria-labelledby="application-detail-title" className="w-full max-w-xl space-y-5 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3">
+              <div>
+                <h3 id="application-detail-title" className="font-bold text-slate-900">Detail Pengajuan Magang</h3>
+                <p className="mt-1 text-xs text-slate-500">ID Pengajuan {selectedApplication.id} · ID Intern {selectedApplication.user_id}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedApplication(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100" aria-label="Tutup detail">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs font-semibold text-slate-500">Nama</dt><dd className="mt-1 font-bold text-slate-900">{selectedApplication.user?.name || '—'}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">Email</dt><dd className="mt-1 text-slate-800">{selectedApplication.user?.email || '—'}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">Institusi</dt><dd className="mt-1 text-slate-800">{selectedApplication.institution_name || selectedApplication.institution || '—'}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">Divisi</dt><dd className="mt-1 text-slate-800">{selectedApplication.division?.name || '—'}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">Tanggal Mulai</dt><dd className="mt-1 text-slate-800">{selectedApplication.start_date || '—'}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">Tanggal Selesai</dt><dd className="mt-1 text-slate-800">{selectedApplication.end_date || '—'}</dd></div>
+            </dl>
+            <div className="flex justify-end border-t border-slate-100 pt-3">
+              <button type="button" onClick={() => setSelectedApplication(null)} className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200">Tutup</button>
+            </div>
           </section>
         </div>
       )}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 const rubric = [
   ['score_discipline', 'Disiplin & Ketepatan Waktu'],
@@ -23,7 +24,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved, o
     apiRequest(`/evaluations/metrics/${encodeURIComponent(internId)}`).then((response) => {
       if (!active) return;
       if (response.success) setMetrics(response.data);
-      else { setMetrics(null); setMessage(response.message || 'Metrik peserta gagal dimuat.'); }
+      else { setMetrics(null); setMessage(apiErrorMessage(response, 'Metrik peserta gagal dimuat.')); }
     }).catch(() => { if (active) setMessage('Metrik peserta gagal dimuat.'); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [internId]);
@@ -33,7 +34,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved, o
     setSaving(true);
     setMessage('');
     const response = await apiRequest('/evaluations', { method: 'POST', body: JSON.stringify({ intern_id: internId, ...scores }) });
-    setMessage(response.message || (response.success ? 'Evaluasi tersimpan.' : 'Evaluasi gagal disimpan.'));
+    setMessage(response.success ? response.message || 'Evaluasi tersimpan.' : apiErrorMessage(response, 'Evaluasi gagal disimpan.'));
     if (response.success) await onSaved?.();
     setSaving(false);
   };
@@ -56,7 +57,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved, o
         <label className="block"><span className="mb-1 block text-xs font-bold text-slate-700">Catatan mentor</span><textarea rows={3} maxLength={2000} value={scores.notes} onChange={(event) => setScores((previous) => ({ ...previous, notes: event.target.value }))} className="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="Ringkasan kinerja dan rekomendasi" /></label>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-50 p-4"><p className="text-sm font-semibold text-emerald-900">Perkiraan nilai akhir: {estimatedScore}</p><button disabled={saving || loading || !metrics} type="submit" className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{saving ? 'Menyimpan…' : selectedEvaluation ? 'Perbarui Evaluasi' : 'Simpan Evaluasi Akhir'}</button></div>
       </form>
-      {selectedEvaluation && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 p-4"><p className="text-sm text-slate-700">Tersimpan: <strong>{selectedEvaluation.final_score} · {selectedEvaluation.grade_letter || '—'}</strong></p><button type="button" onClick={() => onGenerateCertificate?.(internId)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white">Terbitkan Sertifikat</button></div>}
+      {selectedEvaluation && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 p-4"><p className="text-sm text-slate-700">Tersimpan: <strong>{selectedEvaluation.final_score} · {selectedEvaluation.grade_letter || '—'}</strong></p><button type="button" onClick={() => onGenerateCertificate?.(selectedEvaluation)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white">Terbitkan Sertifikat</button></div>}
     </>}
   </section>;
 }

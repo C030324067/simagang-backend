@@ -6,7 +6,7 @@ Dokumentasi ini merangkum endpoint yang didefinisikan di `routes/api.php`. Semua
 
 - Ganti `https://domain-aplikasi` dengan alamat server aplikasi.
 - Endpoint yang memerlukan autentikasi memakai Laravel Sanctum. Kirim token hasil login sebagai `Authorization: Bearer <token>`.
-- Untuk JSON, gunakan `Accept: application/json` dan `Content-Type: application/json`. Untuk unggahan berkas gunakan `multipart/form-data`.
+- Untuk JSON, gunakan `Accept: application/json` dan `Content-Type: application/json`. Untuk unggahan berkas gunakan `multipart/form-data`; jangan menetapkan header `Content-Type` secara manual di browser agar boundary multipart dibuat otomatis.
 - Role yang dipakai API: `applicant`, `intern`, `mentor`, `admin_kepegawaian`, `kabid`, dan `kadis`.
 
 Contoh header:
@@ -167,7 +167,7 @@ Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `
 
 Dashboard Admin Kepegawaian dan Kabid menyediakan unduhan PDF surat balasan pada daftar peserta yang sudah diterima. Endpoint `GET /pendaftaran/{id}/cetak-surat` menggunakan token Sanctum dan hanya dapat diakses Admin Kepegawaian atau Kabid (Kabid dibatasi ke divisinya). NIM/NISN dicatat pada field `nim_nisn` saat pendaftaran dan ditampilkan pada surat; data pendaftar lama yang belum memilikinya ditampilkan sebagai `-`.
 
-`GET /applications` menerima filter opsional `final_status`, `division_id`, `application_type`, dan `per_page` (default 15). Akses Kabid dibatasi ke pengajuan applicant di divisinya; Mentor hanya melihat pengajuan yang sudah diterima dan intern aktif yang berada di divisinya. `GET /applications/{application}` mengembalikan detail beserta user, divisi, dan verifikator tahap workflow.
+`GET /applications` menerima filter opsional `final_status`, `division_id`, `application_type`, dan `per_page` (default 15). Akses Kabid dibatasi ke pengajuan applicant di divisinya; Mentor hanya melihat pengajuan yang sudah diterima dan intern aktif yang berada di divisinya. Pada dashboard Mentor, setiap item pengajuan memuat `id` (ID pengajuan), `user_id` (ID intern), `user` (termasuk `name` dan `email`), `institution_name`, `division`, `start_date`, dan `end_date`. Field `intern_id` dan `institution` bukan field kanonis API; frontend dapat membentuk alias dari `user_id`, `institution_name`, atau relasi `user`. `GET /applications/{application}` mengembalikan detail beserta user, divisi, dan verifikator tahap workflow; Mentor hanya dapat membuka pengajuan intern aktif yang sudah diterima dalam divisinya.
 
 ### Pendaftaran dan pelacakan publik
 
@@ -260,7 +260,7 @@ Check-in dikirim dengan `multipart/form-data`; field `status` wajib bernilai `pr
 | POST | `/logbooks` | Intern | Membuat entri kegiatan |
 | PUT | `/logbooks/{logbook}/verify` | Mentor, Admin Kepegawaian | Memverifikasi entri |
 
-Filter daftar: `verification_status` dan `per_page` (default 15). Admin Kepegawaian dan role lain selain intern/Mentor dapat memfilter `user_id`; Mentor otomatis melihat logbook intern satu divisi dan parameter `user_id` diabaikan. Buat entri dengan `date` (wajib, tidak boleh di masa depan), `activity_description` (wajib, minimal 10 karakter), dan `attachment` opsional (PDF/JPG/JPEG/PNG/DOC/DOCX, maksimal 10 MB). Verifikasi menerima `verification_status` (`approved` atau `rejected`) dan `mentor_notes` opsional (maksimal 1000 karakter).
+Filter daftar: `verification_status` dan `per_page` (default 15). Admin Kepegawaian dan role lain selain intern/Mentor dapat memfilter `user_id`; Mentor otomatis melihat logbook intern satu divisi dan parameter `user_id` diabaikan. Buat entri dengan `date` (wajib, tidak boleh di masa depan), `activity_description` (wajib, minimal 10 karakter), `category` opsional (teks maksimal 100 karakter; frontend saat ini memakai `Kegiatan`, `Pekerjaan`, `Diskusi`, atau `Pembelajaran`), dan `attachment` opsional (PDF/JPG/JPEG/PNG/DOC/DOCX, maksimal 10 MB). Kategori disimpan dan dikembalikan pada setiap item logbook. Verifikasi menerima `verification_status` (`approved` atau `rejected`) dan `mentor_notes` opsional (maksimal 1000 karakter).
 
 ## Tugas
 
@@ -268,10 +268,29 @@ Filter daftar: `verification_status` dan `per_page` (default 15). Admin Kepegawa
 |---|---|---|---|
 | GET | `/tasks` | Login | Daftar tugas; intern melihat tugasnya, mentor tugas yang dibuatnya |
 | POST | `/tasks` | Mentor | Membuat dan menugaskan tugas |
-| PUT | `/tasks/{task}/status` | Intern pemilik atau Mentor pembuat | Memperbarui status dan kiriman |
+| PUT | `/tasks/{task}/status` | Intern pemilik atau Mentor pembuat | Memperbarui status dan kiriman tanpa unggahan berkas |
+| POST | `/tasks/{task}/status` | Intern pemilik atau Mentor pembuat | Memperbarui status menggunakan Laravel method spoofing saat multipart |
+| GET | `/tasks/{task}/attachment` | Intern pemilik atau Mentor pembuat | Mengunduh berkas instruksi tugas |
 | GET | `/tasks/{task}/submission` | Intern pemilik atau mentor pembuat | Mengunduh kiriman |
+| GET | `/tasks/{task}/revision-file` | Intern pemilik atau Mentor pembuat | Mengunduh berkas revisi mentor |
 
-Filter daftar: `status`, `per_page` (default 15). Pembuatan menerima `title` (wajib, maksimal 255), `description` opsional, `assigned_to` (intern aktif dari divisi mentor), dan `deadline` opsional yang harus di masa depan. Status tugas: `pending`, `in_progress`, `revision_needed`, `completed`. Intern pemilik dapat memperbarui ke `pending`, `in_progress`, atau `completed`; Mentor pembuat dapat mengatur semua status. Body update menerima `status`, `submission_notes` opsional (maksimal 1000 karakter), dan `submission_file` opsional (maksimal 30 MB, jenis file apa pun). Untuk status `completed`, catatan atau file kiriman wajib tersedia (kiriman yang sudah tersimpan dapat digunakan). Kiriman dapat diunduh oleh intern pemilik atau mentor pembuat tugas.
+Filter daftar: `status`, `per_page` (default 15). Pembuatan menerima `title` (wajib, maksimal 255), `description` opsional, `assigned_to` (intern aktif dari divisi mentor), `deadline` opsional yang harus di masa depan, dan `task_file` opsional (maksimal 30 MB). Status tugas: `pending`, `in_progress`, `revision_needed`, `completed`. Intern pemilik dapat memperbarui ke `pending`, `in_progress`, atau `completed`; Mentor pembuat dapat mengatur semua status. Body update menerima `status`, `submission_notes` opsional (maksimal 1000 karakter), `submission_file` opsional (maksimal 30 MB), `catatan_revisi` wajib saat status `revision_needed` (maksimal 1000 karakter), dan `revision_file` opsional (maksimal 30 MB; hanya disimpan saat status `revision_needed`). Untuk status `completed`, catatan atau file kiriman wajib tersedia (kiriman yang sudah tersimpan dapat digunakan).
+
+Jika update mengirim berkas (`submission_file` atau `revision_file`), gunakan HTTP `POST` dengan field `_method=PUT` di dalam `FormData`. Jangan mengirim multipart langsung sebagai `PUT`/`PATCH`: PHP tidak memproses unggahannya secara konsisten. Browser harus menentukan `Content-Type` beserta boundary; jangan set header multipart secara manual.
+
+Contoh permintaan mentor untuk meminta revisi:
+
+```text
+POST /api/tasks/12/status
+Content-Type: multipart/form-data (dibuat browser)
+
+_method=PUT
+status=revision_needed
+catatan_revisi=Lengkapi sumber data pada bagian kesimpulan.
+revision_file=[berkas opsional, maksimal 30 MB]
+```
+
+Contoh pembuatan tugas dengan lampiran memakai `POST /api/tasks` dan `FormData` berisi `assigned_to`, `title`, `description`, `deadline` opsional, dan `task_file` opsional (maksimal 30 MB). Intern mengirim ulang hasil revisi ke `POST /api/tasks/{task}/status` dengan `_method=PUT`, `status=completed`, `submission_notes` opsional, dan `submission_file` opsional; jika status sebelumnya `revision_needed`, kiriman tersebut mengubah status ke `completed`.
 
 ## Evaluasi
 
@@ -281,6 +300,7 @@ Filter daftar: `status`, `per_page` (default 15). Pembuatan menerima `title` (wa
 | GET | `/evaluations/{intern}` | Mentor atau intern pemilik | Evaluasi berdasarkan ID user intern |
 | GET | `/evaluations/metrics/{intern}` | Mentor satu divisi atau intern pemilik | Counter tugas, kelengkapan logbook, dan presensi |
 | POST | `/evaluations` | Mentor | Membuat atau memperbarui evaluasi akhir intern |
+| POST | `/evaluations/{evaluation}/generate-certificate` | Mentor pemilik evaluasi | Menerbitkan sertifikat dari evaluasi |
 
 Body untuk menyimpan evaluasi:
 
@@ -302,10 +322,12 @@ Setiap skor wajib 1–100; `notes` opsional, maksimal 2000 karakter. Evaluasi ha
 | Method | Endpoint | Akses | Keterangan |
 |---|---|---|---|
 | GET | `/certificates/my-certificate` | Intern | Sertifikat milik sendiri; `data` bernilai `null` jika belum terbit |
-| POST | `/certificates/generate` | Mentor, Admin Kepegawaian | Menerbitkan sertifikat berdasarkan evaluasi intern |
+| POST | `/certificates/generate` | Mentor, Admin Kepegawaian | Menerbitkan sertifikat berdasarkan ID intern |
 | GET | `/public/verify-cert/{hash}` | Publik | Memverifikasi sertifikat melalui QR hash |
 
 Penerbitan menerima JSON `{ "intern_id": 12 }`. Intern harus memiliki evaluasi akhir dan periode magang berstatus selesai (`internship_status: completed`). Penerbitan kedua untuk intern yang sama mengembalikan sertifikat yang sudah ada.
+
+Untuk dashboard Mentor, gunakan `POST /evaluations/{evaluation}/generate-certificate` tanpa body. `{evaluation}` adalah ID record evaluasi dari `GET /evaluations`; Mentor hanya dapat menerbitkan sertifikat dari evaluasi miliknya sendiri dan intern satu divisi. Endpoint lama `POST /certificates/generate` tetap tersedia untuk Mentor/Admin Kepegawaian dan menerima `intern_id`.
 
 ## Contoh penggunaan
 

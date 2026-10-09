@@ -606,17 +606,28 @@ export default function InternDashboard() {
               <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100 space-y-1">
                 <p className="font-bold text-[#0F2942]">{selectedTask.title}</p>
                 <p className="text-slate-500">{selectedTask.description || 'Tidak ada deskripsi.'}</p>
+                {selectedTask.task_file_path && (
+                  <button type="button" onClick={() => downloadTaskFile(selectedTask, 'attachment')} className="mt-2 inline-flex items-center gap-1.5 font-bold text-indigo-700 hover:underline">
+                    <Download className="h-3.5 w-3.5" /> Unduh berkas instruksi
+                  </button>
+                )}
               </div>
               {selectedTask.status === 'revision_needed' && selectedTask.catatan_revisi && (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800">
                   <p className="font-bold">Catatan Revisi dari Pembimbing</p>
                   <p className="mt-1 whitespace-pre-wrap">{selectedTask.catatan_revisi}</p>
+                  {selectedTask.revision_file_path && (
+                    <button type="button" onClick={() => downloadTaskFile(selectedTask, 'revision')} className="mt-2 inline-flex items-center gap-1.5 font-bold text-rose-700 hover:underline">
+                      <Download className="h-3.5 w-3.5" /> Unduh berkas revisi
+                    </button>
+                  )}
                 </div>
               )}
               <div>
                 <label className="block font-semibold text-slate-700">Catatan Pengumpulan</label>
                 <textarea
                   rows={2}
+                  maxLength={1000}
                   value={taskForm.submission_notes}
                   onChange={(e) => {
                     setTaskForm({ ...taskForm, submission_notes: e.target.value });
@@ -631,6 +642,7 @@ export default function InternDashboard() {
                 <input
                   id="task-submission-file"
                   type="file"
+                  accept="*/*"
                   onChange={(event) => {
                     setTaskForm({ ...taskForm, submission_file: event.target.files?.[0] || null });
                     if (taskSubmitError) setTaskSubmitError('');

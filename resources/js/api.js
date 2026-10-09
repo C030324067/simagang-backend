@@ -58,8 +58,12 @@ export async function apiRequest(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // If body is not FormData, ensure Content-Type is application/json
-  if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+  if (options.body instanceof FormData) {
+    // Let fetch add the multipart boundary; setting this header manually breaks PHP parsing.
+    Object.keys(headers)
+      .filter((name) => name.toLowerCase() === 'content-type')
+      .forEach((name) => delete headers[name]);
+  } else if (options.body && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
 

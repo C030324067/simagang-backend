@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiRequest, getToken } from '../api';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 export default function MentorAttendanceReview() {
   const [records, setRecords] = useState([]);
@@ -12,10 +13,14 @@ export default function MentorAttendanceReview() {
 
   const loadQueue = async () => {
     setLoading(true);
-    const response = await apiRequest('/attendances/pending-approval');
-    setRecords(response.success ? response.data || [] : []);
-    if (!response.success) setMessage(response.message || 'Antrean presensi gagal dimuat.');
-    setLoading(false);
+    try {
+      const response = await apiRequest('/attendances/pending-approval');
+      setRecords(response.success ? (Array.isArray(response.data) ? response.data : response.data?.data || []) : []);
+      if (!response.success) setMessage(apiErrorMessage(response, 'Antrean presensi gagal dimuat.'));
+      else setMessage('');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { loadQueue(); }, []);
@@ -46,7 +51,7 @@ export default function MentorAttendanceReview() {
       method: 'PUT',
       body: JSON.stringify({ approval_status: approvalStatus, rejection_reason: approvalStatus === 'rejected' ? rejectionReason : null }),
     });
-    setMessage(response.message || (response.success ? 'Presensi diperbarui.' : 'Keputusan gagal disimpan.'));
+    setMessage(response.success ? response.message || 'Presensi diperbarui.' : apiErrorMessage(response, 'Keputusan gagal disimpan.'));
     if (response.success) {
       setRejectionId(null);
       setRejectionReason('');

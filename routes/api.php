@@ -143,6 +143,11 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::middleware('role:intern,mentor')->group(function () {
+            Route::get('/{task}/attachment', [TaskController::class, 'downloadAttachment']);
+            Route::get('/{task}/revision-file', [TaskController::class, 'downloadRevisionFile']);
+        });
+
+        Route::middleware('role:intern,mentor')->group(function () {
             Route::post('/{task}/status', [TaskController::class, 'updateStatus']);
             Route::put('/{task}/status', [TaskController::class, 'updateStatus']);
         });
@@ -156,6 +161,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::middleware('role:mentor')->group(function () {
             Route::post('/', [EvaluationController::class, 'store']);
+            Route::post('/{evaluation}/generate-certificate', [CertificateController::class, 'generateFromEvaluation']);
         });
     });
 

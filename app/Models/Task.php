@@ -18,10 +18,14 @@ class Task extends Model
         'created_by',
         'deadline',
         'status',
+        'task_file_path',
+        'task_file_name',
         'submission_file',
         'submission_file_name',
         'submission_notes',
         'catatan_revisi',
+        'revision_file_path',
+        'revision_file_name',
     ];
 
     protected function casts(): array

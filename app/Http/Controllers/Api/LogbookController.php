@@ -52,6 +52,7 @@ class LogbookController extends Controller
         $validated = $request->validate([
             'date' => ['required', 'date', 'before_or_equal:today'],
             'activity_description' => ['required', 'string', 'min:10'],
+            'category' => ['nullable', 'string', 'max:100'],
             'attachment' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:10240'],
         ]);
 
@@ -64,6 +65,7 @@ class LogbookController extends Controller
             'user_id' => $request->user()->id,
             'date' => $validated['date'],
             'activity_description' => $validated['activity_description'],
+            'category' => $validated['category'] ?? null,
             'attachment' => $attachmentPath,
             'verification_status' => 'pending',
         ]);

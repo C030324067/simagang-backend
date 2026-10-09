@@ -14,6 +14,7 @@ class Logbook extends Model
         'user_id',
         'date',
         'activity_description',
+        'category',
         'attachment',
         'verification_status',
         'mentor_notes',

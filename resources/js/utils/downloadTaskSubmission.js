@@ -1,10 +1,17 @@
 import { getToken } from '../api';
 
-export async function downloadTaskSubmission(task) {
+const fileDetails = {
+  attachment: ['task_file_name', 'Berkas-instruksi'],
+  submission: ['submission_file_name', 'Berkas-pengumpulan'],
+  revision: ['revision_file_name', 'Berkas-revisi'],
+};
+
+export async function downloadTaskFile(task, kind = 'submission') {
   try {
-    const response = await fetch(`/api/tasks/${task.id}/submission`, {
+    const [nameField, fallbackName] = fileDetails[kind] || fileDetails.submission;
+    const response = await fetch(`/api/tasks/${task.id}/${kind === 'revision' ? 'revision-file' : kind}`, {
       headers: {
-        Accept: 'application/octet-stream',
+        Accept: 'application/octet-stream, application/json',
         Authorization: `Bearer ${getToken()}`,
       },
     });
@@ -17,12 +24,18 @@ export async function downloadTaskSubmission(task) {
     const objectUrl = URL.createObjectURL(await response.blob());
     const downloadLink = document.createElement('a');
     downloadLink.href = objectUrl;
-    downloadLink.download = task.submission_file_name || 'berkas-tugas';
+    downloadLink.download = task[nameField] || fallbackName;
+    document.body.appendChild(downloadLink);
     downloadLink.click();
+    downloadLink.remove();
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 
     return { success: true };
-  } catch {
-    return { success: false, message: 'Berkas tugas gagal diunduh. Periksa koneksi lalu coba lagi.' };
+  } catch (error) {
+    return { success: false, message: error.message || 'Berkas tugas gagal diunduh. Periksa koneksi lalu coba lagi.' };
   }
+}
+
+export async function downloadTaskSubmission(task) {
+  return downloadTaskFile(task, 'submission');
 }

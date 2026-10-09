@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiRequest, getToken } from '../api';
 import { formatLocalTime, formatWitaDateTime } from '../utils/dateFormatter';
 import { getGrade } from '../utils/evaluation';
-import { downloadTaskSubmission } from '../utils/downloadTaskSubmission';
+import { downloadTaskFile as downloadTaskFileRequest } from '../utils/downloadTaskSubmission';
 
 const getCollection = (response) => Array.isArray(response?.data) ? response.data : response?.data?.data || [];
-const initialLogbookForm = { date: '', activity_description: '', attachment: null };
+const initialLogbookForm = { date: '', activity_description: '', category: 'Pekerjaan', attachment: null };
 const initialTaskForm = { submission_notes: '', submission_file: null };
 
 export default function useInternDashboard(user) {
@@ -75,7 +75,9 @@ export default function useInternDashboard(user) {
     event.preventDefault(); setSubmitting(true);
     try {
       const payload = new FormData();
-      payload.append('date', logbookForm.date); payload.append('activity_description', logbookForm.activity_description);
+      payload.append('date', logbookForm.date);
+      payload.append('activity_description', logbookForm.activity_description);
+      payload.append('category', logbookForm.category || 'Pekerjaan');
       if (logbookForm.attachment) payload.append('attachment', logbookForm.attachment);
       const response = await apiRequest('/logbooks', { method: 'POST', body: payload });
       notify(response.message || (response.success ? 'Logbook berhasil dikirim.' : 'Logbook gagal dikirim.'), response.success ? 'success' : 'error');
@@ -93,16 +95,12 @@ export default function useInternDashboard(user) {
     setSubmitting(true);
     try {
       const payload = new FormData();
+      payload.append('_method', 'PUT');
       payload.append('status', 'completed');
-      
-      // Fallback alias field catatan
       payload.append('submission_notes', taskForm.submission_notes || '');
-      payload.append('notes', taskForm.submission_notes || '');
 
-      // Fallback alias field berkas
       if (taskForm.submission_file) {
         payload.append('submission_file', taskForm.submission_file);
-        payload.append('file', taskForm.submission_file);
       }
 
       const response = await apiRequest(`/tasks/${selectedTask.id}/status`, { 
@@ -122,8 +120,8 @@ export default function useInternDashboard(user) {
     } finally { setSubmitting(false); }
   };
 
-  const downloadTaskFile = async (task) => {
-    const result = await downloadTaskSubmission(task);
+  const downloadTaskFile = async (task, kind = 'submission') => {
+    const result = await downloadTaskFileRequest(task, kind);
     if (!result.success) notify(result.message, 'error');
   };
 

@@ -51,24 +51,22 @@ class CertificateVerificationTest extends TestCase
 
     public function test_mentor_evaluates_and_generates_verifiable_certificate(): void
     {
-        // With no attendance or scored tasks, the mentor's average contributes 40% to the final score.
         $evalResponse = $this->actingAs($this->mentor, 'sanctum')->postJson('/api/evaluations', [
             'intern_id' => $this->intern->id,
-            'discipline_score' => 90,
-            'responsibility_score' => 85,
-            'skill_score' => 80,
-            'softskill_score' => 85,
-            'remarks' => 'Kinerja sangat memuaskan.',
+            'score_discipline' => 90,
+            'score_quality' => 85,
+            'score_initiative' => 80,
+            'score_teamwork' => 85,
+            'notes' => 'Kinerja sangat memuaskan.',
         ]);
 
         $evalResponse->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.final_score', '34.00');
+            ->assertJsonPath('data.final_score', '85.00');
 
-        // 2. Generate Certificate
-        $certResponse = $this->actingAs($this->mentor, 'sanctum')->postJson('/api/certificates/generate', [
-            'intern_id' => $this->intern->id,
-        ]);
+        $evaluationId = $evalResponse->json('data.id');
+        $certResponse = $this->actingAs($this->mentor, 'sanctum')
+            ->postJson("/api/evaluations/{$evaluationId}/generate-certificate");
 
         $certResponse->assertStatus(201)
             ->assertJsonPath('success', true);
@@ -84,7 +82,7 @@ class CertificateVerificationTest extends TestCase
             ->assertJsonPath('data.valid', true)
             ->assertJsonPath('data.intern.name', $this->intern->name)
             ->assertJsonPath('data.intern.division', 'Bidang Aplikasi Informatika')
-            ->assertJsonPath('data.evaluation.final_score', '34.00');
+            ->assertJsonPath('data.evaluation.final_score', '85.00');
     }
 
     public function test_public_verification_returns_404_for_invalid_qr_hash(): void

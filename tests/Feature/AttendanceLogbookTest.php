@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Logbook;
+use App\Models\Division;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,23 +19,38 @@ class AttendanceLogbookTest extends TestCase
 
     private User $mentor;
 
+    private Division $division;
+
     protected function setUp(): void
     {
         parent::setUp();
         Storage::fake('public');
 
-        $this->intern = User::factory()->create(['role' => 'intern']);
-        $this->mentor = User::factory()->create(['role' => 'mentor']);
+        $this->division = Division::create([
+            'name' => 'Bidang IKP',
+            'code' => 'ikp',
+            'quota' => 5,
+        ]);
+        $this->intern = User::factory()->create(['role' => 'intern', 'division_id' => $this->division->id]);
+        $this->mentor = User::factory()->create(['role' => 'mentor', 'division_id' => $this->division->id]);
     }
 
     public function test_intern_can_check_in_and_check_out(): void
     {
+        config([
+            'attendance.office_lat' => 0,
+            'attendance.office_lng' => 0,
+            'attendance.max_radius_meters' => 50,
+        ]);
         $photoIn = UploadedFile::fake()->image('selfie_in.jpg');
 
-        $checkInResponse = $this->actingAs($this->intern, 'sanctum')->postJson('/api/attendances/check-in', [
+        $checkInResponse = $this->actingAs($this->intern, 'sanctum')->post('/api/attendances/check-in', [
+            'status' => 'present',
             'photo' => $photoIn,
             'notes' => 'Presensi pagi',
-        ]);
+            'latitude' => 0,
+            'longitude' => 0,
+        ], ['Accept' => 'application/json']);
 
         $checkInResponse->assertStatus(201)
             ->assertJsonPath('success', true);
@@ -45,7 +61,7 @@ class AttendanceLogbookTest extends TestCase
         ]);
 
         // Duplicate check in should fail
-        $this->actingAs($this->intern, 'sanctum')->postJson('/api/attendances/check-in')
+        $this->actingAs($this->intern, 'sanctum')->postJson('/api/attendances/check-in', ['status' => 'leave', 'notes' => 'Presensi ulang'])
             ->assertStatus(422)
             ->assertJsonPath('success', false);
 
@@ -119,12 +135,19 @@ class AttendanceLogbookTest extends TestCase
         $response = $this->actingAs($this->intern, 'sanctum')->postJson('/api/logbooks', [
             'date' => Carbon::today()->toDateString(),
             'activity_description' => 'Mengembangkan antarmuka sistem absensi digital menggunakan React.',
+            'category' => 'Pembelajaran',
             'attachment' => $file,
         ]);
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
+            ->assertJsonPath('data.category', 'Pembelajaran')
             ->assertJsonPath('data.verification_status', 'pending');
+
+        $this->actingAs($this->intern, 'sanctum')
+            ->getJson('/api/logbooks')
+            ->assertOk()
+            ->assertJsonPath('data.data.0.category', 'Pembelajaran');
 
         $logbookId = $response->json('data.id');
 

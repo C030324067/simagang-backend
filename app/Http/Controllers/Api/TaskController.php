@@ -54,6 +54,7 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'task_file' => ['nullable', 'file', 'max:30720'],
             'assigned_to' => [
                 'required',
                 Rule::exists('users', 'id')->where(fn ($query) => $query
@@ -66,6 +67,14 @@ class TaskController extends Controller
             'assigned_to.exists' => 'Peserta magang harus berasal dari divisi mentor.',
         ]);
 
+        $taskFilePath = null;
+        $taskFileName = null;
+        if ($request->hasFile('task_file')) {
+            $taskFile = $request->file('task_file');
+            $taskFilePath = $taskFile->store('task_attachments', 'local');
+            $taskFileName = mb_substr($taskFile->getClientOriginalName(), 0, 255);
+        }
+
         $task = Task::create([
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
@@ -74,6 +83,8 @@ class TaskController extends Controller
             'created_by' => $user->id,
             'deadline' => $validated['deadline'] ?? null,
             'status' => 'pending',
+            'task_file_path' => $taskFilePath,
+            'task_file_name' => $taskFileName,
         ]);
 
         $task->load(['assignedUser', 'creator']);
@@ -106,13 +117,14 @@ class TaskController extends Controller
             ? ['pending', 'in_progress', 'revision_needed', 'completed']
             : ['pending', 'in_progress', 'completed'];
         $revisionNoteRules = $user->role === 'mentor' && $request->input('status') === 'revision_needed'
-            ? ['required', 'string', 'max:2000']
-            : ['nullable', 'string', 'max:2000'];
+            ? ['required', 'string', 'max:1000']
+            : ['nullable', 'string', 'max:1000'];
         $validated = $request->validate([
             'status' => ['required', Rule::in($statuses)],
             'submission_notes' => ['nullable', 'string', 'max:1000'],
             'submission_file' => ['nullable', 'file', 'max:30720'],
             'catatan_revisi' => $revisionNoteRules,
+            'revision_file' => ['nullable', 'file', 'max:30720'],
         ]);
 
         if ($validated['status'] === 'completed'
@@ -139,6 +151,11 @@ class TaskController extends Controller
 
         if ($user->role === 'mentor' && $validated['status'] === 'revision_needed') {
             $taskUpdates['catatan_revisi'] = $validated['catatan_revisi'];
+            if ($request->hasFile('revision_file')) {
+                $revisionFile = $request->file('revision_file');
+                $taskUpdates['revision_file_path'] = $revisionFile->store('task_revisions', 'local');
+                $taskUpdates['revision_file_name'] = mb_substr($revisionFile->getClientOriginalName(), 0, 255);
+            }
         }
 
         $task->update($taskUpdates);
@@ -151,8 +168,23 @@ class TaskController extends Controller
     /** Download a task submission after checking the requesting user's access. */
     public function downloadSubmission(Request $request, Task $task): StreamedResponse|JsonResponse
     {
+        return $this->downloadTaskFile($request, $task, 'submission');
+    }
+
+    public function downloadAttachment(Request $request, Task $task): StreamedResponse|JsonResponse
+    {
+        return $this->downloadTaskFile($request, $task, 'attachment');
+    }
+
+    public function downloadRevisionFile(Request $request, Task $task): StreamedResponse|JsonResponse
+    {
+        return $this->downloadTaskFile($request, $task, 'revision');
+    }
+
+    private function downloadTaskFile(Request $request, Task $task, string $kind): StreamedResponse|JsonResponse
+    {
         $user = $request->user();
-        $canDownload = match ($user->role) {
+        $canDownloadTask = match ($user->role) {
             'intern' => (int) $task->assigned_to === (int) $user->id
                 && (int) $task->division_id === (int) $user->division_id,
             'mentor' => (int) $task->created_by === (int) $user->id
@@ -160,25 +192,36 @@ class TaskController extends Controller
             default => false,
         };
 
-        if (! $canDownload) {
+        if (! $canDownloadTask) {
             return $this->errorResponse('Anda tidak berhak mengunduh berkas tugas ini.', 403);
         }
 
-        if (! $task->submission_file) {
-            return $this->errorResponse('Tugas ini belum memiliki berkas pengumpulan.', 404);
+        [$path, $downloadName] = match ($kind) {
+            'attachment' => [$task->task_file_path, $task->task_file_name],
+            'revision' => [$task->revision_file_path, $task->revision_file_name],
+            default => [$task->submission_file, $task->submission_file_name],
+        };
+        if (! $path) {
+            $description = match ($kind) {
+                'attachment' => 'Tugas ini belum memiliki berkas instruksi.',
+                'revision' => 'Tugas ini belum memiliki berkas revisi.',
+                default => 'Tugas ini belum memiliki berkas pengumpulan.',
+            };
+
+            return $this->errorResponse($description, 404);
         }
 
-        $downloadName = $task->submission_file_name ?: basename($task->submission_file);
+        $downloadName = $downloadName ?: basename($path);
         $headers = ['Content-Type' => 'application/octet-stream'];
 
-        if (Storage::disk('local')->exists($task->submission_file)) {
-            return Storage::disk('local')->download($task->submission_file, $downloadName, $headers);
+        if (Storage::disk('local')->exists($path)) {
+            return Storage::disk('local')->download($path, $downloadName, $headers);
         }
 
-        if (Storage::disk('public')->exists($task->submission_file)) {
-            return Storage::disk('public')->download($task->submission_file, $downloadName, $headers);
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::disk('public')->download($path, $downloadName, $headers);
         }
 
-        return $this->errorResponse('Berkas pengumpulan tidak ditemukan.', 404);
+        return $this->errorResponse('Berkas tugas tidak ditemukan.', 404);
     }
 }
