@@ -116,7 +116,8 @@ Email Kabid dan Mentor memakai format berbasis role dan divisi.
 - IKP — `mentor1.ikp@diskominfo.go.id`, `mentor2.ikp@diskominfo.go.id`, `mentor3.ikp@diskominfo.go.id`, `mentor4.ikp@diskominfo.go.id`
 - Statistik — `mentor1.statistik@diskominfo.go.id`, `mentor2.statistik@diskominfo.go.id`, `mentor3.statistik@diskominfo.go.id`
 - Aptika — `mentor1.aptika@diskominfo.go.id`, `mentor2.aptika@diskominfo.go.id`, `mentor3.aptika@diskominfo.go.id`, `mentor4.aptika@diskominfo.go.id`, `mentor5.aptika@diskominfo.go.id`
-- TKI — Mahdiani Fauzi, S.Sos (`kabid.tki@diskominfo.go.id`); akun ini tetap ber-role `kabid`, tetapi tersedia sebagai pembimbing yang dapat dipilih oleh Kabid TKI.
+- TKI — `mentor1.tki@diskominfo.go.id`, `mentor2.tki@diskominfo.go.id`
+- Catatan: akun `kabid.tki@diskominfo.go.id` tetap ber-role `kabid` dan tetap tersedia sebagai pembimbing utama divisi TKI, tetapi akun mentor TKI khusus juga dibuat untuk login sebagai role `mentor`.
 
 Seeder default tidak membuat akun `admin_kepegawaian`, `applicant`, atau `intern`. Email `kepegawaian@diskominfo.go.id` adalah alamat akun Admin Kepegawaian yang digunakan oleh environment, tetapi akun harus sudah dibuat/provisioned di database agar dapat login; passwordnya tidak ditentukan seeder ini. Akun applicant dibuat melalui pendaftaran dan berstatus pending sehingga belum bisa login. Akun menjadi intern setelah alur pengajuan diterima dan surat resmi diterbitkan, atau setelah disetujui melalui endpoint akun di atas; gunakan email dan password yang dipilih saat pendaftaran. Jangan mengirim akun/password lokal di atas kepada frontend untuk koneksi ke server bersama; buat akun uji tersendiri di environment frontend.
 

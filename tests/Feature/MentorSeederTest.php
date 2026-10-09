@@ -19,7 +19,7 @@ class MentorSeederTest extends TestCase
         $aptikaId = Division::query()->where('code', 'aptika')->value('id');
         $tkiId = Division::query()->where('code', 'tki')->value('id');
 
-        $this->assertDatabaseCount('users', 17);
+        $this->assertDatabaseCount('users', 19);
         $this->assertDatabaseHas('users', [
             'nip' => '198410022011012010',
             'email' => 'kabid.ikp@diskominfo.go.id',
@@ -34,6 +34,14 @@ class MentorSeederTest extends TestCase
             'name' => 'Mahdiani Fauzi, S.Sos',
             'position' => 'Kabid TKI',
             'role' => 'kabid',
+            'division_id' => $tkiId,
+        ]);
+        $this->assertDatabaseHas('users', [
+            'nip' => '198802102015052001',
+            'email' => 'mentor1.tki@diskominfo.go.id',
+            'name' => 'Yuliana Putri, S.Sos',
+            'position' => 'Pembimbing TKI Ahli Pertama',
+            'role' => 'mentor',
             'division_id' => $tkiId,
         ]);
         $this->assertDatabaseHas('users', [
@@ -62,6 +70,8 @@ class MentorSeederTest extends TestCase
             '198803032020121020' => 'mentor4.aptika@diskominfo.go.id',
             '199401042025041004' => 'mentor5.aptika@diskominfo.go.id',
             '197701121997031005' => 'kabid.tki@diskominfo.go.id',
+            '198802102015052001' => 'mentor1.tki@diskominfo.go.id',
+            '199006152020122002' => 'mentor2.tki@diskominfo.go.id',
         ] as $nip => $email) {
             $this->assertDatabaseHas('users', compact('nip', 'email'));
         }
@@ -79,5 +89,19 @@ class MentorSeederTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.user.email', 'kabid.tki@diskominfo.go.id')
             ->assertJsonPath('data.user.role', 'kabid');
+    }
+
+    public function test_seeded_tki_mentor_can_log_in_with_mentor_role(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'mentor1.tki@diskominfo.go.id',
+            'password' => 'password123',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.email', 'mentor1.tki@diskominfo.go.id')
+            ->assertJsonPath('data.user.role', 'mentor');
     }
 }

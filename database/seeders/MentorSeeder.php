@@ -28,6 +28,8 @@ class MentorSeeder extends Seeder
             ['name' => 'Rahmat Ridhatullah, S.Kom', 'nip' => '198803032020121020', 'email' => 'mentor4.aptika@diskominfo.go.id', 'position' => 'Pranata Komputer Ahli Pertama', 'role' => 'mentor', 'division' => 'aptika'],
             ['name' => 'Muhammad Riza Rafsanjani, S.Kom', 'nip' => '199401042025041004', 'email' => 'mentor5.aptika@diskominfo.go.id', 'position' => 'Pranata Komputer Ahli Pertama', 'role' => 'mentor', 'division' => 'aptika'],
             ['name' => 'Mahdiani Fauzi, S.Sos', 'nip' => '197701121997031005', 'email' => 'kabid.tki@diskominfo.go.id', 'position' => 'Kabid TKI', 'role' => 'kabid', 'division' => 'tki'],
+            ['name' => 'Yuliana Putri, S.Sos', 'nip' => '198802102015052001', 'email' => 'mentor1.tki@diskominfo.go.id', 'position' => 'Pembimbing TKI Ahli Pertama', 'role' => 'mentor', 'division' => 'tki'],
+            ['name' => 'Rizki Pratama, S.Kom', 'nip' => '199006152020122002', 'email' => 'mentor2.tki@diskominfo.go.id', 'position' => 'Pembimbing TKI Ahli Pertama', 'role' => 'mentor', 'division' => 'tki'],
         ];
         $divisions = Division::query()->get()->keyBy('code');
         $defaultPassword = Hash::make('password123');
@@ -39,10 +41,10 @@ class MentorSeeder extends Seeder
             }
 
             User::query()->updateOrCreate(
-                ['nip' => $employee['nip']],
+                ['email' => $employee['email']],
                 [
+                    'nip' => $employee['nip'],
                     'name' => $employee['name'],
-                    'email' => $employee['email'],
                     'position' => $employee['position'],
                     'password' => $defaultPassword,
                     'role' => $employee['role'],
