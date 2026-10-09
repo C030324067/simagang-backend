@@ -472,7 +472,8 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.label}
-                  className="w-8 h-8 rounded-lg bg-white hover:bg-[#0284c7] hover:text-white text-[#0f172a] flex items-center justify-center transition-all text-xs border border-[#bae6fd]/60"
+                  title={social.label}
+                  className="w-8 h-8 cursor-pointer rounded-lg bg-white hover:bg-[#0284c7] hover:text-white text-[#0f172a] flex items-center justify-center transition-all text-xs border border-[#bae6fd]/60"
                 >
                   {social.icon}
                 </a>
@@ -557,6 +558,20 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
                 >
                   +6285147786469
                 </a>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5">📍</span>
+                <div>
+                  <span className="font-bold text-[#0f172a]">Alamat Kantor:</span>{' '}
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=Diskominfo+Kabupaten+Tabalong"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-pointer hover:text-[#0284c7] transition-colors"
+                  >
+                    Dinas Komunikasi dan Informatika Kabupaten Tabalong
+                  </a>
+                </div>
               </li>
             </ul>
 
