@@ -564,26 +564,16 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
                 <div>
                   <span className="font-bold text-[#0f172a]">Alamat Kantor:</span>{' '}
                   <a
-                    href="https://www.google.com/maps/search/?api=1&query=Diskominfo+Kabupaten+Tabalong"
+                    href="https://www.google.com/maps/search/?api=1&query=Jl.+Cempaka,+Tanjung,+Kec.+Tj.,+Kabupaten+Tabalong,+Kalimantan+Selatan+71513"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="cursor-pointer hover:text-[#0284c7] transition-colors"
                   >
-                    Dinas Komunikasi dan Informatika Kabupaten Tabalong
+                      Jl. Cempaka, Tanjung, Kec. Tj., Kabupaten Tabalong, Kalimantan Selatan 71513
                   </a>
                 </div>
               </li>
             </ul>
-
-            <div className="mt-4 overflow-hidden rounded-2xl border border-[#bae6fd]/60 bg-white/70 shadow-sm">
-              <iframe
-                title="Google Maps Diskominfo Kabupaten Tabalong"
-                src="https://www.google.com/maps?q=Diskominfo%20Kabupaten%20Tabalong&z=15&output=embed"
-                className="w-full h-40 border-0"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </div>
           </div>
 
           <div className="space-y-3">
