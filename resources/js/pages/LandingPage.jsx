@@ -103,9 +103,10 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
                 className="inline-flex cursor-not-allowed items-center justify-between gap-4 rounded-full border border-slate-300 bg-slate-200 px-7 py-3.5 text-base font-bold text-slate-400"
               >
                 <span>Pendaftaran Belum Dibuka</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-300/60">
-                  <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-300/60" aria-hidden="true">
+                  <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <rect x="5" y="10" width="14" height="11" rx="2"></rect>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10V7a4 4 0 0 1 8 0v3"></path>
                   </svg>
                 </span>
               </button>
