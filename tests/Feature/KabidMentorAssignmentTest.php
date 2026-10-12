@@ -34,13 +34,12 @@ class KabidMentorAssignmentTest extends TestCase
         $this->actingAs($kabid, 'sanctum')
             ->getJson("/api/applications/{$application->id}/mentors")
             ->assertOk()
-            ->assertJsonPath('data.0.id', $kabid->id)
-            ->assertJsonPath('data.0.role', 'kabid')
-            ->assertJsonPath('data.1.id', $mentor->id);
+            ->assertJsonPath('data.0.id', $mentor->id)
+            ->assertJsonCount(1, 'data');
 
         $this->actingAs($kabid, 'sanctum')
-            ->putJson("/api/applications/{$application->id}/status", [
-                'status' => 'review_kadis',
+            ->putJson("/api/applications/{$application->id}/approve-kabid", [
+                'status' => 'approved',
                 'notes' => 'Penempatan teknis disetujui.',
                 'mentor_id' => $mentor->id,
             ])
@@ -71,8 +70,8 @@ class KabidMentorAssignmentTest extends TestCase
         $application = $this->createTestApplication($division);
 
         $this->actingAs($kabid, 'sanctum')
-            ->putJson("/api/applications/{$application->id}/status", [
-                'status' => 'review_kadis',
+            ->putJson("/api/applications/{$application->id}/approve-kabid", [
+                'status' => 'approved',
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['mentor_id']);
@@ -109,14 +108,15 @@ class KabidMentorAssignmentTest extends TestCase
         $unapprovedMentor = User::factory()->create([
             'role' => 'mentor',
             'status_akun' => 'pending',
+            'is_active' => false,
             'division_id' => $division->id,
         ]);
         $application = $this->createTestApplication($division);
 
         foreach ([$outsideMentor, $unapprovedMentor] as $mentor) {
             $this->actingAs($kabid, 'sanctum')
-                ->putJson("/api/applications/{$application->id}/status", [
-                    'status' => 'review_kadis',
+                ->putJson("/api/applications/{$application->id}/approve-kabid", [
+                    'status' => 'approved',
                     'mentor_id' => $mentor->id,
                 ])
                 ->assertUnprocessable()

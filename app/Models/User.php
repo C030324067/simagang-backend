@@ -30,6 +30,7 @@ class User extends Authenticatable
         'role',
         'status_akun',
         'tanggal_disetujui',
+        'is_active',
         'no_hp',
         'division_id',
     ];
@@ -55,6 +56,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'tanggal_disetujui' => 'datetime',
+            'is_active' => 'boolean',
         ];
     }
 

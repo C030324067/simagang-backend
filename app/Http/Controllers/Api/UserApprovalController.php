@@ -23,6 +23,7 @@ class UserApprovalController extends Controller
         $user->update([
             'status_akun' => 'approved',
             'role' => 'intern',
+            'is_active' => true,
             'tanggal_disetujui' => now(),
         ]);
 

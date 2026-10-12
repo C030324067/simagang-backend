@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 
-export default function useApplicationReviewDashboard({ endpoint, initialStatus, initialNotes, successMessage, failureMessage }) {
+export default function useApplicationReviewDashboard({
+  endpoint,
+  initialStatus,
+  initialNotes,
+  successMessage,
+  failureMessage,
+  decisionEndpoint,
+  decisionStatusMap,
+}) {
   const [pendingApps, setPendingApps] = useState([]);
   const [selectedApp, setSelectedApp] = useState(null);
   const [actionForm, setActionForm] = useState({ status: initialStatus, notes: initialNotes });
@@ -13,7 +21,9 @@ export default function useApplicationReviewDashboard({ endpoint, initialStatus,
     setLoading(true);
     try {
       const response = await apiRequest(endpoint);
-      if (response.success) setPendingApps(response.data || []);
+      if (response.success) {
+        setPendingApps(Array.isArray(response.data) ? response.data : response.data?.data || []);
+      }
     } finally { setLoading(false); }
   };
 
@@ -28,8 +38,15 @@ export default function useApplicationReviewDashboard({ endpoint, initialStatus,
     if (!selectedApp) return;
     setSubmitting(true); setMsg({ type: '', text: '' });
     try {
-      const response = await apiRequest(`/applications/${selectedApp.id}/status`, {
-        method: 'PUT', body: JSON.stringify({ ...actionForm, status, rejection_note: actionForm.notes }),
+      const response = await apiRequest(
+        decisionEndpoint
+          ? decisionEndpoint.replace('{application}', selectedApp.id)
+          : `/applications/${selectedApp.id}/status`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(decisionEndpoint
+            ? { ...actionForm, status: decisionStatusMap?.[status] || status }
+            : { ...actionForm, status, rejection_note: actionForm.notes }),
       });
       if (response.success) { setMsg({ type: 'success', text: response.message || successMessage }); setSelectedApp(null); await loadData(); }
       else setMsg({ type: 'error', text: response.message || failureMessage });

@@ -56,6 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/users/{user}/approve', [UserApprovalController::class, 'approve'])
         ->middleware('role:admin_kepegawaian,kadis');
+    Route::get('/kabid/interns', [ApplicationController::class, 'kabidInterns'])
+        ->middleware('role:kabid');
 
     // Auth profile & logout
     Route::prefix('auth')->group(function () {
@@ -68,12 +70,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-application', [ApplicationController::class, 'myApplication'])->middleware('role:intern');
         Route::get('/kepegawaian', [ApplicationController::class, 'kepegawaian'])->middleware('role:admin_kepegawaian');
         Route::get('/{application}/documents/{document}', [ApplicationController::class, 'document'])
-            ->middleware('role:admin_kepegawaian');
+            ->middleware('role:admin_kepegawaian,kabid');
         Route::get('/kabid', [ApplicationController::class, 'kabid'])->middleware('role:kabid');
         Route::get('/{application}/mentors', [ApplicationController::class, 'mentors'])->middleware('role:kabid');
         Route::get('/kadis', [ApplicationController::class, 'kadis'])->middleware('role:kadis');
         Route::put('/{application}/status', [ApplicationController::class, 'updateStatus'])
-            ->middleware('role:admin_kepegawaian,kabid,kadis');
+            ->middleware('role:admin_kepegawaian,kadis');
         Route::post('/{application}/upload-letter', [ApplicationController::class, 'uploadOfficialLetter'])
             ->middleware('role:admin_kepegawaian');
         Route::put('/{application}/issue-letter', [ApplicationController::class, 'issueLetter'])

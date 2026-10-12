@@ -23,6 +23,8 @@ class ApplicationApprovalWorkflowTest extends TestCase
 
     private User $kabid;
 
+    private User $mentor;
+
     private User $kadis;
 
     protected function setUp(): void
@@ -41,6 +43,12 @@ class ApplicationApprovalWorkflowTest extends TestCase
             'role' => 'kabid',
             'division_id' => $this->division->id,
             'status_akun' => 'approved',
+        ]);
+        $this->mentor = User::factory()->create([
+            'role' => 'mentor',
+            'division_id' => $this->division->id,
+            'status_akun' => 'approved',
+            'is_active' => true,
         ]);
         $this->kadis = User::factory()->create(['role' => 'kadis']);
     }
@@ -115,13 +123,13 @@ class ApplicationApprovalWorkflowTest extends TestCase
             ->putJson("/api/applications/{$application->id}/approve-kabid", [
                 'status' => 'approved',
                 'notes' => 'Penempatan bidang Aptika disetujui.',
-                'mentor_id' => $this->kabid->id,
+                'mentor_id' => $this->mentor->id,
             ]);
 
         $responseStep3->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.status_kabid', 'approved')
-            ->assertJsonPath('data.mentor_id', $this->kabid->id);
+            ->assertJsonPath('data.mentor_id', $this->mentor->id);
 
         // Step 4: Kadis authorizes the application before the official letter is uploaded.
         $responseStep4 = $this->actingAs($this->kadis, 'sanctum')

@@ -35,6 +35,7 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => 'applicant',
             'status_akun' => 'pending',
+            'is_active' => false,
             'no_hp' => $validated['no_hp'] ?? null,
         ]);
 
@@ -179,7 +180,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user()->load([
-            'division',
+            'division:id,name,code',
             'activeApplication.division',
             'evaluations',
             'certificates',

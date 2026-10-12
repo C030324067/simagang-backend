@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Division;
 use App\Models\InternApplication;
+use App\Models\InternshipPeriod;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -146,6 +147,13 @@ class AcceptanceLetterPdfTest extends TestCase
     {
         Storage::fake('public');
         $division = $this->createDivision('ikp');
+        InternshipPeriod::create([
+            'division_id' => $division->id,
+            'year' => now()->year,
+            'quarter' => (int) ceil(now()->month / 3),
+            'month' => now()->month,
+            'monthly_quota' => 5,
+        ]);
 
         $this->post('/api/applications/register', [
             'application_type' => 'mandiri',

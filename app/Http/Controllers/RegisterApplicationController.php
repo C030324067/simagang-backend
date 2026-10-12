@@ -105,6 +105,7 @@ class RegisterApplicationController extends Controller
                 'password' => Hash::make($validated['pw']),
                 'role' => 'applicant',
                 'status_akun' => 'pending',
+                'is_active' => false,
                 'no_hp' => $validated['hp'],
                 'division_id' => $division?->id,
             ]);

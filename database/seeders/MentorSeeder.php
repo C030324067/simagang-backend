@@ -49,6 +49,7 @@ class MentorSeeder extends Seeder
                     'password' => $defaultPassword,
                     'role' => $employee['role'],
                     'status_akun' => 'approved',
+                    'is_active' => true,
                     'division_id' => $division->id,
                 ],
             );

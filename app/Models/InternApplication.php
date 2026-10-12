@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class InternApplication extends Model
@@ -69,6 +71,8 @@ class InternApplication extends Model
         return [
             'start_date' => 'date:Y-m-d',
             'end_date' => 'date:Y-m-d',
+            'kabid_decided_at' => 'datetime',
+            'kabid_rejected_at' => 'datetime',
         ];
     }
 
@@ -100,5 +104,23 @@ class InternApplication extends Model
     public function verifierKadis(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by_kadis');
+    }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(InternApplicationHistory::class);
+    }
+
+    public function scopeForKabidDivision(Builder $query, int $divisionId): Builder
+    {
+        return $query->where('division_id', $divisionId);
+    }
+
+    public function scopeActiveInternships(Builder $query): Builder
+    {
+        return $query->where('final_status', 'accepted')
+            ->whereHas('user', fn ($users) => $users
+                ->where('role', 'intern')
+                ->where('is_active', true));
     }
 }

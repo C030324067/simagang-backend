@@ -20,6 +20,8 @@ export default function KabidDashboard() {
     msg, setMsg, openReview, handleActionSubmit,
   } = useApplicationReviewDashboard({ 
     endpoint: '/applications/kabid', 
+    decisionEndpoint: '/applications/{application}/approve-kabid',
+    decisionStatusMap: { review_kadis: 'approved', rejected: 'rejected' },
     initialStatus: 'review_kadis', 
     initialNotes: 'Kandidat memiliki kualifikasi teknis yang relevan dengan kegiatan bidang.', 
     successMessage: 'Verifikasi teknis bidang berhasil disimpan.', 
@@ -36,7 +38,7 @@ export default function KabidDashboard() {
 
   useEffect(() => {
     let active = true;
-    apiRequest('/applications?final_status=accepted&per_page=100').then((response) => {
+    apiRequest('/kabid/interns?per_page=100').then((response) => {
       if (!active) return;
       if (response.success) {
         setAcceptedApps(response.data?.data || []);

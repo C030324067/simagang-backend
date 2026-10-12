@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ApproveKabidRequest;
 use App\Mail\OfficialAcceptanceLetter;
 use App\Models\Division;
 use App\Models\InternApplication;
+use App\Models\InternApplicationHistory;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -30,7 +32,14 @@ class ApplicationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = InternApplication::with(['user', 'division', 'verifierKepegawaian', 'verifierKabid', 'verifierKadis'])
+        $query = InternApplication::with([
+            'user',
+            'division',
+            'verifierKepegawaian',
+            'verifierKabid',
+            'verifierKadis',
+            'histories.actor:id,name,role',
+        ])
             ->latest();
 
         if ($request->user()->role === 'kabid') {
@@ -38,10 +47,8 @@ class ApplicationController extends Controller
                 return $this->errorResponse('Akun Kepala Bidang belum terhubung dengan bidang.', 403);
             }
 
-            $query->where('division_id', $request->user()->division_id)
-                ->whereHas('user', fn ($query) => $query
-                    ->where('role', 'applicant')
-                    ->where('division_id', $request->user()->division_id));
+            $query->forKabidDivision((int) $request->user()->division_id)
+                ->whereIn('status', ['pending_kadis', 'approved_by_kadis', 'accepted', 'rejected_by_kabid']);
         }
 
         if ($request->filled('final_status')) {
@@ -69,7 +76,7 @@ class ApplicationController extends Controller
                     ->where('division_id', $request->user()->division_id));
         }
 
-        $applications = $query->paginate($request->input('per_page', 15));
+        $applications = $query->paginate($this->perPage($request));
 
         return $this->successResponse($applications, 'Daftar pengajuan magang berhasil dimuat');
     }
@@ -88,14 +95,7 @@ class ApplicationController extends Controller
             abort_unless(
                 $request->user()->division_id
                     && (int) $application->division_id === (int) $request->user()->division_id,
-                404,
-            );
-            abort_unless(
-                $application->user()
-                    ->where('role', 'applicant')
-                    ->where('division_id', $request->user()->division_id)
-                    ->exists(),
-                404,
+                403,
             );
         }
 
@@ -118,8 +118,17 @@ class ApplicationController extends Controller
         return $this->successResponse($application, 'Detail pengajuan magang berhasil dimuat');
     }
 
-    public function document(InternApplication $application, string $document): BinaryFileResponse
+    public function document(Request $request, InternApplication $application, string $document): BinaryFileResponse
     {
+        if ($request->user()->role === 'kabid') {
+            abort_unless(
+                $request->user()->division_id
+                    && (int) $application->division_id === (int) $request->user()->division_id,
+                403,
+                'Aplikasi ini berada di luar bidang Anda.',
+            );
+        }
+
         $filePath = match ($document) {
             'proposal' => $application->cover_letter_path ?: $application->file_proposal,
             'cv' => $application->file_cv,
@@ -238,6 +247,7 @@ class ApplicationController extends Controller
         }
 
         $rejectedStage = match (true) {
+            $application->rejection_stage !== null => $application->rejection_stage,
             $application->rejection_note === InternApplication::AUTO_EXPIRATION_REJECTION_REASON => 'kepegawaian',
             $application->status_kepegawaian === 'rejected' => 'kepegawaian',
             $application->status_kabid === 'rejected' => 'kabid',
@@ -248,7 +258,7 @@ class ApplicationController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'status' => $application->status,
+                'status' => $application->status === 'rejected_by_kabid' ? 'rejected' : $application->status,
                 'rejected_at_stage' => $rejectedStage,
                 'rejection_reason' => $application->rejection_note,
                 'auto_rejected' => $application->rejection_note === InternApplication::AUTO_EXPIRATION_REJECTION_REASON,
@@ -284,18 +294,36 @@ class ApplicationController extends Controller
 
     public function kabid(Request $request): JsonResponse
     {
-        if (! $request->user()->division_id) {
+        return $this->pendingKabid($request);
+    }
+
+    public function kabidInterns(Request $request): JsonResponse
+    {
+        $kabid = $request->user();
+        if (! $kabid->division_id) {
             return $this->errorResponse('Akun Kepala Bidang belum terhubung dengan bidang.', 403);
         }
 
-        $query = InternApplication::with(['user', 'division', 'mentor:id,name,role'])
-            ->whereIn('status', ['pending_kabid', 'review_kabid'])
-            ->where('division_id', $request->user()->division_id)
-            ->whereHas('user', fn ($query) => $query
-                ->where('role', 'applicant')
-                ->where('division_id', $request->user()->division_id));
+        $applications = InternApplication::query()
+            ->activeInternships()
+            ->forKabidDivision((int) $kabid->division_id)
+            ->with([
+                'division:id,name',
+                'user:id,name,email,no_hp,division_id,is_active',
+            ])
+            ->latest()
+            ->paginate($this->perPage($request));
 
-        return $this->successResponse($query->latest()->get(), 'Antrean peninjauan bidang berhasil dimuat.');
+        $applications->getCollection()->transform(function (InternApplication $application): InternApplication {
+            if ($application->user) {
+                $application->user->setAttribute('phone', $application->user->no_hp);
+            }
+            $application->setAttribute('department', $application->major);
+
+            return $application;
+        });
+
+        return $this->successResponse($applications, 'Daftar pemagang aktif bidang berhasil dimuat.');
     }
 
     public function mentors(Request $request, InternApplication $application): JsonResponse
@@ -305,7 +333,7 @@ class ApplicationController extends Controller
             return $this->errorResponse('Aplikasi ini berada di luar bidang Anda.', 403);
         }
 
-        if (! in_array($application->status, ['pending_kabid', 'review_kabid'], true)
+        if ($application->status !== 'pending_kabid'
             || ! $application->user()
                 ->where('role', 'applicant')
                 ->where('division_id', $kabid->division_id)
@@ -315,11 +343,8 @@ class ApplicationController extends Controller
 
         $mentors = User::query()
             ->where('division_id', $kabid->division_id)
-            ->where('status_akun', 'approved')
-            ->where(function ($query) use ($kabid): void {
-                $query->where('role', 'mentor')->orWhere('id', $kabid->id);
-            })
-            ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$kabid->id])
+            ->where('role', 'mentor')
+            ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'role']);
 
@@ -533,86 +558,119 @@ class ApplicationController extends Controller
             return $this->errorResponse('Akun Kepala Bidang belum terhubung dengan bidang.', 403);
         }
 
-        $query = InternApplication::with(['user', 'division'])
-            ->whereIn('status', ['pending_kabid', 'review_kabid'])
-            ->where('division_id', $request->user()->division_id)
+        $applications = InternApplication::query()
+            ->with(['user:id,name,email,no_hp', 'division:id,name', 'mentor:id,name'])
+            ->where('status', 'pending_kabid')
+            ->forKabidDivision((int) $request->user()->division_id)
             ->whereHas('user', fn ($query) => $query
                 ->where('role', 'applicant')
-                ->where('division_id', $request->user()->division_id));
-
-        $applications = $query->latest()->get();
+                ->where('division_id', $request->user()->division_id))
+            ->latest()
+            ->paginate($this->perPage($request));
 
         return $this->successResponse($applications, 'Daftar pengajuan menunggu verifikasi teknis Kepala Bidang');
     }
 
-    /**
-     * Tier 2: Kabid Approve or Reject.
-     */
-    public function approveKabid(Request $request, InternApplication $application): JsonResponse
+    public function approveKabid(ApproveKabidRequest $request, InternApplication $application): JsonResponse
     {
-        if (! $request->user()->division_id
-            || (int) $application->division_id !== (int) $request->user()->division_id) {
-            return $this->errorResponse('Aplikasi ini berada di luar bidang Anda.', 403);
-        }
+        $kabid = $request->user();
+        abort_unless((int) $application->division_id === (int) $kabid->division_id, 403, 'Aplikasi ini berada di luar bidang Anda.');
 
+        $validated = $request->validated();
         if (! $application->user()
             ->where('role', 'applicant')
-            ->where('division_id', $request->user()->division_id)
+            ->where('division_id', $kabid->division_id)
             ->exists()) {
             return $this->errorResponse('Pengajuan pemohon tidak ditemukan.', 404);
         }
 
-        if ($application->status_kepegawaian !== 'approved') {
-            return $this->errorResponse('Pengajuan harus disetujui oleh kepegawaian terlebih dahulu', 422);
+        if ($application->status !== 'pending_kabid' || $application->status_kabid !== 'pending') {
+            return $this->errorResponse('Pengajuan tidak lagi menunggu tinjauan Kepala Bidang.', 422);
         }
 
-        if ($application->status_kabid !== 'pending') {
-            return $this->errorResponse('Pengajuan ini telah diproses oleh Kepala Bidang sebelumnya', 422);
+        if ($validated['status'] === 'approved'
+            && ! $this->divisionHasRemainingQuota((int) $kabid->division_id)) {
+            return $this->errorResponse('Kuota untuk bidang ini sudah penuh.', 422);
         }
 
-        $validated = $request->validate([
-            'status' => ['required', Rule::in(['approved', 'rejected'])],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'mentor_id' => [
-                Rule::requiredIf($request->input('status') === 'approved'),
-                'nullable',
-                'integer',
-                Rule::exists('users', 'id')->where(function ($query) use ($request): void {
-                    $query->where('division_id', $request->user()->division_id)
-                        ->where('status_akun', 'approved')
-                        ->where(function ($query) use ($request): void {
-                            $query->where('role', 'mentor')->orWhere('id', $request->user()->id);
-                        });
-                }),
-            ],
-        ]);
+        $application = DB::transaction(function () use ($application, $kabid, $validated): InternApplication {
+            $lockedApplication = InternApplication::query()
+                ->whereKey($application->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($validated['status'] === 'approved') {
-            if (! $this->divisionHasRemainingQuota((int) $request->user()->division_id)) {
-                return $this->errorResponse('Kuota untuk bidang ini sudah penuh.', 422);
+            abort_unless(
+                (int) $lockedApplication->division_id === (int) $kabid->division_id,
+                403,
+                'Aplikasi ini berada di luar bidang Anda.',
+            );
+            abort_unless(
+                $lockedApplication->status === 'pending_kabid'
+                    && $lockedApplication->status_kabid === 'pending',
+                422,
+                'Pengajuan tidak lagi menunggu tinjauan Kepala Bidang.',
+            );
+
+            $decidedAt = now();
+            $approved = $validated['status'] === 'approved';
+            abort_unless(
+                $lockedApplication->user()
+                    ->where('role', 'applicant')
+                    ->where('division_id', $kabid->division_id)
+                    ->exists(),
+                422,
+                'Status pemohon telah berubah dan pengajuan tidak dapat diproses.',
+            );
+            if ($approved) {
+                $mentorIsActiveInDivision = User::query()
+                    ->whereKey($validated['mentor_id'])
+                    ->where('role', 'mentor')
+                    ->where('is_active', true)
+                    ->where('division_id', $kabid->division_id)
+                    ->lockForUpdate()
+                    ->exists();
+                abort_unless($mentorIsActiveInDivision, 422, 'Mentor tidak lagi aktif pada divisi ini.');
             }
 
-            $application->update([
-                'status_kabid' => 'approved',
-                'status' => 'pending_kadis',
-                'verified_by_kabid' => $request->user()->id,
-                'notes_kabid' => $validated['notes'] ?? 'Penempatan teknis bidang telah disetujui.',
-                'mentor_id' => $validated['mentor_id'],
-            ]);
-            $message = 'Pengajuan berhasil disetujui oleh Kabid dan diteruskan ke Kepala Dinas';
-        } else {
-            $application->update([
-                'status_kabid' => 'rejected',
-                'status' => 'rejected',
-                'rejection_note' => $validated['notes'] ?? null,
-                'verified_by_kabid' => $request->user()->id,
-                'notes_kabid' => $validated['notes'] ?? 'Penempatan ditolak oleh Kepala Bidang.',
-                'final_status' => 'rejected',
-            ]);
-            $message = 'Pengajuan ditolak oleh Kepala Bidang';
-        }
+            $nextStatus = $approved ? 'pending_kadis' : 'rejected_by_kabid';
+            $notes = $validated['notes'] ?? null;
 
-        $application->load(['user', 'division', 'verifierKabid']);
+            $lockedApplication->forceFill([
+                'status' => $nextStatus,
+                'status_kabid' => $approved ? 'approved' : 'rejected',
+                'notes_kabid' => $notes,
+                'verified_by_kabid' => $kabid->id,
+                'mentor_id' => $approved ? $validated['mentor_id'] : null,
+                'kabid_decided_at' => $decidedAt,
+                'kabid_rejected_at' => $approved ? null : $decidedAt,
+                'rejection_stage' => $approved ? null : 'kabid',
+                'rejection_note' => $approved ? $lockedApplication->rejection_note : $notes,
+                'final_status' => $approved ? $lockedApplication->final_status : 'rejected',
+            ])->save();
+
+            InternApplicationHistory::query()->create([
+                'intern_application_id' => $lockedApplication->id,
+                'actor_id' => $kabid->id,
+                'actor_role' => 'kabid',
+                'from_status' => 'pending_kabid',
+                'to_status' => $nextStatus,
+                'decision' => $validated['status'],
+                'notes' => $notes,
+                'decided_at' => $decidedAt,
+            ]);
+
+            return $lockedApplication->fresh([
+                'user',
+                'division',
+                'mentor',
+                'verifierKabid',
+                'histories.actor:id,name,role',
+            ]);
+        });
+
+        $message = $validated['status'] === 'approved'
+            ? 'Pengajuan berhasil disetujui oleh Kabid dan diteruskan ke Kepala Dinas.'
+            : 'Pengajuan ditolak oleh Kepala Bidang.';
 
         return $this->successResponse($application, $message);
     }
@@ -740,6 +798,7 @@ class ApplicationController extends Controller
                 $application->user()->update([
                     'role' => 'intern',
                     'status_akun' => 'approved',
+                    'is_active' => true,
                     'tanggal_disetujui' => now(),
                     'division_id' => $application->division_id,
                 ]);
@@ -833,5 +892,10 @@ class ApplicationController extends Controller
         $division = Division::query()->find($divisionId);
 
         return $division !== null && $division->remainingQuota() > 0;
+    }
+
+    private function perPage(Request $request, int $default = 15): int
+    {
+        return min(100, max(1, (int) $request->input('per_page', $default)));
     }
 }

@@ -72,6 +72,8 @@ class Division extends Model
     {
         return $this->applications()
             ->where('final_status', 'accepted')
-            ->where('internship_status', 'in_progress');
+            ->whereHas('user', fn ($query) => $query
+                ->where('role', 'intern')
+                ->where('is_active', true));
     }
 }

@@ -51,7 +51,7 @@ Pengecualian: pendaftaran publik `/applications/register` memakai field `status`
 | POST | `/auth/forgot-password` | Publik | Meminta tautan reset password |
 | POST | `/auth/reset-password` | Publik | Mengatur password menggunakan token reset |
 | POST | `/auth/logout` | Login | Mencabut token aktif |
-| GET | `/auth/me` | Login | Profil pengguna beserta relasi |
+| GET | `/auth/me` | Login | Profil pengguna; menyertakan `division_id` dan `division` resmi dari database |
 | POST | `/change-password` | Login | Mengganti password sendiri |
 | POST | `/users/{user}/approve` | Admin Kepegawaian, Kadis | Menyetujui applicant dan mengaktifkan akun intern |
 
@@ -89,7 +89,9 @@ Respons sukses memuat `data.user` dan `data.token`. Gunakan token tersebut pada 
 
 ### Persetujuan akun applicant
 
-`POST /users/{user}/approve` hanya dapat dipakai Admin Kepegawaian atau Kadis. Tidak memerlukan body. Hanya akun ber-role `applicant` dengan `status_akun: pending` yang dapat disetujui; hasilnya role berubah menjadi `intern` dan status akun menjadi `approved`. Ini berbeda dari persetujuan pengajuan magang berjenjang.
+`POST /users/{user}/approve` hanya dapat dipakai Admin Kepegawaian atau Kadis. Tidak memerlukan body. Hanya akun ber-role `applicant` dengan `status_akun: pending` yang dapat disetujui; hasilnya role berubah menjadi `intern`, status akun menjadi `approved`, dan `is_active` menjadi `true`. Akun pendaftar baru memiliki `is_active: false`.
+
+`GET /auth/me` mengembalikan `data.division_id` dan relasi `data.division` (`id`, `name`, `code`). Penetapan bidang untuk Kabid bersumber dari foreign key `users.division_id`; email tidak digunakan untuk menentukan bidang.
 
 ### Akun uji dari seeder (lokal saja)
 
@@ -127,7 +129,7 @@ Seeder default tidak membuat akun `admin_kepegawaian`, `applicant`, atau `intern
 |---|---|---|---|
 | GET | `/divisions` | Publik | Daftar divisi master, kuota tersisa, dan Kabid aktif jika ada |
 
-Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `description`, `quota`, `active_applications_count`, `remaining_quota`, dan `active_kabid` (objek berisi `id`, `name`, `position`, `division_id`, atau `null`). Daftar bidang tidak dikunci di frontend; konsumen memakai data endpoint ini. Master saat ini berisi:
+Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `description`, `quota`, `active_applications_count`, `remaining_quota`, dan `active_kabid` (objek berisi `id`, `name`, `position`, `division_id`, atau `null`). `active_applications_count` menghitung pengajuan `final_status: accepted` yang terkait akun intern dengan `is_active: true`, per `division_id`. Daftar bidang tidak dikunci di frontend; konsumen memakai data endpoint ini. Master saat ini berisi:
 
 | `code` | Nama divisi |
 |---|---|
@@ -141,6 +143,7 @@ Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `
 | Method | Endpoint | Akses | Keterangan |
 |---|---|---|---|
 | GET | `/applications/my-application` | Intern | Pengajuan terbaru milik sendiri |
+| GET | `/kabid/interns` | Kabid | Daftar pemagang aktif, dibatasi server ke divisi Kabid |
 | POST | `/applications/register` | Publik | Membuat akun/pengajuan dan mengembalikan kode tracking |
 | GET | `/applications/track/{trackingCode}` | Publik dengan kode tracking | Melihat status terbatas pengajuan |
 | GET | `/applications/track/{trackingCode}/letter` | Publik dengan URL bertanda tangan | Mengunduh surat penerimaan; URL diterbitkan oleh endpoint tracking |
@@ -148,8 +151,8 @@ Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `
 | GET | `/applications` | Admin Kepegawaian, Kabid, Kadis, Mentor | Daftar pengajuan; Kabid/Mentor dibatasi sesuai divisi dan status |
 | GET | `/applications/{application}` | Login | Detail; intern hanya dapat melihat pengajuan sendiri, Kabid/Mentor hanya divisinya |
 | GET | `/applications/kepegawaian` | Admin Kepegawaian | Antrean Kepegawaian |
-| GET | `/applications/{application}/documents/{document}` | Admin Kepegawaian | Membuka dokumen pengajuan |
-| GET | `/applications/kabid` | Kabid | Antrean tinjauan bidang |
+| GET | `/applications/{application}/documents/{document}` | Admin Kepegawaian, Kabid | Membuka dokumen pengajuan; Kabid hanya untuk divisinya |
+| GET | `/applications/kabid` | Kabid | Antrean `pending_kabid` pada divisi Kabid |
 | GET | `/applications/{application}/mentors` | Kabid | Daftar mentor yang dapat dipilih untuk pengajuan |
 | GET | `/applications/kadis` | Kadis | Antrean persetujuan Kadis |
 | GET | `/applications/pending-kepegawaian` | Admin Kepegawaian | Pengajuan menunggu verifikasi Kepegawaian |
@@ -158,7 +161,7 @@ Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `
 | PUT | `/applications/{application}/approve-kabid` | Kabid | Menyetujui/menolak tahap Kabid |
 | GET | `/applications/pending-kadis` | Kadis | Pengajuan menunggu keputusan Kadis |
 | PUT | `/applications/{application}/approve-kadis` | Kadis | Otorisasi atau menolak; Kadis tidak mengisi nomor surat |
-| PUT | `/applications/{application}/status` | Admin Kepegawaian, Kabid, Kadis | Transisi status workflow |
+| PUT | `/applications/{application}/status` | Admin Kepegawaian, Kadis | Transisi status workflow; keputusan Kabid wajib menggunakan endpoint khusus |
 | GET | `/applications/pending-letters` | Admin Kepegawaian | Pengajuan yang menunggu surat resmi |
 | PUT | `/applications/{application}/issue-letter` | Admin Kepegawaian | Mengisi nomor surat dan menerbitkan surat setelah otorisasi Kadis |
 | POST | `/applications/{application}/upload-letter` | Admin Kepegawaian | Alias lama penerbitan surat |
@@ -167,7 +170,42 @@ Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `
 
 Dashboard Admin Kepegawaian dan Kabid menyediakan unduhan PDF surat balasan pada daftar peserta yang sudah diterima. Endpoint `GET /pendaftaran/{id}/cetak-surat` menggunakan token Sanctum dan hanya dapat diakses Admin Kepegawaian atau Kabid (Kabid dibatasi ke divisinya). NIM/NISN dicatat pada field `nim_nisn` saat pendaftaran dan ditampilkan pada surat; data pendaftar lama yang belum memilikinya ditampilkan sebagai `-`.
 
-`GET /applications` menerima filter opsional `final_status`, `division_id`, `application_type`, dan `per_page` (default 15). Akses Kabid dibatasi ke pengajuan applicant di divisinya; Mentor hanya melihat pengajuan yang sudah diterima dan intern aktif yang berada di divisinya. Pada dashboard Mentor, setiap item pengajuan memuat `id` (ID pengajuan), `user_id` (ID intern), `user` (termasuk `name` dan `email`), `institution_name`, `division`, `start_date`, dan `end_date`. Field `intern_id` dan `institution` bukan field kanonis API; frontend dapat membentuk alias dari `user_id`, `institution_name`, atau relasi `user`. `GET /applications/{application}` mengembalikan detail beserta user, divisi, dan verifikator tahap workflow; Mentor hanya dapat membuka pengajuan intern aktif yang sudah diterima dalam divisinya.
+`GET /applications` menerima filter opsional `final_status`, `division_id`, `application_type`, dan `per_page` (default 15, maksimal 100). Untuk role Kabid, backend mengabaikan filter divisi sebagai sumber otorisasi: data selalu dibatasi ke `division_id` pada akun Kabid dan status workflow `pending_kadis`, `approved_by_kadis`, `accepted`, atau `rejected_by_kabid`. Hasil Kabid memuat `status_kabid`, `notes_kabid`, `verified_by_kabid`, `kabid_decided_at`, `kabid_rejected_at`, `rejection_stage`, dan `histories`. Pagination memakai metadata Laravel (`current_page`, `data`, `first_page_url`, `from`, `last_page`, `last_page_url`, `links`, `next_page_url`, `path`, `per_page`, `prev_page_url`, `to`, `total`).
+
+`GET /kabid/interns` menerima `page` dan `per_page` (default 15, maksimal 100); semua klausa otorisasi berdasarkan divisi Kabid yang login. `data.data[]` berisi `id`, `status`, `final_status`, `division_id`, `division` (`id`, `name`), `user` (`id`, `name`, `email`, `no_hp`, `phone`), `institution_name`, `major`, `department` (alias `major`), `start_date`, dan `end_date`. Hanya pengajuan berstatus akhir diterima dengan akun `role: intern` dan `is_active: true` yang dikembalikan.
+
+Contoh ringkas respons daftar pemagang:
+
+```json
+{
+  "success": true,
+  "data": {
+    "current_page": 1,
+    "data": [{
+      "id": 42,
+      "status": "accepted",
+      "final_status": "accepted",
+      "division_id": 3,
+      "division": { "id": 3, "name": "Bidang Aplikasi Informatika" },
+      "user": {
+        "id": 91, "name": "Nama Peserta", "email": "peserta@example.com",
+        "no_hp": "08123456789", "phone": "08123456789"
+      },
+      "institution_name": "Universitas Tabalong",
+      "major": "Teknik Informatika",
+      "department": "Teknik Informatika",
+      "start_date": "2026-11-01",
+      "end_date": "2027-01-31"
+    }],
+    "per_page": 15,
+    "total": 1
+  }
+}
+```
+
+`GET /applications/kabid` (alias workflow lama `/applications/pending-kabid`) hanya mengembalikan status tepat `pending_kabid`, bukan item yang sudah ditinjau. Menerima `page` dan `per_page` (default 15, maksimal 100), lalu memakai metadata paginator Laravel. Setiap item menyertakan pemohon, institusi, `major`, `division`, tanggal magang, `notes_kepegawaian`, dan path dokumen yang dapat dibuka lewat route dokumen. Jika akun Kabid belum mempunyai `division_id`, respons `403`.
+
+`GET /applications/{application}` membatasi Kabid ke pengajuan pada divisi mereka (pengajuan di divisi lain menghasilkan `403`). Pengajuan Kabid yang sudah diputuskan dikembalikan oleh `GET /applications` dengan metadata keputusan serta log riwayat.
 
 ### Pendaftaran dan pelacakan publik
 
@@ -194,9 +232,9 @@ Respons `201` pendaftaran memiliki bentuk:
 
 Simpan `tracking_code`. Gunakan `GET /applications/track/{trackingCode}` tanpa login untuk membaca `status`, `rejected_at_stage`, `rejection_reason`, dan `acceptance_letter_url`. Respons sukses memakai `{ "success": true, "data": { ... } }`; kode tidak dikenal menghasilkan `404` dengan `message` saja. Ketika diterima dan surat telah diterbitkan, buka `acceptance_letter_url` untuk mengunduh surat tanpa login; URL bertanda tangan berlaku 30 hari. Pendaftaran dibatasi 5 permintaan per menit; pelacakan 30 permintaan per menit dan unduhan URL bertanda tangan 10 permintaan per menit.
 
-Untuk membuka dokumen yang diunggah, Admin Kepegawaian dapat menggunakan `GET /applications/{application}/documents/{document}` dengan `{document}` salah satu dari `proposal`, `cv`, `transcript`, atau `student-card`. Respons berupa file inline; dokumen yang tidak tersedia menghasilkan `404`.
+Untuk membuka dokumen yang diunggah, Admin Kepegawaian atau Kabid dapat menggunakan `GET /applications/{application}/documents/{document}` dengan `{document}` salah satu dari `proposal`, `cv`, `transcript`, atau `student-card`. Kabid hanya dapat membuka pengajuan yang `division_id`-nya cocok dengan relasi divisi akun login; akses silang divisi menghasilkan `403`. Role lain ditolak `403`; dokumen tidak tersedia atau jenis dokumen tidak dikenal menghasilkan `404`. Respons sukses berupa file inline.
 
-Kabid dapat mengambil pilihan pembimbing melalui `GET /applications/{application}/mentors`. Respons `data` berisi `{id, name, role}`; hasil dibatasi ke divisi Kabid, dan dapat mencakup Kabid itu sendiri jika memenuhi syarat.
+Kabid dapat mengambil pilihan pembimbing melalui `GET /applications/{application}/mentors`. Respons `data` adalah array `{id, name, role}` yang hanya berisi akun `role: mentor`, `is_active: true`, dan `division_id` sama dengan Kabid/pengajuan. Tidak menyertakan akun Kabid. Pengajuan di divisi lain menghasilkan `403`; pengajuan yang tidak lagi `pending_kabid` menghasilkan `404`.
 
 ### Mengirim pengajuan (endpoint kompatibilitas)
 
@@ -218,7 +256,21 @@ Kirim sebagai `multipart/form-data` ke `/applications/submit`:
 
 ### Persetujuan
 
-Endpoint `PUT /applications/{application}/approve-kepegawaian` menerima JSON `status` (`approved` atau `rejected`), `division_id` wajib saat menyetujui, dan `notes` opsional (maksimal 1000 karakter). Endpoint `PUT /applications/{application}/approve-kabid` menerima `status`, `notes` opsional, dan `mentor_id` wajib saat menyetujui. `mentor_id` harus berupa akun mentor aktif dalam divisi Kabid, atau akun Kabid itu sendiri jika memenuhi syarat. Endpoint `PUT /applications/{application}/approve-kadis` menerima `status` dan `notes` opsional. Persetujuan Kadis hanya mengubah status ke `approved_by_kadis`; Kadis tidak mengisi nomor atau berkas surat.
+Endpoint `PUT /applications/{application}/approve-kepegawaian` menerima JSON `status` (`approved` atau `rejected`), `division_id` wajib saat menyetujui, dan `notes` opsional (maksimal 1000 karakter). Endpoint `PUT /applications/{application}/approve-kabid` menerima JSON:
+
+```json
+{
+  "status": "approved",
+  "notes": "Kandidat sesuai kebutuhan teknis bidang.",
+  "mentor_id": 27
+}
+```
+
+`status` wajib `approved` atau `rejected`; `notes` opsional dengan panjang maksimal 1000 karakter; `mentor_id` wajib saat `approved` dan harus menunjuk mentor aktif (`role: mentor`, `is_active: true`) di divisi yang sama. Saat `rejected`, `mentor_id` tidak diperlukan. Backend memeriksa `status: pending_kabid`, `status_kabid: pending`, kepemilikan divisi, dan validitas mentor; status bukan lagi pending atau kapasitas divisi penuh menghasilkan `422`, akses lintas divisi atau role bukan Kabid menghasilkan `403`, mentor tidak valid menghasilkan `422`, dan ID pengajuan yang tidak ditemukan menghasilkan `404`. Role Kabid tidak dapat memakai endpoint legacy `/applications/{application}/status`; gunakan endpoint keputusan khusus ini.
+
+Persetujuan menghasilkan `status: pending_kadis`, `status_kabid: approved`, `mentor_id`, `notes_kabid`, `verified_by_kabid`, dan `kabid_decided_at`. Penolakan menghasilkan `status: rejected_by_kabid`, `status_kabid: rejected`, `final_status: rejected`, `rejection_stage: kabid`, `rejection_note`, `kabid_rejected_at`, serta catatan dan ID Kabid. Setiap keputusan dan baris `intern_application_histories` (`from_status`, `to_status`, `decision`, `notes`, `actor_id`, `decided_at`) disimpan dalam satu transaksi bersama pembaruan mentor/status.
+
+Endpoint `PUT /applications/{application}/approve-kadis` menerima `status` dan `notes` opsional. Persetujuan Kadis hanya mengubah status ke `approved_by_kadis`; Kadis tidak mengisi nomor atau berkas surat.
 
 Endpoint workflow utama `PUT /applications/{application}/status` menerima:
 
