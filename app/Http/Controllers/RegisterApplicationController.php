@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Division;
 use App\Models\InternApplication;
+use App\Models\InternshipPeriod;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,6 +73,32 @@ class RegisterApplicationController extends Controller
         $stored = [];
         DB::beginTransaction();
         try {
+            $registrationDate = now();
+            $period = InternshipPeriod::query()
+                ->where('division_id', $division->id)
+                ->where('year', $registrationDate->year)
+                ->where('month', $registrationDate->month)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $period) {
+                DB::rollBack();
+
+                return response()->json([
+                    'message' => 'Pendaftaran untuk periode ini belum dibuka karena kuota belum diatur.',
+                    'errors' => ['bidang' => ['Periode pendaftaran bidang ini belum dikonfigurasi. Silakan hubungi petugas.']],
+                ], 422);
+            }
+
+            if ($period->isClosed()) {
+                DB::rollBack();
+
+                return response()->json([
+                    'message' => 'Kuota pendaftaran bidang ini untuk periode berjalan sudah penuh.',
+                    'errors' => ['bidang' => ['Kuota pendaftaran bulanan bidang ini sudah penuh. Silakan pilih bidang lain.']],
+                ], 422);
+            }
+
             $user = User::create([
                 'name' => $validated['nama'],
                 'email' => $validated['email'],

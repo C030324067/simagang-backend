@@ -1,6 +1,7 @@
 import React from 'react';
 import useKepegawaianDashboard from '../hooks/useKepegawaianDashboard';
 import { downloadAcceptanceLetter } from '../api';
+import InternshipPeriodSettings from '../components/InternshipPeriodSettings';
 import { 
   Clock, 
   FileText, 
@@ -75,6 +76,8 @@ export default function KepegawaianDashboard() {
             </button>
           </div>
         )}
+
+        <InternshipPeriodSettings divisions={divisions} />
 
         {/* Section 1: Antrean Permohonan Masuk */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden p-6 space-y-4">

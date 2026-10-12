@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\DivisionController;
 use App\Http\Controllers\Api\EvaluationController;
+use App\Http\Controllers\Api\InternshipPeriodController;
 use App\Http\Controllers\Api\LogbookController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserApprovalController;
@@ -27,6 +28,7 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::get('/divisions', [DivisionController::class, 'index']);
+Route::get('/internship-periods/current-status', [InternshipPeriodController::class, 'currentStatus']);
 Route::get('/public/verify-cert/{hash}', [CertificateController::class, 'verify']);
 Route::post('/applications/register', [RegisterApplicationController::class, 'store'])
     ->middleware('throttle:5,1');
@@ -42,6 +44,13 @@ Route::get('/applications/track/{trackingCode}/letter', [ApplicationController::
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('role:admin_kepegawaian')->group(function () {
+        Route::get('/internship-periods', [InternshipPeriodController::class, 'index']);
+        Route::put('/internship-periods', [InternshipPeriodController::class, 'upsert']);
+        Route::delete('/internship-periods/{internshipPeriod}', [InternshipPeriodController::class, 'destroy'])
+            ->whereNumber('internshipPeriod');
+    });
+
     Route::post('/change-password', [AuthController::class, 'changePassword'])
         ->middleware('throttle:5,1');
 

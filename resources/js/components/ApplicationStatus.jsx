@@ -12,6 +12,16 @@ const progressStage = { pending_kepegawaian: 1, pending_kabid: 2, review_kabid: 
 const rejectionIndex = { kepegawaian: 1, kabid: 2, kadis: 3 };
 const trackingNotFoundMessage = 'Kode tracking tidak ditemukan. Silakan periksa kembali kode Anda.';
 
+function formatDeadline(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+  }).format(date);
+}
+
 function getStepStates(application) {
   if (application.status === 'accepted') return stages.map(() => 'completed');
   if (application.status === 'rejected') {
@@ -184,6 +194,11 @@ export default function ApplicationStatus({ trackingCode, onLogin, onReapply, on
         ) : application.status === 'rejected' ? (
           <div className="space-y-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-xs text-red-900" role="status">
             <h2 className="font-semibold">✕ Mohon maaf, pengajuan kamu belum bisa diterima.</h2>
+            {application.auto_rejected && (
+              <p className="leading-relaxed font-semibold">
+                Tenggat verifikasi yang terlampaui: {formatDeadline(application.verification_deadline)}.
+              </p>
+            )}
             <p className="leading-relaxed">Alasan: {application.rejection_reason || 'Tidak ada alasan yang dicantumkan.'}</p>
             <button
               className="rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-rose-700"

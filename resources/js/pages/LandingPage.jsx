@@ -1,6 +1,7 @@
 import Navbar from '../components/Navbar';
 import React, { useState } from 'react';
 import useDivisions from '../hooks/useDivisions';
+import InternshipPeriodNotice from '../components/InternshipPeriodNotice';
 
 function ProfilePhoto({ src, alt, initials, className }) {
   const [failed, setFailed] = useState(false);
@@ -115,6 +116,8 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
           </div>
         </div>
       </section>
+
+      <InternshipPeriodNotice />
 
       {/* --- SECTION 2: PANDUAN --- */}
       <section id="panduan" className="py-20 bg-[#f0f9ff] relative z-10">

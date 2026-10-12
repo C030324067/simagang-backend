@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Division;
 use App\Models\InternApplication;
+use App\Models\InternshipPeriod;
 use App\Models\User;
 use Database\Seeders\DivisionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +82,13 @@ class DivisionQuotaTest extends TestCase
         Storage::fake('public');
 
         $division = Division::query()->where('code', 'tki')->firstOrFail();
+        InternshipPeriod::create([
+            'division_id' => $division->id,
+            'year' => now()->year,
+            'quarter' => (int) ceil(now()->month / 3),
+            'month' => now()->month,
+            'monthly_quota' => 10,
+        ]);
         $response = $this->postJson('/api/applications/register', [
             'application_type' => 'mandiri',
             'nama' => 'Pendaftar TKI',

@@ -11,6 +11,8 @@ class InternApplication extends Model
 {
     use HasFactory;
 
+    public const AUTO_EXPIRATION_REJECTION_REASON = 'Gugur otomatis: Masa tenggat verifikasi 1 minggu telah terlampaui tanpa konfirmasi.';
+
     protected static function booted(): void
     {
         static::creating(function (InternApplication $application): void {

@@ -238,6 +238,7 @@ class ApplicationController extends Controller
         }
 
         $rejectedStage = match (true) {
+            $application->rejection_note === InternApplication::AUTO_EXPIRATION_REJECTION_REASON => 'kepegawaian',
             $application->status_kepegawaian === 'rejected' => 'kepegawaian',
             $application->status_kabid === 'rejected' => 'kabid',
             $application->status_kadis === 'rejected' => 'kadis',
@@ -250,6 +251,8 @@ class ApplicationController extends Controller
                 'status' => $application->status,
                 'rejected_at_stage' => $rejectedStage,
                 'rejection_reason' => $application->rejection_note,
+                'auto_rejected' => $application->rejection_note === InternApplication::AUTO_EXPIRATION_REJECTION_REASON,
+                'verification_deadline' => $application->created_at?->copy()->addDays(7)->toIso8601String(),
                 'acceptance_letter_url' => $application->status === 'accepted' && $application->official_letter_path
                     ? URL::temporarySignedRoute('applications.tracking-letter', now()->addDays(30), ['trackingCode' => $code])
                     : null,

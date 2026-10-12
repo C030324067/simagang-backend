@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import useDivisions from '../hooks/useDivisions';
+import useInternshipPeriodStatus from '../hooks/useInternshipPeriodStatus';
 import '../../css/RegisterApplication.css';
 
 const empty = { application_type: 'mandiri', recommendation_letter_number: '', nama: '', email: '', nim_nisn: '', bidang: '', institusi: '', jurusan: '', hp: '', tgl_mulai: '', tgl_selesai: '', pw: '', pw2: '' };
@@ -20,6 +21,10 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const { divisions, error: divisionError } = useDivisions();
+  const { period, loading: periodLoading, error: periodError } = useInternshipPeriodStatus();
+  const periodDivisions = period?.divisions || [];
+  const hasOpenPeriod = periodDivisions.some((division) => division.configured && !division.is_closed);
+  const allPeriodsConfigured = periodDivisions.length > 0 && periodDivisions.every((division) => division.configured);
 
   const duration = useMemo(() => {
     if (!form.tgl_mulai || !form.tgl_selesai || form.tgl_selesai < form.tgl_mulai) return null;
@@ -58,6 +63,10 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
 
   const submit = async (event) => {
     event.preventDefault();
+    const selectedPeriod = periodDivisions.find((division) => division.code === form.bidang);
+    if (periodLoading || periodError || !selectedPeriod?.configured || selectedPeriod.is_closed) {
+      return notify('Kuota pendaftaran untuk bidang atau periode ini belum tersedia.', 'error');
+    }
     if (!agreements.every(Boolean)) return notify('Centang kedua pernyataan sebelum mendaftar.', 'error');
     if (!validate()) return notify('Periksa kembali data dan berkas yang ditandai.', 'error');
     setLoading(true);
@@ -92,16 +101,22 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
       <label htmlFor={key}>{label}<span className="req"> *</span></label>
       {key === 'bidang' ? <select id={key} className={`input ${errors[key] ? 'invalid' : ''}`} value={form[key]} onChange={change}>
         <option value="">Pilih bidang</option>{divisions.map((division) => {
-          const isFull = Number(division.remaining_quota) <= 0;
-          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isFull ? ' — Kuota penuh' : ` — Sisa kuota: ${Math.max(0, division.remaining_quota)}/${division.quota}`}</option>;
+          const periodDivision = periodDivisions.find((item) => item.code === division.code);
+          const isMonthlyFull = periodDivision?.is_closed;
+          const isUnconfigured = !periodDivision?.configured;
+          const isFull = Number(division.remaining_quota) <= 0 || isMonthlyFull || isUnconfigured;
+          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isMonthlyFull ? ' — Kuota bulanan penuh' : isUnconfigured ? ' — Periode belum dibuka' : isFull ? ' — Kuota divisi penuh' : ` — Sisa kuota: ${Math.max(0, division.remaining_quota)}/${division.quota}; pendaftar bulan ini: ${periodDivision.remaining_quota}`}</option>;
         })}
       </select> : <input id={key} className={`input ${errors[key] ? 'invalid' : ''}`} type={type} value={form[key]} onChange={change} {...props} />}
       {key === 'bidang' && form[key] && (() => {
         const selectedDivision = divisions.find((division) => String(division.code) === form[key]);
-        return selectedDivision && Number(selectedDivision.remaining_quota) <= 0
-          ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>⚠️ Kuota bidang ini sudah penuh. Silakan pilih bidang lain.</p>)
-          : null;
-      })()}
+          const selectedPeriod = periodDivisions.find((division) => division.code === form[key]);
+          return selectedDivision && Number(selectedDivision.remaining_quota) <= 0
+            ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>⚠️ Kuota bidang ini sudah penuh. Silakan pilih bidang lain.</p>)
+            : selectedPeriod?.is_closed
+              ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>⚠️ Kuota pendaftaran bulanan bidang ini sudah penuh.</p>)
+            : null;
+        })()}
       {key === 'bidang' && divisionError && <p className="error-msg">{divisionError}</p>}
       {errors[key] && <p className="error-msg">{errors[key]}</p>}
     </div>
@@ -136,6 +151,17 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           <h1>Daftar program magang</h1>
           <p>Lengkapi data diri dan dokumen untuk mengajukan permohonan magang.</p>
         </header>
+        {periodLoading ? (
+          <p className="note full" role="status">Memeriksa kuota periode pendaftaran…</p>
+        ) : periodError ? (
+          <p className="note full" role="alert">{periodError} Formulir dinonaktifkan sampai status kuota dapat diverifikasi.</p>
+        ) : !hasOpenPeriod ? (
+          <div className="note full" role="status" style={{ color: '#991b1b', background: '#fef2f2', borderColor: '#fecaca' }}>
+            {allPeriodsConfigured
+              ? `Mohon Maaf, Pendaftaran Magang untuk Periode/Bulan Ini Telah Ditutup Karena Kuota Sudah Penuh. (${period.period_label})`
+              : `Pendaftaran periode ${period?.period_label || ''} belum dibuka karena kuota divisi belum diatur.`}
+          </div>
+        ) : (
         <form onSubmit={submit} noValidate>
           <p className="note full">Semua kolom bertanda <span className="req">*</span> wajib diisi.</p>
           <fieldset className="application-type full">
@@ -219,6 +245,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
             Sudah punya akun? <a href="/login" onClick={event => { if (onLogin) { event.preventDefault(); onLogin(); } }}>Masuk</a>
           </p>
         </form>
+        )}
       </main>
       {toast && <div className={`toast show ${toast.kind}`} role="status">{toast.message}</div>}
     </div>
