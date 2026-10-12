@@ -1,7 +1,6 @@
 import Navbar from '../components/Navbar';
 import React, { useState } from 'react';
 import useDivisions from '../hooks/useDivisions';
-import InternshipPeriodNotice from '../components/InternshipPeriodNotice';
 
 function ProfilePhoto({ src, alt, initials, className }) {
   const [failed, setFailed] = useState(false);
@@ -85,15 +84,27 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
               SIMAGANG hadir sebagai platform resmi untuk memudahkan mahasiswa dalam mengelola seluruh proses magang, mulai dari pengajuan, pelaksanaan, hingga penilaian secara online dan terintegrasi.
             </p>
 
+            <aside
+              className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sky-900"
+              role="status"
+            >
+              <h2 className="font-bold">Pendaftaran Periode Triwulan 4 Belum Dibuka</h2>
+              <p className="mt-1 text-sm leading-relaxed">
+                Pendaftaran magang untuk periode berjalan saat ini belum dibuka. Silakan cek halaman ini secara berkala.
+              </p>
+            </aside>
+
             {/* --- BUTTONS --- */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
               <button
-                onClick={onNavigateRegister}
-                className="inline-flex items-center justify-between gap-4 px-7 py-3.5 rounded-full bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-white font-bold text-base shadow-lg shadow-[#0284c7]/20 hover:shadow-xl hover:shadow-[#0284c7]/30 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+                type="button"
+                disabled
+                aria-disabled="true"
+                className="inline-flex cursor-not-allowed items-center justify-between gap-4 rounded-full border border-slate-300 bg-slate-200 px-7 py-3.5 text-base font-bold text-slate-400"
               >
-                <span>Pengajuan Magang</span>
-                <span className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span>Pendaftaran Belum Dibuka</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-300/60">
+                  <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                   </svg>
                 </span>
@@ -102,7 +113,7 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
               <button
                 type="button"
                 onClick={onNavigateTracking}
-                className="inline-flex items-center justify-between gap-4 px-7 py-3.5 rounded-full bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-white font-bold text-base shadow-lg shadow-[#0284c7]/20 hover:shadow-xl hover:shadow-[#0284c7]/30 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+                className="group inline-flex items-center justify-between gap-4 rounded-full bg-gradient-to-r from-[#0284c7] to-[#38bdf8] px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-[#0284c7]/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#0284c7]/30 cursor-pointer"
               >
                 <span>Cek Status Pengajuan</span>
                 <span className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
@@ -116,8 +127,6 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
           </div>
         </div>
       </section>
-
-      <InternshipPeriodNotice />
 
       {/* --- SECTION 2: PANDUAN --- */}
       <section id="panduan" className="py-20 bg-[#f0f9ff] relative z-10">
