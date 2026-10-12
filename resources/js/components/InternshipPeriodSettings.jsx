@@ -8,12 +8,18 @@ const monthNames = [
 ];
 
 const currentDate = new Date();
+const monthRange = (year, month) => ({
+  start_date: `${year}-${String(month).padStart(2, '0')}-01`,
+  end_date: `${year}-${String(month).padStart(2, '0')}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`,
+});
 const emptyForm = {
   division_id: '',
   year: currentDate.getFullYear(),
   quarter: Math.ceil((currentDate.getMonth() + 1) / 3),
   month: currentDate.getMonth() + 1,
   monthly_quota: '',
+  ...monthRange(currentDate.getFullYear(), currentDate.getMonth() + 1),
+  is_active: true,
 };
 
 export default function InternshipPeriodSettings({ divisions }) {
@@ -45,7 +51,20 @@ export default function InternshipPeriodSettings({ divisions }) {
   }, [divisions, form.division_id]);
 
   const updateMonth = (month) => {
-    setForm((previous) => ({ ...previous, month, quarter: Math.ceil(month / 3) }));
+    setForm((previous) => ({
+      ...previous,
+      month,
+      quarter: Math.ceil(month / 3),
+      ...monthRange(previous.year, month),
+    }));
+  };
+
+  const updateYear = (year) => {
+    setForm((previous) => ({
+      ...previous,
+      year,
+      ...monthRange(year, previous.month),
+    }));
   };
 
   const save = async (event) => {
@@ -61,6 +80,9 @@ export default function InternshipPeriodSettings({ divisions }) {
         month: Number(form.month),
         quarter: Number(form.quarter),
         monthly_quota: Number(form.monthly_quota),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        is_active: form.is_active,
       }),
     });
     setSaving(false);
@@ -107,14 +129,14 @@ export default function InternshipPeriodSettings({ divisions }) {
         </label>
         <label className="text-xs font-semibold text-slate-600">
           Tahun
-          <input required type="number" min="2000" max="2100" value={form.year} onChange={(event) => setForm((previous) => ({ ...previous, year: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <input required type="number" min="2000" max="2100" value={form.year} onChange={(event) => updateYear(Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
         </label>
         <label className="text-xs font-semibold text-slate-600">
           Triwulan
           <select required value={form.quarter} onChange={(event) => {
             const quarter = Number(event.target.value);
             const month = (quarter - 1) * 3 + 1;
-            setForm((previous) => ({ ...previous, quarter, month }));
+            setForm((previous) => ({ ...previous, quarter, month, ...monthRange(previous.year, month) }));
           }} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             {[1, 2, 3, 4].map((quarter) => <option key={quarter} value={quarter}>Triwulan {quarter}</option>)}
           </select>
@@ -129,6 +151,18 @@ export default function InternshipPeriodSettings({ divisions }) {
           Kuota pendaftar
           <input required type="number" min="0" max="100000" value={form.monthly_quota} onChange={(event) => setForm((previous) => ({ ...previous, monthly_quota: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
         </label>
+        <label className="text-xs font-semibold text-slate-600">
+          Tanggal mulai pendaftaran
+          <input required type="date" value={form.start_date} onChange={(event) => setForm((previous) => ({ ...previous, start_date: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+        <label className="text-xs font-semibold text-slate-600">
+          Tanggal akhir pendaftaran
+          <input required type="date" min={form.start_date} value={form.end_date} onChange={(event) => setForm((previous) => ({ ...previous, end_date: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+        <label className="flex items-center gap-2 self-end pb-2 text-xs font-semibold text-slate-600">
+          <input type="checkbox" checked={form.is_active} onChange={(event) => setForm((previous) => ({ ...previous, is_active: event.target.checked }))} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+          Aktifkan periode
+        </label>
         <button type="submit" disabled={saving || divisions.length === 0} className="self-end rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
           {saving ? 'Menyimpan…' : 'Simpan kuota'}
         </button>
@@ -141,7 +175,7 @@ export default function InternshipPeriodSettings({ divisions }) {
           <table className="w-full min-w-[700px] text-left text-sm">
             <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-3 py-3">Divisi</th><th className="px-3 py-3">Periode</th><th className="px-3 py-3">Kuota</th><th className="px-3 py-3">Pendaftar</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Aksi</th>
+                <th className="px-3 py-3">Divisi</th><th className="px-3 py-3">Periode</th><th className="px-3 py-3">Tanggal pendaftaran</th><th className="px-3 py-3">Kuota</th><th className="px-3 py-3">Pendaftar</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -149,9 +183,10 @@ export default function InternshipPeriodSettings({ divisions }) {
                 <tr key={period.id}>
                   <td className="px-3 py-3 font-medium">{period.division?.name}</td>
                   <td className="px-3 py-3">{monthNames[period.month - 1]} {period.year} · Triwulan {period.quarter}</td>
+                  <td className="px-3 py-3">{period.start_date || 'Tanpa batas'} – {period.end_date || 'Tanpa batas'}</td>
                   <td className="px-3 py-3">{period.monthly_quota}</td>
                   <td className="px-3 py-3">{period.registered_count}</td>
-                  <td className="px-3 py-3">{period.is_closed ? 'Penuh / ditutup' : 'Dibuka'}</td>
+                  <td className="px-3 py-3">{!period.is_active ? 'Nonaktif' : period.is_closed ? 'Kuota penuh' : period.availability_status === 'before_start' ? 'Belum dibuka' : period.availability_status === 'after_end' ? 'Tanggal berakhir' : 'Aktif'}</td>
                   <td className="px-3 py-3">
                     <button type="button" onClick={() => remove(period)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">
                       <Trash2 className="h-3.5 w-3.5" /> Hapus

@@ -128,6 +128,10 @@ Seeder default tidak membuat akun `admin_kepegawaian`, `applicant`, atau `intern
 | Method | Endpoint | Akses | Keterangan |
 |---|---|---|---|
 | GET | `/divisions` | Publik | Daftar divisi master, kuota tersisa, dan Kabid aktif jika ada |
+| GET | `/internship-periods/current-status` | Publik | Status periode bulan/triwulan saat ini, jendela tanggal, kuota, dan kelayakan pendaftaran tiap divisi |
+| GET | `/internship-periods` | Admin Kepegawaian | Daftar pengaturan periode dan kuota |
+| PUT | `/internship-periods` | Admin Kepegawaian | Membuat/memperbarui kuota, tanggal, dan status aktif periode |
+| DELETE | `/internship-periods/{internshipPeriod}` | Admin Kepegawaian | Menghapus pengaturan periode |
 
 Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `description`, `quota`, `active_applications_count`, `remaining_quota`, dan `active_kabid` (objek berisi `id`, `name`, `position`, `division_id`, atau `null`). `active_applications_count` menghitung pengajuan `final_status: accepted` yang terkait akun intern dengan `is_active: true`, per `division_id`. Daftar bidang tidak dikunci di frontend; konsumen memakai data endpoint ini. Master saat ini berisi:
 
@@ -137,6 +141,12 @@ Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `
 | `statistik` | Bidang Statistik |
 | `aptika` | Bidang Aplikasi Informatika |
 | `tki` | Bidang Telekomunikasi dan Keamanan Informasi |
+
+### Periode dan kuota pendaftaran
+
+`GET /internship-periods/current-status` menggunakan timezone aplikasi (`Asia/Makassar`) untuk menentukan tahun, bulan, triwulan, dan hari saat ini. Setiap item `data.divisions[]` memuat `configured`, `monthly_quota`, `registered_count`, `remaining_quota`, `start_date`, `end_date`, `is_active`, `is_closed`, `division_remaining_quota`, `availability_status`, dan `can_register`. Nilai `availability_status` dapat berupa `not_configured`, `inactive`, `before_start`, `after_end`, `full`, `division_full`, atau `open`. `can_register` hanya bernilai `true` jika pengaturan bulanan tersedia, periode aktif, tanggal hari ini berada dalam rentang tanggal (inklusif), kuota bulanan tersisa, dan kuota total divisi belum habis.
+
+`PUT /internship-periods` menerima `division_id`, `year`, `quarter`, `month`, `monthly_quota`, `start_date` (`YYYY-MM-DD`), `end_date` (`YYYY-MM-DD`, sama atau setelah tanggal mulai), dan `is_active` (boolean). Kuota dan status periode diperiksa kembali oleh endpoint pendaftaran sebelum akun atau dokumen dibuat; periode nonaktif atau di luar tanggal aktif ditolak dengan `422`. Pengaturan lama yang belum memiliki tanggal tetap berlaku tanpa batas tanggal sampai diperbarui.
 
 ## Pengajuan magang
 

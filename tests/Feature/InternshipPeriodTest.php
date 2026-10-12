@@ -51,9 +51,60 @@ class InternshipPeriodTest extends TestCase
             ->assertJsonPath('data.divisions.0.registered_count', 1)
             ->assertJsonPath('data.divisions.0.remaining_quota', 0)
             ->assertJsonPath('data.divisions.0.is_closed', true)
+            ->assertJsonPath('data.divisions.0.availability_status', 'full')
             ->assertJsonPath('data.divisions.0.can_register', false);
 
         $this->assertTrue($period->isClosed());
+    }
+
+    public function test_current_status_respects_registration_dates_and_active_flag(): void
+    {
+        $division = $this->createDivision();
+        $period = InternshipPeriod::create([
+            'division_id' => $division->id,
+            'year' => 2026,
+            'quarter' => 4,
+            'month' => 10,
+            'monthly_quota' => 6,
+            'start_date' => '2026-10-13',
+            'end_date' => '2026-10-31',
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/internship-periods/current-status')
+            ->assertOk()
+            ->assertJsonPath('data.divisions.0.availability_status', 'before_start')
+            ->assertJsonPath('data.divisions.0.can_register', false)
+            ->assertJsonPath('data.divisions.0.start_date', '2026-10-13');
+
+        $period->update(['is_active' => false]);
+
+        $this->getJson('/api/internship-periods/current-status')
+            ->assertOk()
+            ->assertJsonPath('data.divisions.0.availability_status', 'inactive')
+            ->assertJsonPath('data.divisions.0.is_active', false)
+            ->assertJsonPath('data.divisions.0.can_register', false);
+    }
+
+    public function test_monthly_application_count_uses_the_configured_timezone_boundary(): void
+    {
+        $division = $this->createDivision();
+        InternshipPeriod::create([
+            'division_id' => $division->id,
+            'year' => 2026,
+            'quarter' => 4,
+            'month' => 10,
+            'monthly_quota' => 6,
+        ]);
+        $application = $this->createTestApplication($division);
+        $application->forceFill([
+            'created_at' => Carbon::parse('2026-10-31 23:59:59', 'Asia/Makassar'),
+        ])->save();
+
+        $this->getJson('/api/internship-periods/current-status')
+            ->assertOk()
+            ->assertJsonPath('data.divisions.0.registered_count', 1)
+            ->assertJsonPath('data.divisions.0.remaining_quota', 5);
     }
 
     public function test_registration_is_rejected_when_monthly_period_quota_is_full(): void
@@ -101,6 +152,9 @@ class InternshipPeriodTest extends TestCase
             'quarter' => 4,
             'month' => 10,
             'monthly_quota' => 12,
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-31',
+            'is_active' => true,
         ];
 
         $this->actingAs($applicant, 'sanctum')
@@ -111,7 +165,10 @@ class InternshipPeriodTest extends TestCase
             ->putJson('/api/internship-periods', $payload)
             ->assertOk()
             ->assertJsonPath('data.monthly_quota', 12)
-            ->assertJsonPath('data.quarter', 4);
+            ->assertJsonPath('data.quarter', 4)
+            ->assertJsonPath('data.start_date', '2026-10-01')
+            ->assertJsonPath('data.end_date', '2026-10-31')
+            ->assertJsonPath('data.is_active', true);
 
         $this->assertDatabaseHas('internship_periods', [
             'division_id' => $division->id,

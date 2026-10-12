@@ -23,8 +23,10 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
   const { divisions, error: divisionError } = useDivisions();
   const { period, loading: periodLoading, error: periodError } = useInternshipPeriodStatus();
   const periodDivisions = period?.divisions || [];
-  const hasOpenPeriod = periodDivisions.some((division) => division.configured && !division.is_closed);
+  const hasOpenPeriod = periodDivisions.some((division) => division.can_register);
   const allPeriodsConfigured = periodDivisions.length > 0 && periodDivisions.every((division) => division.configured);
+  const allPeriodsFull = periodDivisions.length > 0
+    && periodDivisions.every((division) => ['full', 'division_full'].includes(division.availability_status));
 
   const duration = useMemo(() => {
     if (!form.tgl_mulai || !form.tgl_selesai || form.tgl_selesai < form.tgl_mulai) return null;
@@ -64,7 +66,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
   const submit = async (event) => {
     event.preventDefault();
     const selectedPeriod = periodDivisions.find((division) => division.code === form.bidang);
-    if (periodLoading || periodError || !selectedPeriod?.configured || selectedPeriod.is_closed) {
+    if (periodLoading || periodError || !selectedPeriod?.can_register) {
       return notify('Kuota pendaftaran untuk bidang atau periode ini belum tersedia.', 'error');
     }
     if (!agreements.every(Boolean)) return notify('Centang kedua pernyataan sebelum mendaftar.', 'error');
@@ -102,19 +104,22 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
       {key === 'bidang' ? <select id={key} className={`input ${errors[key] ? 'invalid' : ''}`} value={form[key]} onChange={change}>
         <option value="">Pilih bidang</option>{divisions.map((division) => {
           const periodDivision = periodDivisions.find((item) => item.code === division.code);
-          const isMonthlyFull = periodDivision?.is_closed;
+          const isMonthlyFull = ['full', 'division_full'].includes(periodDivision?.availability_status);
           const isUnconfigured = !periodDivision?.configured;
-          const isFull = Number(division.remaining_quota) <= 0 || isMonthlyFull || isUnconfigured;
-          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isMonthlyFull ? ' — Kuota bulanan penuh' : isUnconfigured ? ' — Periode belum dibuka' : isFull ? ' — Kuota divisi penuh' : ` — Sisa kuota: ${Math.max(0, division.remaining_quota)}/${division.quota}; pendaftar bulan ini: ${periodDivision.remaining_quota}`}</option>;
+          const isFull = isMonthlyFull || isUnconfigured || !periodDivision?.can_register;
+          const isNotStarted = periodDivision?.availability_status === 'before_start';
+          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isMonthlyFull ? ' — Kuota penuh' : isNotStarted ? ` — Dibuka ${periodDivision.start_date}` : isUnconfigured || !periodDivision?.can_register ? ' — Periode belum dibuka' : ` — Sisa kuota: ${periodDivision.remaining_quota}/${periodDivision.monthly_quota}`}</option>;
         })}
       </select> : <input id={key} className={`input ${errors[key] ? 'invalid' : ''}`} type={type} value={form[key]} onChange={change} {...props} />}
       {key === 'bidang' && form[key] && (() => {
         const selectedDivision = divisions.find((division) => String(division.code) === form[key]);
           const selectedPeriod = periodDivisions.find((division) => division.code === form[key]);
-          return selectedDivision && Number(selectedDivision.remaining_quota) <= 0
+          return selectedDivision && selectedPeriod?.availability_status === 'division_full'
             ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>⚠️ Kuota bidang ini sudah penuh. Silakan pilih bidang lain.</p>)
-            : selectedPeriod?.is_closed
+            : selectedPeriod?.availability_status === 'full'
               ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>⚠️ Kuota pendaftaran bulanan bidang ini sudah penuh.</p>)
+              : selectedPeriod && !selectedPeriod.can_register
+                ? (<p style={{color:'#64748b',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>Pendaftaran bidang ini belum dibuka atau masa pendaftarannya telah berakhir.</p>)
             : null;
         })()}
       {key === 'bidang' && divisionError && <p className="error-msg">{divisionError}</p>}
@@ -157,9 +162,11 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           <p className="note full" role="alert">{periodError} Formulir dinonaktifkan sampai status kuota dapat diverifikasi.</p>
         ) : !hasOpenPeriod ? (
           <div className="note full" role="status" style={{ color: '#991b1b', background: '#fef2f2', borderColor: '#fecaca' }}>
-            {allPeriodsConfigured
+            {allPeriodsFull
               ? `Mohon Maaf, Pendaftaran Magang untuk Periode/Bulan Ini Telah Ditutup Karena Kuota Sudah Penuh. (${period.period_label})`
-              : `Pendaftaran periode ${period?.period_label || ''} belum dibuka karena kuota divisi belum diatur.`}
+              : allPeriodsConfigured
+                ? `Pendaftaran periode ${period?.period_label || ''} belum dibuka atau sudah melewati tanggal pendaftaran.`
+                : `Pendaftaran periode ${period?.period_label || ''} belum dibuka karena kuota divisi belum diatur.`}
           </div>
         ) : (
         <form onSubmit={submit} noValidate>

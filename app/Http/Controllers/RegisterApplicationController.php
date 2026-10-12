@@ -73,7 +73,7 @@ class RegisterApplicationController extends Controller
         $stored = [];
         DB::beginTransaction();
         try {
-            $registrationDate = now();
+            $registrationDate = now(config('app.timezone'));
             $period = InternshipPeriod::query()
                 ->where('division_id', $division->id)
                 ->where('year', $registrationDate->year)
@@ -90,12 +90,22 @@ class RegisterApplicationController extends Controller
                 ], 422);
             }
 
-            if ($period->isClosed()) {
+            if (! $period->canRegister($registrationDate)) {
                 DB::rollBack();
 
                 return response()->json([
-                    'message' => 'Kuota pendaftaran bidang ini untuk periode berjalan sudah penuh.',
-                    'errors' => ['bidang' => ['Kuota pendaftaran bulanan bidang ini sudah penuh. Silakan pilih bidang lain.']],
+                    'message' => match ($period->registrationStatus($registrationDate)) {
+                        'inactive' => 'Pendaftaran untuk periode ini belum dibuka.',
+                        'before_start' => 'Pendaftaran untuk periode ini belum dimulai.',
+                        'after_end' => 'Masa pendaftaran periode ini telah berakhir.',
+                        default => 'Kuota pendaftaran bidang ini untuk periode berjalan sudah penuh.',
+                    },
+                    'errors' => ['bidang' => [match ($period->registrationStatus($registrationDate)) {
+                        'inactive' => 'Periode pendaftaran bidang ini belum diaktifkan.',
+                        'before_start' => 'Pendaftaran bidang ini belum dibuka pada tanggal tersebut.',
+                        'after_end' => 'Masa pendaftaran bidang ini telah berakhir.',
+                        default => 'Kuota pendaftaran bulanan bidang ini sudah penuh. Silakan pilih bidang lain.',
+                    }]],
                 ], 422);
             }
 
