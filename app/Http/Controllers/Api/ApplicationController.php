@@ -844,6 +844,61 @@ class ApplicationController extends Controller
         return $this->uploadOfficialLetter($request, $application);
     }
 
+    /**
+     * Generate PDF Surat Balasan & Otomatis ubah status pemohon menjadi accepted.
+     */
+    public function generateSuratBalasan(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'official_letter_number' => ['required', 'string', 'max:255', Rule::unique('intern_applications', 'official_letter_number')->ignore($id)],
+        ]);
+
+        $application = InternApplication::with(['user', 'division', 'verifierKadis'])->findOrFail($id);
+
+        if (! $application->division_id) {
+            return $this->errorResponse('Permohonan belum memiliki divisi penempatan.', 422);
+        }
+
+        $path = "letters/surat_balasan_{$application->id}.pdf";
+
+        $pdf = Pdf::loadView('pdf.surat_balasan', [
+            'application' => $application,
+            'tanggalPenerbitan' => now()->locale('id'),
+        ])->setPaper('a4', 'portrait');
+
+        if (! Storage::disk('public')->put($path, $pdf->output())) {
+            return $this->errorResponse('Surat balasan gagal disimpan.', 500);
+        }
+
+        // UPDATE STATUS PERMOHONAN & AKUN USER MENJADI ACCEPTED
+        DB::transaction(function () use ($application, $validated, $path): void {
+            $application->update([
+                'official_letter_number' => $validated['official_letter_number'],
+                'acceptance_letter_number' => $validated['official_letter_number'],
+                'official_letter_path' => $path,
+                'status' => 'accepted',
+                'final_status' => 'accepted',
+            ]);
+
+            if ($application->user) {
+                $application->user->update([
+                    'role' => 'intern',
+                    'status_akun' => 'approved',
+                    'is_active' => true,
+                    'tanggal_disetujui' => now(),
+                    'division_id' => $application->division_id,
+                ]);
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Surat balasan berhasil diterbitkan dan pemohon resmi diterima!',
+            'pdf_url' => "/storage/{$path}",
+            'data' => $application->fresh(['user', 'division']),
+        ]);
+    }
+
     public function downloadOfficialLetter(Request $request, InternApplication $application): StreamedResponse
     {
         abort_unless((int) $application->user_id === (int) $request->user()->id, 403);

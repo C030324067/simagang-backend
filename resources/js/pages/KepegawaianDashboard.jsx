@@ -13,7 +13,7 @@ import {
 
 export default function KepegawaianDashboard() {
   const {
-    pendingApps, approvedApps, acceptedApps, letterFiles, setLetterFiles, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
+    pendingApps, approvedApps, acceptedApps, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
     actionForm, setActionForm, loading, submitting, msg, setMsg, uploadLetter, openDocument, handleActionSubmit
   } = useKepegawaianDashboard();
   const [downloadingId, setDownloadingId] = React.useState(null);
@@ -178,34 +178,34 @@ export default function KepegawaianDashboard() {
           )}
         </section>
 
-        {/* Section 2: Persetujuan Kadis — unggah surat resmi */}
+        {/* Section 2: Persetujuan Kadis — terbitkan surat resmi */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <FileText className="w-5 h-5 text-[#0F2942]" />
             <h3 className="font-bold text-[#0F2942] text-base sm:text-lg">
-              Persetujuan Kadis — unggah surat resmi ( {approvedApps.length} )
+              Persetujuan Kadis — terbitkan surat resmi ( {approvedApps.length} )
             </h3>
           </div>
 
           <div className="divide-y divide-slate-100">
             {approvedApps.map((app) => (
-              <div key={app.id} className="py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/50 transition px-2 rounded-xl">
+              <div key={app.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition px-2 rounded-xl">
                 
-                {/* Info Pemohon & Pilih File */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-8">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="font-bold text-[#0F2942] text-sm">{app.user?.name}</p>
-                      <span className="text-xs text-slate-400 font-normal">
-                        ({app.application_type === 'rekomendasi_kampus' ? 'Rekomendasi Kampus' : 'Pemohon Magang'})
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {app.institution_name} <span className="text-slate-300">·</span> {app.user?.email}
-                    </p>
+                {/* Info Pemohon */}
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-bold text-[#0F2942] text-sm">{app.user?.name}</p>
+                    <span className="text-xs text-slate-400 font-normal">
+                      ({app.application_type === 'rekomendasi_kampus' ? 'Rekomendasi Kampus' : 'Pemohon Magang'})
+                    </span>
                   </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {app.institution_name} <span className="text-slate-300">·</span> {app.user?.email}
+                  </p>
+                </div>
 
-                  {/* Nomor Surat Resmi */}
+                {/* Form Input Nomor Surat & Action Button */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                   <input
                     type="text"
                     id={`official-letter-number-${app.id}`}
@@ -213,43 +213,18 @@ export default function KepegawaianDashboard() {
                     onChange={(event) => setLetterNumbers((previous) => ({ ...previous, [app.id]: event.target.value }))}
                     placeholder="Masukkan Nomor Surat Resmi"
                     aria-label={`Nomor surat resmi untuk ${app.user?.name || 'pemohon'}`}
-                    className="w-full sm:w-56 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20"
+                    className="w-full sm:w-64 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20"
                   />
 
-                  {/* Pilih File Button & File Name */}
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <input 
-                      type="file" 
-                      accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
-                      id={`file-upload-${app.id}`}
-                      onChange={(e) => setLetterFiles((prev) => ({ ...prev, [app.id]: e.target.files?.[0] || null }))} 
-                      className="sr-only"
-                    />
-                    <label 
-                      htmlFor={`file-upload-${app.id}`}
-                      className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200/80 bg-[#F0F4F9] hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Pilih File</span>
-                    </label>
-                    <span className="text-xs text-slate-400 truncate max-w-[180px]">
-                      {letterFiles[app.id] ? letterFiles[app.id].name : 'Tidak ada file yang dipilih'}
-                    </span>
-                  </div>
+                  <button 
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => uploadLetter(app.id, letterNumbers[app.id])}
+                    className="px-5 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs transition disabled:opacity-50 shadow-xs cursor-pointer whitespace-nowrap"
+                  >
+                    {submitting ? 'Memproses...' : 'Terbitkan & Generate'}
+                  </button>
                 </div>
-
-                {/* Action Submit Button */}
-                <button 
-                  disabled={submitting || !letterFiles[app.id] || !letterNumbers[app.id]?.trim()}
-                  onClick={() => {
-                    const officialLetterNumberInput = document.getElementById(`official-letter-number-${app.id}`);
-                    const officialLetterNumber = officialLetterNumberInput?.value || '';
-                    uploadLetter(app.id, officialLetterNumber);
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-xs transition disabled:opacity-50 shadow-xs cursor-pointer whitespace-nowrap self-start lg:self-auto"
-                >
-                  Unggah & Terima
-                </button>
               </div>
             ))}
 

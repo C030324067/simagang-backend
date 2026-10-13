@@ -76,6 +76,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/kadis', [ApplicationController::class, 'kadis'])->middleware('role:kadis');
         Route::put('/{application}/status', [ApplicationController::class, 'updateStatus'])
             ->middleware('role:admin_kepegawaian,kadis');
+        Route::post('/{id}/surat-balasan', [ApplicationController::class, 'generateSuratBalasan'])
+            ->whereNumber('id')
+            ->middleware('role:admin_kepegawaian');
         Route::post('/{application}/upload-letter', [ApplicationController::class, 'uploadOfficialLetter'])
             ->middleware('role:admin_kepegawaian');
         Route::put('/{application}/issue-letter', [ApplicationController::class, 'issueLetter'])

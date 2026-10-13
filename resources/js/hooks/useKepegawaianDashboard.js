@@ -6,7 +6,6 @@ export default function useKepegawaianDashboard() {
   const [pendingApps, setPendingApps] = useState([]);
   const [approvedApps, setApprovedApps] = useState([]);
   const [acceptedApps, setAcceptedApps] = useState([]);
-  const [letterFiles, setLetterFiles] = useState({});
   const [letterNumbers, setLetterNumbers] = useState({});
   const [divisions, setDivisions] = useState([]);
   const [selectedApp, setSelectedApp] = useState(null);
@@ -44,26 +43,40 @@ export default function useKepegawaianDashboard() {
   useEffect(() => { loadData(); }, []);
 
   const uploadLetter = async (applicationId, officialLetterNumberValue) => {
-    const file = letterFiles[applicationId];
-    const officialLetterNumber = officialLetterNumberValue?.trim();
-    if (!officialLetterNumber) { setMsg({ type: 'error', text: 'Masukkan nomor surat resmi terlebih dahulu.' }); return; }
-    if (!file) { setMsg({ type: 'error', text: 'Pilih file surat penerimaan terlebih dahulu.' }); return; }
-    const payload = new FormData();
-    payload.append('official_letter_number', officialLetterNumber);
-    payload.append('official_letter_file', file);
+    const rawNumber = officialLetterNumberValue || letterNumbers[applicationId] || '';
+    const officialLetterNumber = rawNumber.trim();
+
+    if (!officialLetterNumber) { 
+      setMsg({ type: 'error', text: 'Masukkan nomor surat resmi terlebih dahulu.' }); 
+      return; 
+    }
+
     setSubmitting(true);
+    setMsg({ type: '', text: '' });
+
     try {
-      console.log('Payload dikirim:', payload);
-      const response = await apiRequest(`/applications/${applicationId}/upload-letter`, { method: 'POST', body: payload });
-      setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Gagal mengunggah surat.' });
-      if (response.success) {
-        setLetterFiles((previous) => ({ ...previous, [applicationId]: null }));
+      const response = await apiRequest(`/applications/${applicationId}/surat-balasan`, { 
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ official_letter_number: officialLetterNumber })
+      });
+
+      if (response?.ok && (response.success || response.pdf_url)) {
+        setMsg({ type: 'success', text: response.message || 'Surat balasan berhasil diterbitkan!' });
         setLetterNumbers((previous) => ({ ...previous, [applicationId]: '' }));
-        const fileInput = document.getElementById(`file-upload-${applicationId}`);
-        if (fileInput) fileInput.value = '';
         await loadData();
+      } else {
+        setMsg({ type: 'error', text: response?.message || 'Gagal menerbitkan surat balasan. Periksa kembali inputan.' });
       }
-    } finally { setSubmitting(false); }
+    } catch (error) {
+      console.error('Error generate surat balasan:', error);
+      setMsg({ type: 'error', text: 'Terjadi kesalahan pada server saat membuat surat balasan.' });
+    } finally { 
+      setSubmitting(false); 
+    }
   };
 
   const openDocument = async (applicationId, documentType) => {
@@ -122,7 +135,7 @@ export default function useKepegawaianDashboard() {
   };
 
   return {
-    pendingApps, approvedApps, acceptedApps, letterFiles, setLetterFiles, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
+    pendingApps, approvedApps, acceptedApps, letterNumbers, setLetterNumbers, divisions, selectedApp, setSelectedApp,
     actionForm, setActionForm, loading, submitting, msg, setMsg, uploadLetter, openDocument, handleActionSubmit, sendAcceptanceWhatsApp,
   };
 }

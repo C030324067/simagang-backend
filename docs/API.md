@@ -295,6 +295,8 @@ Nilai `status` yang diterima: `pending_kabid`, `pending_kadis`, `approved_by_kad
 
 ### Penerbitan surat resmi
 
+Admin Kepegawaian juga dapat menerbitkan PDF surat balasan otomatis melalui `POST /applications/{id}/surat-balasan` dengan payload JSON `{"official_letter_number":"800/129/Diskominfo/2026"}`. Endpoint ini menyimpan PDF di `storage/app/public/letters/` dan mengembalikan `success`, `message`, serta `pdf_url`. Proses ini tidak menggantikan `issue-letter`, yang tetap mengunggah surat resmi dan mengaktifkan akun peserta.
+
 Admin Kepegawaian memproses pengajuan berstatus `approved_by_kadis` dari antrean `GET /applications/pending-letters`. `PUT /applications/{application}/issue-letter` menerima `official_letter_number` (wajib, unik) dan file `official_letter_file` (wajib, PDF/JPG/JPEG/PNG, maksimal 10 MB) sebagai `multipart/form-data`. Alias `letter_number` dan file `file` juga diterima untuk kompatibilitas. Endpoint POST lama `upload-letter` dan `official-letter` menggunakan validasi yang sama. Surat hanya dapat diterbitkan jika pengajuan memiliki divisi dan kuota masih tersedia. Penerbitan mengubah status menjadi `accepted`, mengaktifkan akun intern, dan membuat surat tersedia melalui kode tracking publik. Email dapat dikirim jika konfigurasi mail aktif; jika tidak, peserta tetap dapat mengunduh melalui pelacak.
 
 ## Presensi
