@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import useApplicationReviewDashboard from '../hooks/useApplicationReviewDashboard';
 import { 
@@ -11,7 +11,8 @@ import {
   Calendar,
   Briefcase,
   FileSignature,
-  ExternalLink
+  Search,
+  Check
 } from 'lucide-react';
 
 export default function KadisDashboard() {
@@ -25,6 +26,91 @@ export default function KadisDashboard() {
     initialNotes: 'Permohonan diotorisasi Kadis dan diteruskan kepada Kepegawaian untuk penerbitan surat.', 
     successMessage: 'Persetujuan Kepala Dinas berhasil disimpan.', 
     failureMessage: 'Gagal memproses persetujuan Kepala Dinas.' 
+  });
+
+  // State untuk Pemagang Aktif Dinas
+  const [activeInterns, setActiveInterns] = useState([]);
+  const [activeLoading, setActiveLoading] = useState(false);
+  const [isActiveModalOpen, setIsActiveModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // State untuk Riwayat Keputusan Kadis
+  const [historyApps, setHistoryApps] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Fetch Pemagang Aktif
+  const fetchActiveInterns = async () => {
+    setActiveLoading(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      const res = await fetch('/api/applications?final_status=accepted&per_page=100', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await res.json();
+      const rawList = Array.isArray(data) 
+        ? data 
+        : Array.isArray(data?.data) 
+          ? data.data 
+          : Array.isArray(data?.data?.data) 
+            ? data.data.data 
+            : [];
+      setActiveInterns(rawList);
+    } catch (err) {
+      console.error('Gagal memuat daftar pemagang aktif:', err);
+    } finally {
+      setActiveLoading(false);
+    }
+  };
+
+  // Fetch Riwayat Keputusan
+  const fetchHistoryApps = async () => {
+    setHistoryLoading(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      const res = await fetch('/api/applications?per_page=50', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await res.json();
+      const rawList = Array.isArray(data) 
+        ? data 
+        : Array.isArray(data?.data) 
+          ? data.data 
+          : Array.isArray(data?.data?.data) 
+            ? data.data.data 
+            : [];
+
+      // Filter pengajuan yang sudah diproses oleh Kadis
+      const filteredHistory = rawList.filter((app) => 
+        ['approved_by_kadis', 'accepted', 'rejected'].includes(app.status) && app.status_kadis !== 'pending'
+      );
+      setHistoryApps(filteredHistory);
+    } catch (err) {
+      console.error('Gagal memuat riwayat keputusan:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveInterns();
+    fetchHistoryApps();
+  }, []);
+
+  // Filter pencarian modal pemagang aktif
+  const filteredInterns = activeInterns.filter((app) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const name = (app.user?.name || app.name || '').toLowerCase();
+    const inst = (app.institution_name || '').toLowerCase();
+    const div = (app.division?.name || '').toLowerCase();
+    const email = (app.user?.email || '').toLowerCase();
+    return name.includes(term) || inst.includes(term) || div.includes(term) || email.includes(term);
   });
 
   return (
@@ -44,12 +130,37 @@ export default function KadisDashboard() {
             </p>
           </div>
 
-          {/* Menunggu Otorisasi Kadis Card */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs text-center min-w-[240px] shrink-0 self-start md:self-auto">
-            <span className="block text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-1">
-              MENUNGGU OTORISASI KADIS
-            </span>
-            <b className="text-3xl sm:text-4xl font-extrabold text-[#4F46E5]">{pendingApps.length}</b>
+          {/* Stat Cards Container Header (Ukuran Identik Presisi) */}
+          <div className="flex items-center gap-4 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
+            
+            {/* Card 1: Pemagang Aktif Dinas */}
+            <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-xs text-center min-w-[210px] sm:min-w-[230px] h-[120px] flex flex-col items-center justify-center shrink-0">
+              <span className="block text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-1">
+                PEMAGANG AKTIF DINAS
+              </span>
+              <b className="text-3xl sm:text-4xl font-extrabold text-[#4F46E5] leading-tight">
+                {activeLoading ? '...' : activeInterns.length}
+              </b>
+              <button
+                type="button"
+                onClick={() => setIsActiveModalOpen(true)}
+                className="text-xs font-semibold text-[#4F46E5] hover:text-[#4338CA] mt-1 transition-colors cursor-pointer"
+              >
+                Lihat daftar &rsaquo;
+              </button>
+            </div>
+
+            {/* Card 2: Menunggu Otorisasi Kadis (Ukuran Sama Persis) */}
+            <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-xs text-center min-w-[210px] sm:min-w-[230px] h-[120px] flex flex-col items-center justify-center shrink-0">
+              <span className="block text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-1">
+                MENUNGGU OTORISASI KADIS
+              </span>
+              <b className="text-3xl sm:text-4xl font-extrabold text-[#4F46E5] leading-tight">
+                {pendingApps.length}
+              </b>
+              <div className="h-4 mt-1" /> {/* Penyeimbang tinggi agar posisinya sejajar */}
+            </div>
+
           </div>
         </section>
 
@@ -78,10 +189,10 @@ export default function KadisDashboard() {
           </div>
         )}
 
-        {/* Queue Section Card */}
+        {/* KARTU 1: Antrean Otorisasi Akhir */}
         <section className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden p-6 sm:p-8 space-y-6">
           <div className="flex items-center gap-2 text-[#0F172A]">
-            <Clock className="w-4 h-4 text-slate-700" />
+            <Clock className="w-4.5 h-4.5 text-slate-700" />
             <h2 className="font-bold text-sm sm:text-base">
               Antrean Otorisasi Akhir ( {pendingApps.length} )
             </h2>
@@ -93,8 +204,8 @@ export default function KadisDashboard() {
               <p className="font-medium">Memuat antrean otorisasi...</p>
             </div>
           ) : pendingApps.length === 0 ? (
-            /* Empty State matching reference UI exactly */
-            <div className="py-16 px-4 text-center space-y-2">
+            /* Empty State Kartu 1 */
+            <div className="py-14 px-4 text-center space-y-2">
               <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
               <p className="text-sm font-bold text-[#0F172A]">Semua permohonan telah diotorisasi!</p>
               <p className="text-xs text-slate-400">
@@ -102,7 +213,7 @@ export default function KadisDashboard() {
               </p>
             </div>
           ) : (
-            /* Itemized Queue List */
+            /* Itemized List Permohonan */
             <div className="space-y-3">
               {pendingApps.map((app) => (
                 <div 
@@ -153,14 +264,73 @@ export default function KadisDashboard() {
           )}
         </section>
 
+        {/* KARTU 2: Riwayat Keputusan Kadis */}
+        <section className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden p-6 sm:p-8 space-y-6">
+          <div className="flex items-center gap-2 text-[#0F172A]">
+            <CheckCircle2 className="w-4.5 h-4.5 text-slate-700" />
+            <h2 className="font-bold text-sm sm:text-base">
+              Riwayat Keputusan Kadis ( {historyApps.length} )
+            </h2>
+          </div>
+
+          {historyLoading ? (
+            <div className="p-12 text-center text-xs text-slate-400 space-y-3">
+              <div className="inline-block animate-spin rounded-full h-7 w-7 border-2 border-[#4F46E5] border-t-transparent" />
+              <p className="font-medium">Memuat riwayat keputusan...</p>
+            </div>
+          ) : historyApps.length === 0 ? (
+            /* Empty State Kartu 2 Presisi Sesuai Gambar Rujukan */
+            <div className="py-14 px-4 text-center space-y-1.5">
+              <p className="text-sm font-bold text-[#0F172A]">Belum ada riwayat keputusan.</p>
+              <p className="text-xs text-slate-400">
+                Keputusan yang sudah dikirim akan tercatat di sini.
+              </p>
+            </div>
+          ) : (
+            /* Itemized List Riwayat Keputusan */
+            <div className="space-y-3">
+              {historyApps.map((app) => (
+                <div 
+                  key={app.id}
+                  className="p-4 sm:p-5 rounded-2xl border border-slate-100 bg-slate-50/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-[#0F172A] text-sm sm:text-base">{app.user?.name}</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        app.status === 'rejected'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      }`}>
+                        {app.status === 'rejected' ? 'Ditolak' : 'Disetujui'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-medium">
+                      <span>{app.institution_name}</span>
+                      <span>&bull;</span>
+                      <span>{app.division?.name || 'Aplikasi Informatika'}</span>
+                    </div>
+                  </div>
+
+                  {app.notes_kadis && (
+                    <div className="text-xs text-slate-500 italic bg-white px-3 py-1.5 rounded-xl border border-slate-100">
+                      "{app.notes_kadis}"
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
       </main>
 
-      {/* Review Modal Popup */}
+      {/* Modal Popup Review */}
       {selectedApp && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-xl border border-slate-100 space-y-5 max-h-[88vh] overflow-y-auto">
             
-            {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-bold text-base text-slate-900">Otorisasi Akhir Kepala Dinas</h3>
@@ -172,13 +342,11 @@ export default function KadisDashboard() {
                 type="button"
                 onClick={() => setSelectedApp(null)}
                 className="p-1 rounded-full text-slate-400 hover:bg-slate-100 transition cursor-pointer"
-                aria-label="Tutup modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Applicant Details Card */}
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs text-slate-700 space-y-2 leading-relaxed">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -207,7 +375,6 @@ export default function KadisDashboard() {
               )}
             </div>
 
-            {/* Decision Buttons */}
             <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-4">
               <button
                 type="button"
@@ -219,7 +386,10 @@ export default function KadisDashboard() {
               <button
                 type="button"
                 disabled={submitting}
-                onClick={() => submitDecision('rejected')}
+                onClick={async () => {
+                  await submitDecision('rejected');
+                  fetchHistoryApps();
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 px-4 py-2 text-xs font-bold text-white transition disabled:opacity-50 cursor-pointer"
               >
                 <XCircle className="h-4 w-4" />
@@ -228,13 +398,111 @@ export default function KadisDashboard() {
               <button
                 type="button"
                 disabled={submitting}
-                onClick={() => submitDecision('approved_by_kadis')}
+                onClick={async () => {
+                  await submitDecision('approved_by_kadis');
+                  fetchActiveInterns();
+                  fetchHistoryApps();
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] px-5 py-2 text-xs font-bold text-white transition shadow-2xs disabled:opacity-50 cursor-pointer"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 {submitting ? 'Memproses...' : 'Setujui & Otorisasi'}
               </button>
             </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Modal Popup Pemagang Aktif Dinas */}
+      {isActiveModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-xl border border-slate-100 space-y-5 max-h-[88vh] overflow-y-auto">
+            
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-extrabold text-lg sm:text-xl text-[#0F172A]">
+                  Pemagang Aktif Dinas
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {activeInterns.length} pemagang aktif di dinas saat ini.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsActiveModalOpen(false);
+                  setSearchTerm('');
+                }}
+                className="p-1 rounded-full text-slate-400 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Cari nama, institusi, atau bidang..."
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#4F46E5] focus:ring-2 focus:ring-indigo-100 transition-all"
+              />
+            </div>
+
+            {activeLoading ? (
+              <div className="py-12 text-center text-xs text-slate-400 space-y-3">
+                <div className="inline-block animate-spin rounded-full h-7 w-7 border-2 border-[#4F46E5] border-t-transparent" />
+                <p className="font-medium">Memuat data pemagang aktif...</p>
+              </div>
+            ) : filteredInterns.length === 0 ? (
+              <div className="py-16 px-4 text-center space-y-2">
+                <p className="text-sm sm:text-base font-bold text-[#0F172A]">
+                  {searchTerm ? 'Pemagang tidak ditemukan.' : 'Belum ada pemagang aktif.'}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {searchTerm 
+                    ? 'Tidak ada data pemagang yang cocok dengan kata kunci pencarian.' 
+                    : 'Data pemagang aktif dinas ini akan tampil di sini.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                {filteredInterns.map((intern) => (
+                  <div
+                    key={intern.id}
+                    className="p-4 sm:p-5 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50/50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-[#0F172A] text-sm sm:text-base">
+                          {intern.user?.name || intern.name}
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Aktif
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 font-medium">
+                        <span className="flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                          {intern.institution_name}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+                          {intern.division?.name || 'Aplikasi Informatika'}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          {intern.start_date} s/d {intern.end_date}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
           </div>
         </div>
