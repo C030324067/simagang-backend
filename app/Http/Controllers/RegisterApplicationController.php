@@ -29,8 +29,8 @@ class RegisterApplicationController extends Controller
             'bidang' => ['required', Rule::in([...$divisionCodes, ...$legacyDivisionCodes])],
             'institusi' => ['required', 'string', 'max:255'],
             'jurusan' => ['required', 'string', 'max:255'],
-            'nim_nisn' => ['nullable', 'string', 'max:50'],
-            'hp' => ['required', 'string', 'max:30'],
+            'nim_nisn' => ['required', 'string', 'regex:/^\d+$/', 'min:10', 'max:15'],
+            'hp' => ['required', 'string', 'regex:/^(?:08\d{8,11}|628\d{7,10})$/'],
             'tgl_mulai' => ['required', 'date', 'after_or_equal:today'],
             'tgl_selesai' => ['required', 'date', 'after_or_equal:tgl_mulai'],
             'pw' => ['required', 'string', 'min:8', 'same:pw2'],
@@ -45,6 +45,15 @@ class RegisterApplicationController extends Controller
             'b2' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'b3' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'b4' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+        ], [
+            'nim_nisn.required' => 'NIM / NISN wajib diisi.',
+            'nim_nisn.string' => 'NIM / NISN harus berupa teks angka.',
+            'nim_nisn.regex' => 'NIM / NISN hanya boleh berisi angka.',
+            'nim_nisn.min' => 'NIM / NISN minimal 10 digit.',
+            'nim_nisn.max' => 'NIM / NISN maksimal 15 digit.',
+            'hp.required' => 'Nomor HP / WhatsApp wajib diisi.',
+            'hp.string' => 'Nomor HP / WhatsApp harus berupa teks angka.',
+            'hp.regex' => 'Nomor HP / WhatsApp harus terdiri dari 10–13 digit dan diawali 08 atau 628.',
         ]);
 
         $divisionCode = match (Str::lower($validated['bidang'])) {

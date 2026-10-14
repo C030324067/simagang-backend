@@ -26,7 +26,11 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', Password::min(6)],
-            'no_hp' => ['nullable', 'string', 'max:20'],
+            'no_hp' => ['required', 'string', 'regex:/^(?:08\d{8,11}|628\d{7,10})$/'],
+        ], [
+            'no_hp.required' => 'Nomor HP / WhatsApp wajib diisi.',
+            'no_hp.string' => 'Nomor HP / WhatsApp harus berupa teks angka.',
+            'no_hp.regex' => 'Nomor HP / WhatsApp harus terdiri dari 10–13 digit dan diawali 08 atau 628.',
         ]);
 
         $user = User::create([

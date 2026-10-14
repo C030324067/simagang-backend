@@ -11,9 +11,19 @@ import {
   Calendar,
   Briefcase,
   FileSignature,
-  Search,
-  Check
+  Search
 } from 'lucide-react';
+
+const extractApplications = (response) => {
+  const candidates = [
+    response,
+    response?.data,
+    response?.data?.data,
+    response?.data?.data?.data,
+  ];
+
+  return candidates.find(Array.isArray) || [];
+};
 
 export default function KadisDashboard() {
   const { user } = useAuth();
@@ -38,28 +48,36 @@ export default function KadisDashboard() {
   const [historyApps, setHistoryApps] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const safePendingApps = Array.isArray(pendingApps) ? pendingApps.filter(Boolean) : [];
+  const safeActiveInterns = Array.isArray(activeInterns) ? activeInterns.filter(Boolean) : [];
+  const safeHistoryApps = Array.isArray(historyApps) ? historyApps.filter(Boolean) : [];
+
   // Fetch Pemagang Aktif
   const fetchActiveInterns = async () => {
     setActiveLoading(true);
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token')
+        || localStorage.getItem('auth_token')
+        || localStorage.getItem('simagang_token');
+      if (!token) {
+        throw new Error('Token autentikasi tidak ditemukan. Silakan masuk kembali.');
+      }
+
       const res = await fetch('/api/applications?final_status=accepted&per_page=100', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Accept': 'application/json',
         },
       });
-      const data = await res.json();
-      const rawList = Array.isArray(data) 
-        ? data 
-        : Array.isArray(data?.data) 
-          ? data.data 
-          : Array.isArray(data?.data?.data) 
-            ? data.data.data 
-            : [];
-      setActiveInterns(rawList);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message || `Gagal memuat pemagang aktif (HTTP ${res.status}).`);
+      }
+
+      setActiveInterns(extractApplications(data));
     } catch (err) {
       console.error('Gagal memuat daftar pemagang aktif:', err);
+      setMsg({ type: 'error', text: err?.message || 'Gagal memuat daftar pemagang aktif.' });
     } finally {
       setActiveLoading(false);
     }
@@ -69,29 +87,28 @@ export default function KadisDashboard() {
   const fetchHistoryApps = async () => {
     setHistoryLoading(true);
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-      const res = await fetch('/api/applications?per_page=50', {
+      const token = localStorage.getItem('token')
+        || localStorage.getItem('auth_token')
+        || localStorage.getItem('simagang_token');
+      if (!token) {
+        throw new Error('Token autentikasi tidak ditemukan. Silakan masuk kembali.');
+      }
+
+      const res = await fetch('/api/applications/history-kadis', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Accept': 'application/json',
         },
       });
-      const data = await res.json();
-      const rawList = Array.isArray(data) 
-        ? data 
-        : Array.isArray(data?.data) 
-          ? data.data 
-          : Array.isArray(data?.data?.data) 
-            ? data.data.data 
-            : [];
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message || `Gagal memuat riwayat keputusan (HTTP ${res.status}).`);
+      }
 
-      // Filter pengajuan yang sudah diproses oleh Kadis
-      const filteredHistory = rawList.filter((app) => 
-        ['approved_by_kadis', 'accepted', 'rejected'].includes(app.status) && app.status_kadis !== 'pending'
-      );
-      setHistoryApps(filteredHistory);
+      setHistoryApps(extractApplications(data));
     } catch (err) {
       console.error('Gagal memuat riwayat keputusan:', err);
+      setMsg({ type: 'error', text: err?.message || 'Gagal memuat riwayat keputusan.' });
     } finally {
       setHistoryLoading(false);
     }
@@ -103,13 +120,13 @@ export default function KadisDashboard() {
   }, []);
 
   // Filter pencarian modal pemagang aktif
-  const filteredInterns = activeInterns.filter((app) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    const name = (app.user?.name || app.name || '').toLowerCase();
-    const inst = (app.institution_name || '').toLowerCase();
-    const div = (app.division?.name || '').toLowerCase();
-    const email = (app.user?.email || '').toLowerCase();
+  const filteredInterns = safeActiveInterns.filter((app) => {
+    const term = (searchTerm || '').trim().toLowerCase();
+    if (!term) return true;
+    const name = String(app?.user?.name || app?.name || '').toLowerCase();
+    const inst = String(app?.institution_name || '').toLowerCase();
+    const div = String(app?.division?.name || '').toLowerCase();
+    const email = String(app?.user?.email || '').toLowerCase();
     return name.includes(term) || inst.includes(term) || div.includes(term) || email.includes(term);
   });
 
@@ -139,7 +156,7 @@ export default function KadisDashboard() {
                 PEMAGANG AKTIF DINAS
               </span>
               <b className="text-3xl sm:text-4xl font-extrabold text-[#4F46E5] leading-tight">
-                {activeLoading ? '...' : activeInterns.length}
+                {activeLoading ? '...' : safeActiveInterns.length}
               </b>
               <button
                 type="button"
@@ -156,7 +173,7 @@ export default function KadisDashboard() {
                 MENUNGGU OTORISASI KADIS
               </span>
               <b className="text-3xl sm:text-4xl font-extrabold text-[#4F46E5] leading-tight">
-                {pendingApps.length}
+                {safePendingApps.length}
               </b>
               <div className="h-4 mt-1" /> {/* Penyeimbang tinggi agar posisinya sejajar */}
             </div>
@@ -165,19 +182,19 @@ export default function KadisDashboard() {
         </section>
 
         {/* Alert Notification */}
-        {msg.text && (
+        {msg?.text && (
           <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
-            msg.type === 'success' 
+            msg?.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
               : 'bg-rose-50 border-rose-200 text-rose-900'
           }`}>
             <div className="flex items-center gap-3">
-              {msg.type === 'success' ? (
+              {msg?.type === 'success' ? (
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               ) : (
                 <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
               )}
-              <span className="font-medium">{msg.text}</span>
+              <span className="font-medium">{msg?.text || '—'}</span>
             </div>
             <button 
               onClick={() => setMsg({ type: '', text: '' })} 
@@ -194,7 +211,7 @@ export default function KadisDashboard() {
           <div className="flex items-center gap-2 text-[#0F172A]">
             <Clock className="w-4.5 h-4.5 text-slate-700" />
             <h2 className="font-bold text-sm sm:text-base">
-              Antrean Otorisasi Akhir ( {pendingApps.length} )
+              Antrean Otorisasi Akhir ( {safePendingApps.length} )
             </h2>
           </div>
 
@@ -203,7 +220,7 @@ export default function KadisDashboard() {
               <div className="inline-block animate-spin rounded-full h-7 w-7 border-2 border-[#4F46E5] border-t-transparent" />
               <p className="font-medium">Memuat antrean otorisasi...</p>
             </div>
-          ) : pendingApps.length === 0 ? (
+          ) : safePendingApps.length === 0 ? (
             /* Empty State Kartu 1 */
             <div className="py-14 px-4 text-center space-y-2">
               <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
@@ -215,35 +232,35 @@ export default function KadisDashboard() {
           ) : (
             /* Itemized List Permohonan */
             <div className="space-y-3">
-              {pendingApps.map((app) => (
+              {safePendingApps.map((app, index) => (
                 <div 
-                  key={app.id} 
+                  key={app?.id ?? index}
                   className="p-4 sm:p-5 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50/50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-2 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-[#0F172A] text-sm sm:text-base">{app.user?.name}</span>
-                      <span className="text-xs text-slate-400 font-normal">&middot; ID: #{app.id}</span>
+                      <span className="font-bold text-[#0F172A] text-sm sm:text-base">{app?.user?.name || app?.name || '—'}</span>
+                      <span className="text-xs text-slate-400 font-normal">&middot; ID: #{app?.id || '—'}</span>
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 font-medium">
                       <span className="flex items-center gap-1.5">
                         <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                        {app.institution_name}
+                        {app?.institution_name || '—'}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                        {app.division?.name || 'Aplikasi Informatika'}
+                        {app?.division?.name || 'Aplikasi Informatika'}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        {app.start_date} s/d {app.end_date}
+                        {app?.start_date || '—'} s/d {app?.end_date || '—'}
                       </span>
                     </div>
 
-                    {app.notes_kabid && (
+                    {app?.notes_kabid && (
                       <div className="text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 inline-block font-medium">
-                        <span className="font-bold text-slate-500">Rekomendasi Kabid:</span> "{app.notes_kabid}"
+                        <span className="font-bold text-slate-500">Rekomendasi Kabid:</span>                         "{app?.notes_kabid || '—'}"
                       </div>
                     )}
                   </div>
@@ -269,7 +286,7 @@ export default function KadisDashboard() {
           <div className="flex items-center gap-2 text-[#0F172A]">
             <CheckCircle2 className="w-4.5 h-4.5 text-slate-700" />
             <h2 className="font-bold text-sm sm:text-base">
-              Riwayat Keputusan Kadis ( {historyApps.length} )
+              Riwayat Keputusan Kadis ( {safeHistoryApps.length} )
             </h2>
           </div>
 
@@ -278,7 +295,7 @@ export default function KadisDashboard() {
               <div className="inline-block animate-spin rounded-full h-7 w-7 border-2 border-[#4F46E5] border-t-transparent" />
               <p className="font-medium">Memuat riwayat keputusan...</p>
             </div>
-          ) : historyApps.length === 0 ? (
+          ) : safeHistoryApps.length === 0 ? (
             /* Empty State Kartu 2 Presisi Sesuai Gambar Rujukan */
             <div className="py-14 px-4 text-center space-y-1.5">
               <p className="text-sm font-bold text-[#0F172A]">Belum ada riwayat keputusan.</p>
@@ -289,33 +306,33 @@ export default function KadisDashboard() {
           ) : (
             /* Itemized List Riwayat Keputusan */
             <div className="space-y-3">
-              {historyApps.map((app) => (
+              {safeHistoryApps.map((app, index) => (
                 <div 
-                  key={app.id}
+                  key={app?.id ?? index}
                   className="p-4 sm:p-5 rounded-2xl border border-slate-100 bg-slate-50/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-[#0F172A] text-sm sm:text-base">{app.user?.name}</span>
+                      <span className="font-bold text-[#0F172A] text-sm sm:text-base">{app?.user?.name || app?.name || '—'}</span>
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        app.status === 'rejected'
+                        app?.status === 'rejected'
                           ? 'bg-rose-50 text-rose-700 border border-rose-200'
                           : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       }`}>
-                        {app.status === 'rejected' ? 'Ditolak' : 'Disetujui'}
+                        {app?.status === 'rejected' ? 'Ditolak' : 'Disetujui'}
                       </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-medium">
-                      <span>{app.institution_name}</span>
+                      <span>{app?.institution_name || '—'}</span>
                       <span>&bull;</span>
-                      <span>{app.division?.name || 'Aplikasi Informatika'}</span>
+                      <span>{app?.division?.name || 'Aplikasi Informatika'}</span>
                     </div>
                   </div>
 
-                  {app.notes_kadis && (
+                  {app?.notes_kadis && (
                     <div className="text-xs text-slate-500 italic bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                      "{app.notes_kadis}"
+                      "{app?.notes_kadis || '—'}"
                     </div>
                   )}
                 </div>
@@ -335,7 +352,7 @@ export default function KadisDashboard() {
               <div>
                 <h3 className="font-bold text-base text-slate-900">Otorisasi Akhir Kepala Dinas</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Calon Magang: <span className="font-semibold text-slate-700">{selectedApp.user?.name}</span>
+                  Calon Magang: <span className="font-semibold text-slate-700">{selectedApp?.user?.name || selectedApp?.name || '—'}</span>
                 </p>
               </div>
               <button
@@ -351,26 +368,26 @@ export default function KadisDashboard() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Institusi</span>
-                  <span className="font-semibold text-slate-800">{selectedApp.institution_name}</span>
+                  <span className="font-semibold text-slate-800">{selectedApp?.institution_name || '—'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Jurusan</span>
-                  <span className="font-semibold text-slate-800">{selectedApp.major || '—'}</span>
+                  <span className="font-semibold text-slate-800">{selectedApp?.major || '—'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Periode Magang</span>
-                  <span className="font-semibold text-slate-800">{selectedApp.start_date} – {selectedApp.end_date}</span>
+                  <span className="font-semibold text-slate-800">{selectedApp?.start_date || '—'} – {selectedApp?.end_date || '—'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Bidang Penempatan</span>
-                  <span className="font-semibold text-[#4F46E5]">{selectedApp.division?.name || '—'}</span>
+                  <span className="font-semibold text-[#4F46E5]">{selectedApp?.division?.name || '—'}</span>
                 </div>
               </div>
 
-              {selectedApp.notes_kabid && (
+              {selectedApp?.notes_kabid && (
                 <div className="pt-2 border-t border-slate-200/60 mt-2">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Rekomendasi Kabid</span>
-                  <p className="text-slate-700 italic mt-0.5">"{selectedApp.notes_kabid}"</p>
+                  <p className="text-slate-700 italic mt-0.5">"{selectedApp?.notes_kabid || '—'}"</p>
                 </div>
               )}
             </div>
@@ -425,7 +442,7 @@ export default function KadisDashboard() {
                   Pemagang Aktif Dinas
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {activeInterns.length} pemagang aktif di dinas saat ini.
+                  {safeActiveInterns.length} pemagang aktif di dinas saat ini.
                 </p>
               </div>
               <button
@@ -469,15 +486,15 @@ export default function KadisDashboard() {
               </div>
             ) : (
               <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                {filteredInterns.map((intern) => (
+                {filteredInterns.map((intern, index) => (
                   <div
-                    key={intern.id}
+                    key={intern?.id ?? index}
                     className="p-4 sm:p-5 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50/50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                   >
                     <div className="space-y-2 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-[#0F172A] text-sm sm:text-base">
-                          {intern.user?.name || intern.name}
+                          {intern?.user?.name || intern?.name || '—'}
                         </span>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           Aktif
@@ -487,15 +504,15 @@ export default function KadisDashboard() {
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 font-medium">
                         <span className="flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                          {intern.institution_name}
+                          {intern?.institution_name || '—'}
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                          {intern.division?.name || 'Aplikasi Informatika'}
+                          {intern?.division?.name || 'Aplikasi Informatika'}
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          {intern.start_date} s/d {intern.end_date}
+                          {intern?.start_date || '—'} s/d {intern?.end_date || '—'}
                         </span>
                       </div>
                     </div>

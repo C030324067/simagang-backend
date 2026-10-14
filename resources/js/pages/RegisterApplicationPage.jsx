@@ -46,6 +46,12 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
       if (!String(value).trim()) next[key] = 'Kolom ini wajib diisi.';
     }
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) next.email = 'Masukkan alamat email yang valid.';
+    if (form.nim_nisn && !/^\d{10,15}$/.test(form.nim_nisn)) {
+      next.nim_nisn = 'NIM / NISN harus berupa 10–15 digit angka.';
+    }
+    if (form.hp && !/^(?:08\d{8,11}|628\d{7,10})$/.test(form.hp)) {
+      next.hp = 'Nomor HP / WhatsApp harus terdiri dari 10–13 digit dan diawali 08 atau 628.';
+    }
     if (form.pw && form.pw.length < 8) next.pw = 'Password minimal 8 karakter.';
     if (form.pw && form.pw2 && form.pw !== form.pw2) next.pw2 = 'Konfirmasi password tidak sama.';
     if (form.application_type === 'rekomendasi_kampus' && !form.recommendation_letter_number.trim()) {
@@ -129,7 +135,11 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
 
   function change(event) {
     const { id, value } = event.target;
-    setForm(previous => ({ ...previous, [id]: value }));
+    const maxLength = id === 'nim_nisn' ? 15 : id === 'hp' ? 13 : undefined;
+    const nextValue = ['nim_nisn', 'hp'].includes(id)
+      ? value.replace(/\D/g, '').slice(0, maxLength)
+      : value;
+    setForm(previous => ({ ...previous, [id]: nextValue }));
     setErrors(previous => ({ ...previous, [id]: '' }));
   }
 
@@ -187,11 +197,11 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           {form.application_type === 'rekomendasi_kampus' && field('recommendation_letter_number', 'Nomor surat rekomendasi kampus')}
           {field('nama', 'Nama lengkap', 'text', { autoComplete: 'name' })}
           {field('email', 'Email address', 'email', { autoComplete: 'email' })}
-          {field('nim_nisn', 'NIM / NISN')}
+          {field('nim_nisn', 'NIM / NISN', 'text', { inputMode: 'numeric', minLength: 10, maxLength: 15, autoComplete: 'off' })}
           {field('bidang', 'Bidang yang diminati')}
           {field('institusi', 'Nama institusi')}
           {field('jurusan', 'Jurusan / program studi')}
-          {field('hp', 'Nomor telepon / WhatsApp', 'tel', { autoComplete: 'tel' })}
+          {field('hp', 'Nomor telepon / WhatsApp', 'tel', { inputMode: 'numeric', minLength: 10, maxLength: 13, autoComplete: 'tel' })}
           {field('tgl_mulai', 'Tanggal mulai magang', 'date', { min: today })}
           {field('tgl_selesai', 'Tanggal selesai magang', 'date', { min: form.tgl_mulai || today })}
           {duration && <p className="date-info full">Perkiraan durasi magang: <strong>{duration}</strong></p>}

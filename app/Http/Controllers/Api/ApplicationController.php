@@ -689,6 +689,22 @@ class ApplicationController extends Controller
     }
 
     /**
+     * Tier 3: Riwayat keputusan Kepala Dinas.
+     */
+    public function kadisHistory(): JsonResponse
+    {
+        $applications = InternApplication::with(['user', 'division', 'verifierKadis'])
+            ->where(function ($query): void {
+                $query->where('status_kadis', 'approved')
+                    ->orWhereIn('status', ['approved_by_kadis', 'accepted']);
+            })
+            ->latest()
+            ->get();
+
+        return $this->successResponse($applications, 'Riwayat keputusan Kadis berhasil dimuat.');
+    }
+
+    /**
      * Tier 3: Kadis final authorization only. Letter issuance is handled by Kepegawaian.
      */
     public function approveKadis(Request $request, InternApplication $application): JsonResponse

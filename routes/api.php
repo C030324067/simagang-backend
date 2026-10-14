@@ -105,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::middleware('role:kadis')->group(function () {
             Route::get('/pending-kadis', [ApplicationController::class, 'pendingKadis']);
+            Route::get('/history-kadis', [ApplicationController::class, 'kadisHistory']);
             Route::put('/{application}/approve-kadis', [ApplicationController::class, 'approveKadis']);
         });
 

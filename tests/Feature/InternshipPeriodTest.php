@@ -122,6 +122,7 @@ class InternshipPeriodTest extends TestCase
             'application_type' => 'mandiri',
             'nama' => 'Pendaftar Baru',
             'email' => 'pendaftar@example.test',
+            'nim_nisn' => '1234567890',
             'bidang' => $division->code,
             'institusi' => 'SMK Tabalong',
             'jurusan' => 'Rekayasa Perangkat Lunak',
