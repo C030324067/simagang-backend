@@ -36,11 +36,11 @@ class GenerateSuratBalasanTest extends TestCase
 
         $this->actingAs($kepegawaian, 'sanctum')
             ->postJson("/api/applications/{$application->id}/surat-balasan", [
-                'official_letter_number' => '800/129/Diskominfo/2026',
+                'letter_number' => '800/129/Diskominfo/2026',
             ])
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'Surat balasan berhasil diterbitkan.')
+            ->assertJsonPath('message', 'Surat balasan berhasil diterbitkan dan pemohon resmi diterima!')
             ->assertJsonPath('pdf_url', "/storage/letters/surat_balasan_{$application->id}.pdf");
 
         $this->assertSame('800/129/Diskominfo/2026', $application->fresh()->official_letter_number);
@@ -52,6 +52,7 @@ class GenerateSuratBalasanTest extends TestCase
             'tanggalPenerbitan' => now()->locale('id'),
         ])->render();
         $this->assertStringContainsString('NIM-2026-001', $html);
+        $this->assertStringContainsString('800/129/Diskominfo/2026', $html);
     }
 
     public function test_surat_balasan_requires_a_letter_number(): void

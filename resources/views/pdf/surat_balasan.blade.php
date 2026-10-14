@@ -2,161 +2,312 @@
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>Surat Balasan Penerimaan Magang</title>
+    <title>Surat Balasan Permohonan Magang</title>
     <style>
         @page {
             size: A4 portrait;
-            margin: 2.5cm 2.5cm 2cm;
+            margin: 2cm 2.5cm 2cm;
         }
 
         body {
             color: #111;
             font-family: "Times New Roman", serif;
-            font-size: 12pt;
-            line-height: 1.5;
+            font-size: 11pt;
+            line-height: 1.35;
         }
 
-        .kop {
-            border-bottom: 3px solid #111;
-            margin-bottom: 24px;
-            padding-bottom: 10px;
-            text-align: center;
+        p {
+            margin: 0 0 9pt;
+            text-align: justify;
         }
 
-        .kop p {
-            margin: 0;
-        }
-
-        .kop .pemerintah {
-            font-size: 14pt;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-
-        .kop .dinas {
-            font-size: 18pt;
-            font-weight: bold;
-        }
-
-        .kop .alamat {
-            font-size: 10pt;
-        }
-
-        .judul {
-            margin-bottom: 24px;
-            text-align: center;
-            text-decoration: underline;
-            font-weight: bold;
-        }
-
-        .meta {
-            margin-bottom: 24px;
-        }
-
-        .meta td {
-            padding: 1px 8px 1px 0;
-            vertical-align: top;
-        }
-
-        .data {
+        .letterhead {
             border-collapse: collapse;
-            margin: 16px 0;
+            margin-bottom: 4pt;
             width: 100%;
         }
 
-        .data td {
-            padding: 3px 0;
+        .letterhead-logo {
+            text-align: left;
+            vertical-align: middle;
+            width: 18%;
+        }
+
+        .letterhead-logo img {
+            height: 88px;
+            width: 74px;
+        }
+
+        .letterhead-copy {
+            text-align: center;
+            vertical-align: middle;
+            width: 82%;
+        }
+
+        .letterhead-copy p {
+            margin: 0;
+            text-align: center;
+        }
+
+        .government {
+            font-size: 13pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .department {
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .address,
+        .contact {
+            font-size: 9pt;
+            line-height: 1.2;
+        }
+
+        .letterhead-rules {
+            margin-bottom: 16pt;
+        }
+
+        .rule-thick {
+            border-top: 3px solid #111;
+            margin-bottom: 2px;
+        }
+
+        .rule-thin {
+            border-top: 1px solid #111;
+        }
+
+        .metadata {
+            border-collapse: collapse;
+            margin-bottom: 16pt;
+            width: 100%;
+        }
+
+        .metadata td {
+            padding: 0 4pt 2pt 0;
             vertical-align: top;
         }
 
-        .data td:first-child {
-            width: 190px;
+        .metadata-left {
+            width: 52%;
+        }
+
+        .metadata-right {
+            padding-left: 10pt !important;
+            width: 48%;
+        }
+
+        .metadata-label {
+            width: 55pt;
+        }
+
+        .metadata-colon {
+            padding-right: 5pt !important;
+            width: 8pt;
+        }
+
+        .recipient {
+            margin-top: 12pt;
+        }
+
+        .recipient p {
+            margin-bottom: 0;
+            text-align: left;
+        }
+
+        .body-copy {
+            margin-bottom: 8pt;
+            text-indent: 28pt;
+        }
+
+        .participants {
+            border-collapse: collapse;
+            font-size: 9pt;
+            margin: 10pt 0;
+            page-break-inside: avoid;
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        .participants th,
+        .participants td {
+            border: 1px solid #111;
+            padding: 4pt 3pt;
+            vertical-align: middle;
+        }
+
+        .participants th {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .participants td {
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        .participants td:first-child {
+            text-align: center;
+        }
+
+        .participants thead {
+            display: table-header-group;
+        }
+
+        .participants tr {
+            page-break-inside: avoid;
         }
 
         .signature {
             margin-left: auto;
-            margin-top: 44px;
+            margin-top: 22pt;
+            page-break-inside: avoid;
             text-align: center;
-            width: 240px;
+            width: 225px;
+        }
+
+        .signature p {
+            margin: 0;
+            text-align: center;
         }
 
         .signature-space {
-            height: 72px;
+            height: 58pt;
+        }
+
+        .signer-name {
+            font-weight: bold;
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <header class="kop">
-        <p class="pemerintah">PEMERINTAH KABUPATEN TABALONG</p>
-        <p class="dinas">DINAS KOMUNIKASI DAN INFORMATIKA</p>
-        <p class="alamat">Kabupaten Tabalong, Provinsi Kalimantan Selatan</p>
-    </header>
-
-    <p class="judul">SURAT BALASAN PENERIMAAN MAGANG</p>
-
-    <table class="meta">
+    <table class="letterhead">
         <tr>
-            <td>Nomor</td>
-            <td>:</td>
-            <td>{{ $application->official_letter_number ?? '-' }}</td>
+            <td class="letterhead-logo">
+                <img src="{{ public_path('images/logo-tabalong.png') }}" alt="Lambang Kabupaten Tabalong">
+            </td>
+            <td class="letterhead-copy">
+                <p class="government">PEMERINTAH KABUPATEN TABALONG</p>
+                <p class="department">DINAS KOMUNIKASI DAN INFORMATIKA</p>
+                <p class="address">Jalan Cempaka No. 38 Tanjung, Tabalong, Kalimantan Selatan 71513</p>
+                <p class="contact">Telepon (0526) 2023169</p>
+                <p class="contact">Laman: https://diskominfo.tabalongkab.go.id, Pos-el: diskominfo@tabalongkab.go.id</p>
+            </td>
         </tr>
+    </table>
+    <div class="letterhead-rules">
+        <div class="rule-thick"></div>
+        <div class="rule-thin"></div>
+    </div>
+
+    <table class="metadata">
         <tr>
-            <td>Perihal</td>
-            <td>:</td>
-            <td>Penerimaan Magang</td>
+            <td class="metadata-left">
+                <table>
+                    <tr>
+                        <td class="metadata-label">Nomor</td>
+                        <td class="metadata-colon">:</td>
+                        <td>{{ $application->official_letter_number ?? $application->acceptance_letter_number ?? $pendaftar->official_letter_number ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="metadata-label">Lampiran</td>
+                        <td class="metadata-colon">:</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td class="metadata-label">Sifat</td>
+                        <td class="metadata-colon">:</td>
+                        <td>Penting</td>
+                    </tr>
+                    <tr>
+                        <td class="metadata-label">Perihal</td>
+                        <td class="metadata-colon">:</td>
+                        <td>Balasan Surat Permohonan Magang</td>
+                    </tr>
+                </table>
+            </td>
+            <td class="metadata-right">
+                <p>Tanjung, {{ $tanggalPenerbitan?->locale('id')->translatedFormat('j F Y') ?? '—' }}</p>
+                <div class="recipient">
+                    <p>Kepada Yth.</p>
+                    <p>Pimpinan {{ $application->institution_name ?: '—' }}</p>
+                    <p>di Tempat</p>
+                </div>
+            </td>
         </tr>
     </table>
 
-    <p>Yth. Pimpinan {{ $application->institution_name ?: '-' }}</p>
     <p>Dengan hormat,</p>
-    <p>
-        Menindaklanjuti permohonan magang yang diajukan, dengan ini kami menyampaikan bahwa
-        peserta berikut diterima untuk melaksanakan kegiatan magang pada Dinas Komunikasi dan
-        Informatika Kabupaten Tabalong:
+    <p class="body-copy">
+        Menindaklanjuti surat permohonan magang
+        @if ($application->recommendation_letter_number)
+            Nomor {{ $application->recommendation_letter_number }}
+        @else
+            dari {{ $application->institution_name ?: '—' }}
+        @endif
+        , dengan ini kami menyampaikan bahwa permohonan magang atas nama peserta berikut dapat
+        diterima untuk melaksanakan praktik kerja lapangan pada Dinas Komunikasi dan Informatika
+        Kabupaten Tabalong selama periode
+        {{ $application->start_date?->locale('id')->translatedFormat('j F Y') ?? '—' }}
+        sampai dengan
+        {{ $application->end_date?->locale('id')->translatedFormat('j F Y') ?? '—' }}.
     </p>
 
-    <table class="data">
-        <tr>
-            <td>Nama</td>
-            <td>: {{ $application->user?->name ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td>NIM / NISN</td>
-            <td>: {{ $application->user?->nim ?? $application->user?->nisn ?? $application->student_number ?? $application->nim ?? $application->nisn ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td>Asal perguruan tinggi / sekolah</td>
-            <td>: {{ $application->institution_name ?: '-' }}</td>
-        </tr>
-        <tr>
-            <td>Program studi / jurusan</td>
-            <td>: {{ $application->major ?: '-' }}</td>
-        </tr>
-        <tr>
-            <td>Divisi penempatan</td>
-            <td>: {{ $application->division?->name ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td>Periode magang</td>
-            <td>: {{ $application->start_date?->format('d-m-Y') ?? '-' }} s.d. {{ $application->end_date?->format('d-m-Y') ?? '-' }}</td>
-        </tr>
+    <table class="participants">
+        <colgroup>
+            <col style="width: 6%">
+            <col style="width: 22%">
+            <col style="width: 15%">
+            <col style="width: 19%">
+            <col style="width: 23%">
+            <col style="width: 15%">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>NO</th>
+                <th>NAMA</th>
+                <th>NIM</th>
+                <th>JURUSAN</th>
+                <th>TEMPAT PKL</th>
+                <th>NO HP</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>{{ $application->user?->name ?: '—' }}</td>
+                <td>{{ $application->student_number ?: '—' }}</td>
+                <td>{{ $application->major ?: '—' }}</td>
+                <td>
+                    Dinas Komunikasi dan Informatika Kabupaten Tabalong
+                    @if ($application->division?->name)
+                        — {{ $application->division->name }}
+                    @endif
+                </td>
+                <td>{{ $application->user?->no_hp ?: '—' }}</td>
+            </tr>
+        </tbody>
     </table>
 
-    <p>
-        Surat balasan ini diterbitkan pada {{ $tanggalPenerbitan->translatedFormat('d F Y') }}.
+    <p class="body-copy">
         Peserta diharapkan menaati ketentuan dan tata tertib yang berlaku di lingkungan
         Dinas Komunikasi dan Informatika Kabupaten Tabalong.
     </p>
-    <p>Demikian disampaikan. Atas perhatian dan kerja samanya, kami ucapkan terima kasih.</p>
+    <p class="body-copy">
+        Demikian surat balasan ini disampaikan. Atas perhatian dan kerja sama yang baik,
+        kami ucapkan terima kasih.
+    </p>
 
     <div class="signature">
-        <p>Kepala Dinas Komunikasi dan Informatika</p>
+        <p>Kepala Dinas Komunikasi Dan Informatika,</p>
         <div class="signature-space"></div>
         <p>
-            <strong>{{ $application->verifierKadis?->name ?? 'Kepala Dinas' }}</strong><br>
-            @if ($application->verifierKadis?->nip)
-                NIP. {{ $application->verifierKadis->nip }}
-            @endif
+            <span class="signer-name">EDDY SURIYANI, S.Sos, MA</span><br>
+            NIP. 197412231994031004
         </p>
     </div>
 </body>

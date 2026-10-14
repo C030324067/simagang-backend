@@ -780,7 +780,7 @@ class ApplicationController extends Controller
             return $this->errorResponse('Kuota untuk bidang ini sudah penuh.', 422);
         }
 
-        if (! $request->has('official_letter_number') && $request->has('letter_number')) {
+        if (! $request->filled('official_letter_number') && $request->filled('letter_number')) {
             $request->merge(['official_letter_number' => $request->input('letter_number')]);
         }
 
@@ -792,6 +792,8 @@ class ApplicationController extends Controller
             'official_letter_number' => ['required', 'string', 'max:255', Rule::unique('intern_applications', 'official_letter_number')->ignore($application->id)],
             'official_letter_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
+        $application->official_letter_number = $validated['official_letter_number'];
+        $application->acceptance_letter_number = $validated['official_letter_number'];
         $newPath = $validated['official_letter_file']->store('letters', 'public');
         $oldPath = $application->official_letter_path;
 
@@ -865,6 +867,10 @@ class ApplicationController extends Controller
      */
     public function generateSuratBalasan(Request $request, string $id): JsonResponse
     {
+        if (! $request->filled('official_letter_number') && $request->filled('letter_number')) {
+            $request->merge(['official_letter_number' => $request->input('letter_number')]);
+        }
+
         $validated = $request->validate([
             'official_letter_number' => ['required', 'string', 'max:255', Rule::unique('intern_applications', 'official_letter_number')->ignore($id)],
         ]);
@@ -875,10 +881,14 @@ class ApplicationController extends Controller
             return $this->errorResponse('Permohonan belum memiliki divisi penempatan.', 422);
         }
 
+        $application->official_letter_number = $validated['official_letter_number'];
+        $application->acceptance_letter_number = $validated['official_letter_number'];
         $path = "letters/surat_balasan_{$application->id}.pdf";
+        $oldPath = $application->official_letter_path;
 
         $pdf = Pdf::loadView('pdf.surat_balasan', [
             'application' => $application,
+            'pendaftar' => $application,
             'tanggalPenerbitan' => now()->locale('id'),
         ])->setPaper('a4', 'portrait');
 
@@ -886,26 +896,34 @@ class ApplicationController extends Controller
             return $this->errorResponse('Surat balasan gagal disimpan.', 500);
         }
 
-        // UPDATE STATUS PERMOHONAN & AKUN USER MENJADI ACCEPTED
-        DB::transaction(function () use ($application, $validated, $path): void {
-            $application->update([
-                'official_letter_number' => $validated['official_letter_number'],
-                'acceptance_letter_number' => $validated['official_letter_number'],
-                'official_letter_path' => $path,
-                'status' => 'accepted',
-                'final_status' => 'accepted',
-            ]);
-
-            if ($application->user) {
-                $application->user->update([
-                    'role' => 'intern',
-                    'status_akun' => 'approved',
-                    'is_active' => true,
-                    'tanggal_disetujui' => now(),
-                    'division_id' => $application->division_id,
+        try {
+            DB::transaction(function () use ($application, $validated, $path): void {
+                $application->update([
+                    'official_letter_number' => $validated['official_letter_number'],
+                    'acceptance_letter_number' => $validated['official_letter_number'],
+                    'official_letter_path' => $path,
+                    'status' => 'accepted',
+                    'final_status' => 'accepted',
                 ]);
+
+                if ($application->user) {
+                    $application->user->update([
+                        'role' => 'intern',
+                        'status_akun' => 'approved',
+                        'is_active' => true,
+                        'tanggal_disetujui' => now(),
+                        'division_id' => $application->division_id,
+                    ]);
+                }
+            });
+        } catch (\Throwable $exception) {
+            if ($oldPath !== $path) {
+                Storage::disk('public')->delete($path);
             }
-        });
+            report($exception);
+
+            return $this->errorResponse('Surat balasan gagal diproses. Silakan coba lagi.', 500);
+        }
 
         return response()->json([
             'success' => true,
