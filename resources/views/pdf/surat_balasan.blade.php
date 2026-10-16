@@ -6,136 +6,131 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 2cm 2.5cm 2cm;
+            margin: 1.5cm 2cm 1.5cm 2cm;
         }
 
         body {
-            color: #111;
-            font-family: "Times New Roman", serif;
+            color: #000;
+            font-family: "Times New Roman", Times, serif;
             font-size: 11pt;
-            line-height: 1.35;
+            line-height: 1.3;
         }
 
         p {
-            margin: 0 0 9pt;
+            margin: 0 0 6pt;
             text-align: justify;
         }
 
+        /* Kop Surat */
         .letterhead {
             border-collapse: collapse;
-            margin-bottom: 4pt;
             width: 100%;
+            margin-bottom: 2pt;
         }
 
         .letterhead-logo {
-            text-align: left;
+            width: 15%;
             vertical-align: middle;
-            width: 18%;
+            text-align: center;
         }
 
         .letterhead-logo img {
-            height: 88px;
-            width: 74px;
+            width: 70px;
+            height: auto;
         }
 
         .letterhead-copy {
+            width: 85%;
             text-align: center;
             vertical-align: middle;
-            width: 82%;
-        }
-
-        .letterhead-copy p {
-            margin: 0;
-            text-align: center;
         }
 
         .government {
-            font-size: 13pt;
+            font-size: 12pt;
             font-weight: bold;
             text-transform: uppercase;
+            margin: 0;
         }
 
         .department {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: bold;
             text-transform: uppercase;
+            margin: 0;
         }
 
-        .address,
-        .contact {
-            font-size: 9pt;
+        .address, .contact {
+            font-size: 8.5pt;
+            margin: 0;
             line-height: 1.2;
         }
 
-        .letterhead-rules {
-            margin-bottom: 16pt;
+        .divider {
+            border-top: 3px solid #000;
+            border-bottom: 1px solid #000;
+            height: 2px;
+            margin-top: 4pt;
+            margin-bottom: 14pt;
         }
 
-        .rule-thick {
-            border-top: 3px solid #111;
-            margin-bottom: 2px;
-        }
-
-        .rule-thin {
-            border-top: 1px solid #111;
-        }
-
-        .metadata {
-            border-collapse: collapse;
-            margin-bottom: 16pt;
+        /* Metadata & Tanggal */
+        .meta-table {
             width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10pt;
         }
 
-        .metadata td {
-            padding: 0 4pt 2pt 0;
+        .meta-table td {
+            vertical-align: top;
+            padding: 1pt 0;
+        }
+
+        .label-col { width: 65pt; }
+        .colon-col { width: 12pt; }
+
+        .date-col {
+            text-align: right;
             vertical-align: top;
         }
 
-        .metadata-left {
-            width: 52%;
+        /* Penerima Surat (Kepada Yth.) */
+        .recipient-box {
+            margin-top: 10pt;
+            margin-bottom: 14pt;
+            margin-left: 65pt;
         }
 
-        .metadata-right {
-            padding-left: 10pt !important;
-            width: 48%;
-        }
-
-        .metadata-label {
-            width: 55pt;
-        }
-
-        .metadata-colon {
-            padding-right: 5pt !important;
-            width: 8pt;
-        }
-
-        .recipient {
-            margin-top: 12pt;
-        }
-
-        .recipient p {
-            margin-bottom: 0;
+        .recipient-box p {
+            margin: 0;
             text-align: left;
+            line-height: 1.25;
+        }
+
+        .indent-1 { text-indent: 20pt; }
+        .indent-2 { text-indent: 35pt; }
+
+        /* Isi Surat */
+        .salutation {
+            margin-bottom: 8pt;
         }
 
         .body-copy {
-            margin-bottom: 8pt;
-            text-indent: 28pt;
+            text-indent: 30pt;
+            margin-bottom: 10pt;
+            line-height: 1.4;
         }
 
+        /* Tabel Peserta */
         .participants {
-            border-collapse: collapse;
-            font-size: 9pt;
-            margin: 10pt 0;
-            page-break-inside: avoid;
-            table-layout: fixed;
             width: 100%;
+            border-collapse: collapse;
+            margin: 12pt 0;
+            font-size: 9.5pt;
         }
 
-        .participants th,
-        .participants td {
-            border: 1px solid #111;
-            padding: 4pt 3pt;
+        .participants th, .participants td {
+            border: 1px solid #000;
+            padding: 5pt 4pt;
             vertical-align: middle;
         }
 
@@ -144,38 +139,31 @@
             text-align: center;
         }
 
-        .participants td {
-            text-align: left;
-            word-wrap: break-word;
-        }
+        .center { text-align: center; }
+        .left { text-align: left; }
 
-        .participants td:first-child {
-            text-align: center;
-        }
-
-        .participants thead {
-            display: table-header-group;
-        }
-
-        .participants tr {
+        /* Tanda Tangan */
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25pt;
             page-break-inside: avoid;
         }
 
-        .signature {
-            margin-left: auto;
-            margin-top: 22pt;
-            page-break-inside: avoid;
+        .signature-box {
+            width: 240px;
             text-align: center;
-            width: 225px;
+            float: right;
         }
 
-        .signature p {
+        .signature-box p {
             margin: 0;
             text-align: center;
+            line-height: 1.25;
         }
 
         .signature-space {
-            height: 58pt;
+            height: 55pt;
         }
 
         .signer-name {
@@ -185,10 +173,11 @@
     </style>
 </head>
 <body>
+    <!-- Kop Surat -->
     <table class="letterhead">
         <tr>
             <td class="letterhead-logo">
-                <img src="{{ public_path('images/logo-tabalong.png') }}" alt="Lambang Kabupaten Tabalong">
+                <img src="{{ public_path('images/logo-tabalong.png') }}" alt="Logo Kab Tabalong">
             </td>
             <td class="letterhead-copy">
                 <p class="government">PEMERINTAH KABUPATEN TABALONG</p>
@@ -199,70 +188,68 @@
             </td>
         </tr>
     </table>
-    <div class="letterhead-rules">
-        <div class="rule-thick"></div>
-        <div class="rule-thin"></div>
-    </div>
+    <div class="divider"></div>
 
-    <table class="metadata">
+    <!-- Nomor & Tanggal Surat -->
+    <table class="meta-table">
         <tr>
-            <td class="metadata-left">
-                <table>
-                    <tr>
-                        <td class="metadata-label">Nomor</td>
-                        <td class="metadata-colon">:</td>
-                        <td>{{ $application->official_letter_number ?? $application->acceptance_letter_number ?? $pendaftar->official_letter_number ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <td class="metadata-label">Lampiran</td>
-                        <td class="metadata-colon">:</td>
-                        <td>-</td>
-                    </tr>
-                    <tr>
-                        <td class="metadata-label">Sifat</td>
-                        <td class="metadata-colon">:</td>
-                        <td>Penting</td>
-                    </tr>
-                    <tr>
-                        <td class="metadata-label">Perihal</td>
-                        <td class="metadata-colon">:</td>
-                        <td>Balasan Surat Permohonan Magang</td>
-                    </tr>
-                </table>
-            </td>
-            <td class="metadata-right">
-                <p>Tanjung, {{ $tanggalPenerbitan?->locale('id')->translatedFormat('j F Y') ?? '—' }}</p>
-                <div class="recipient">
-                    <p>Kepada Yth.</p>
-                    <p>Pimpinan {{ $application->institution_name ?: '—' }}</p>
-                    <p>di Tempat</p>
-                </div>
-            </td>
+            <td class="label-col">Nomor</td>
+            <td class="colon-col">:</td>
+            <td>{{ $application->official_letter_number ?? $application->acceptance_letter_number ?? $pendaftar->official_letter_number ?? '-' }}</td>
+            <td class="date-col">Tanjung, {{ $tanggalPenerbitan?->locale('id')->translatedFormat('j F Y') ?? now()->locale('id')->translatedFormat('j F Y') }}</td>
+        </tr>
+        <tr>
+            <td class="label-col">Lampiran</td>
+            <td class="colon-col">:</td>
+            <td>-</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="label-col">Sifat</td>
+            <td class="colon-col">:</td>
+            <td>Penting</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="label-col">Perihal</td>
+            <td class="colon-col">:</td>
+            <td><strong>Balasan Surat Permohonan<br>Magang</strong></td>
+            <td></td>
         </tr>
     </table>
 
-    <p>Dengan hormat,</p>
+    <!-- Tujuan / Kepada Yth. -->
+    <div class="recipient-box">
+        <p>Kepada</p>
+        <p>Yth. Pimpinan {{ $application->institution_name ?? $pendaftar->institution_name ?? '—' }}</p>
+        <p class="indent-1">di -</p>
+        <p class="indent-2">Tempat</p>
+    </div>
+
+    <!-- Isi Surat -->
+    <p class="salutation">Dengan Hormat,</p>
     <p class="body-copy">
-        Menindaklanjuti surat permohonan magang
-        @if ($application->recommendation_letter_number)
-            Nomor {{ $application->recommendation_letter_number }}
+        Menindaklanjuti Surat Permohonan Magang
+        @if (!empty($application->recommendation_letter_number ?? $pendaftar->recommendation_letter_number))
+            dengan nomor <strong>{{ $application->recommendation_letter_number ?? $pendaftar->recommendation_letter_number }}</strong>
         @else
-            dari {{ $application->institution_name ?: '—' }}
-        @endif
-        , dengan ini kami menyampaikan bahwa permohonan magang atas nama peserta berikut dapat
-        diterima untuk melaksanakan praktik kerja lapangan pada Dinas Komunikasi dan Informatika
-        Kabupaten Tabalong selama periode
-        {{ $application->start_date?->locale('id')->translatedFormat('j F Y') ?? '—' }}
-        sampai dengan
-        {{ $application->end_date?->locale('id')->translatedFormat('j F Y') ?? '—' }}.
+            dari {{ $application->institution_name ?? $pendaftar->institution_name ?? '—' }}
+        @endif, 
+        Bersama dengan surat ini kami <strong>Bersedia</strong> memberi kesempatan Magang kepada mahasiswa/i dari 
+        {{ $application->institution_name ?? $pendaftar->institution_name ?? '—' }} di Dinas Komunikasi dan Informatika Kabupaten Tabalong
+        @if (!empty($application->start_date) && !empty($application->end_date))
+            selama periode <strong>{{ $application->start_date?->locale('id')->translatedFormat('j F Y') }} s/d {{ $application->end_date?->locale('id')->translatedFormat('j F Y') }}</strong>
+        @endif. 
+        Berikut ini adalah Nama-nama Mahasiswa/i yang akan melaksanakan Magang di Dinas Komunikasi dan Informatika Kabupaten Tabalong:
     </p>
 
+    <!-- Tabel Peserta Magang -->
     <table class="participants">
         <colgroup>
-            <col style="width: 6%">
+            <col style="width: 7%">
             <col style="width: 22%">
             <col style="width: 15%">
-            <col style="width: 19%">
+            <col style="width: 18%">
             <col style="width: 23%">
             <col style="width: 15%">
         </colgroup>
@@ -278,37 +265,40 @@
         </thead>
         <tbody>
             <tr>
-                <td>1</td>
-                <td>{{ $application->user?->name ?: '—' }}</td>
-                <td>{{ $application->student_number ?: '—' }}</td>
-                <td>{{ $application->major ?: '—' }}</td>
-                <td>
+                <td class="center">1</td>
+                <td class="left">{{ $application->user?->name ?? $pendaftar->user?->name ?? '—' }}</td>
+                <td class="center">{{ $application->student_number ?? $pendaftar->student_number ?? '—' }}</td>
+                <td class="left">{{ $application->major ?? $pendaftar->major ?? '—' }}</td>
+                <td class="left">
                     Dinas Komunikasi dan Informatika Kabupaten Tabalong
-                    @if ($application->division?->name)
-                        — {{ $application->division->name }}
+                    @if (!empty($application->division?->name ?? $pendaftar->division?->name))
+                        — {{ $application->division?->name ?? $pendaftar->division?->name }}
                     @endif
                 </td>
-                <td>{{ $application->user?->no_hp ?: '—' }}</td>
+                <td class="center">{{ $application->user?->no_hp ?? $pendaftar->user?->no_hp ?? '—' }}</td>
             </tr>
         </tbody>
     </table>
 
     <p class="body-copy">
-        Peserta diharapkan menaati ketentuan dan tata tertib yang berlaku di lingkungan
-        Dinas Komunikasi dan Informatika Kabupaten Tabalong.
-    </p>
-    <p class="body-copy">
-        Demikian surat balasan ini disampaikan. Atas perhatian dan kerja sama yang baik,
-        kami ucapkan terima kasih.
+        Demikian surat ini kami sampaikan dan atas kerjasamanya kami ucapkan terima kasih.
     </p>
 
-    <div class="signature">
-        <p>Kepala Dinas Komunikasi Dan Informatika,</p>
-        <div class="signature-space"></div>
-        <p>
-            <span class="signer-name">EDDY SURIYANI, S.Sos, MA</span><br>
-            NIP. 197412231994031004
-        </p>
-    </div>
+    <!-- Tanda Tangan Kepala Dinas -->
+    <table class="signature-table">
+        <tr>
+            <td></td>
+            <td style="width: 240px;">
+                <div class="signature-box">
+                    <p>Kepala Dinas Komunikasi<br>Dan Informatika,</p>
+                    <div class="signature-space"></div>
+                    <p>
+                        <span class="signer-name">EDDY SURIYANI, S.Sos, MA</span><br>
+                        NIP. 197412231994031004
+                    </p>
+                </div>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
