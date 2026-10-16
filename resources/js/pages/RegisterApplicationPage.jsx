@@ -46,8 +46,10 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
       if (!String(value).trim()) next[key] = 'Kolom ini wajib diisi.';
     }
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) next.email = 'Masukkan alamat email yang valid.';
-    if (form.nim_nisn && !/^\d{10,15}$/.test(form.nim_nisn)) {
-      next.nim_nisn = 'NIM / NISN harus berupa 10–15 digit angka.';
+    
+    // VALIDASI NIM / NISN : Mengizinkan kombinasi huruf dan angka (5-20 karakter)
+    if (form.nim_nisn && !/^[a-zA-Z0-9]{5,20}$/.test(form.nim_nisn)) {
+      next.nim_nisn = 'NIM / NISN harus berupa 5–20 karakter alfanumerik (huruf dan angka).';
     }
     if (form.hp && !/^(?:08\d{8,11}|628\d{7,10})$/.test(form.hp)) {
       next.hp = 'Nomor HP / WhatsApp harus terdiri dari 10–13 digit dan diawali 08 atau 628.';
@@ -133,12 +135,18 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
     </div>
   );
 
+  // PENYARINGAN INPUT : Menyaring nim_nisn agar mengizinkan huruf & angka
   function change(event) {
     const { id, value } = event.target;
-    const maxLength = id === 'nim_nisn' ? 15 : id === 'hp' ? 13 : undefined;
-    const nextValue = ['nim_nisn', 'hp'].includes(id)
-      ? value.replace(/\D/g, '').slice(0, maxLength)
-      : value;
+    const maxLength = id === 'nim_nisn' ? 20 : id === 'hp' ? 13 : undefined;
+    let nextValue = value;
+
+    if (id === 'hp') {
+      nextValue = value.replace(/\D/g, '').slice(0, maxLength);
+    } else if (id === 'nim_nisn') {
+      nextValue = value.replace(/[^a-zA-Z0-9]/g, '').slice(0, maxLength);
+    }
+
     setForm(previous => ({ ...previous, [id]: nextValue }));
     setErrors(previous => ({ ...previous, [id]: '' }));
   }
@@ -197,7 +205,8 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           {form.application_type === 'rekomendasi_kampus' && field('recommendation_letter_number', 'Nomor surat rekomendasi kampus')}
           {field('nama', 'Nama lengkap', 'text', { autoComplete: 'name' })}
           {field('email', 'Email address', 'email', { autoComplete: 'email' })}
-          {field('nim_nisn', 'NIM / NISN', 'text', { inputMode: 'numeric', minLength: 10, maxLength: 15, autoComplete: 'off' })}
+          {/* ATRIBUT INPUT : inputMode set ke 'text' agar keyboard biasa muncul */}
+          {field('nim_nisn', 'NIM / NISN', 'text', { inputMode: 'text', minLength: 5, maxLength: 20, autoComplete: 'off' })}
           {field('bidang', 'Bidang yang diminati')}
           {field('institusi', 'Nama institusi')}
           {field('jurusan', 'Jurusan / program studi')}
