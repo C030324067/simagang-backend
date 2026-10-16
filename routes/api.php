@@ -182,6 +182,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Certificate Endpoints
     Route::prefix('certificates')->group(function () {
+        Route::middleware('role:intern,mentor,admin_kepegawaian')->group(function () {
+            Route::get('/{id}/download', [CertificateController::class, 'downloadPdf']);
+        });
+
         Route::middleware('role:intern')->group(function () {
             Route::get('/my-certificate', [CertificateController::class, 'myCertificate']);
         });

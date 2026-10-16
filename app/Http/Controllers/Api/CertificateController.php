@@ -7,6 +7,7 @@ use App\Models\Certificate;
 use App\Models\Evaluation;
 use App\Models\User;
 use App\Traits\ApiResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -137,5 +138,28 @@ class CertificateController extends Controller
         }
 
         return $this->successResponse($certificate, 'Data sertifikat Anda');
+    }
+
+    /**
+     * Render & download official certificate PDF dynamically.
+     */
+    public function downloadPdf($id)
+    {
+        $certificate = Certificate::with(['intern.division', 'intern.evaluations.mentor', 'intern.activeApplication'])
+            ->where('id', $id)
+            ->orWhere('intern_id', $id)
+            ->firstOrFail();
+
+        $data = [
+            'certificate' => $certificate,
+            'intern' => $certificate->intern,
+            'evaluation' => $certificate->intern->evaluations->first(),
+            'application' => $certificate->intern->activeApplication,
+            'verify_url' => url('/verify-cert/' . $certificate->qr_hash),
+        ];
+
+        $pdf = Pdf::loadView('pdf.certificate', $data)->setPaper('a4', 'landscape');
+
+        return $pdf->download('Sertifikat-' . Str::slug($certificate->intern->name) . '.pdf');
     }
 }
