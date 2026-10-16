@@ -971,6 +971,7 @@ class ApplicationController extends Controller
         $filename = 'Surat-Balasan-'.(Str::slug($application->user->name) ?: 'pendaftar').'.pdf';
 
         return Pdf::loadView('pdf.surat_balasan', [
+            'application' => $application,
             'pendaftar' => $application,
             'tanggalPenerbitan' => now()->locale('id'),
         ])->setPaper('a4', 'portrait')->download($filename);
