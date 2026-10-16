@@ -13,7 +13,7 @@
             color: #000;
             font-family: "Times New Roman", Times, serif;
             font-size: 11pt;
-            line-height: 1.3;
+            line-height: 1.35;
         }
 
         p {
@@ -21,11 +21,11 @@
             text-align: justify;
         }
 
-        /* Kop Surat */
+        /* Kop Surat - Rata Tengah */
         .letterhead {
-            border-collapse: collapse;
             width: 100%;
-            margin-bottom: 2pt;
+            border-collapse: collapse;
+            margin-bottom: 4pt;
         }
 
         .letterhead-logo {
@@ -41,27 +41,29 @@
 
         .letterhead-copy {
             width: 85%;
-            text-align: center;
             vertical-align: middle;
+            text-align: center !important;
+        }
+
+        .letterhead-copy p {
+            margin: 0;
+            text-align: center !important;
         }
 
         .government {
             font-size: 12pt;
             font-weight: bold;
             text-transform: uppercase;
-            margin: 0;
         }
 
         .department {
             font-size: 13pt;
             font-weight: bold;
             text-transform: uppercase;
-            margin: 0;
         }
 
         .address, .contact {
             font-size: 8.5pt;
-            margin: 0;
             line-height: 1.2;
         }
 
@@ -77,7 +79,7 @@
         .meta-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 10pt;
+            margin-bottom: 12pt;
         }
 
         .meta-table td {
@@ -85,42 +87,46 @@
             padding: 1pt 0;
         }
 
-        .label-col { width: 65pt; }
-        .colon-col { width: 12pt; }
+        .label-col { width: 60pt; }
+        .colon-col { width: 10pt; }
 
         .date-col {
             text-align: right;
             vertical-align: top;
         }
 
-        /* Penerima Surat (Kepada Yth.) */
+        /* Kepada Yth - Rata Kiri */
         .recipient-box {
             margin-top: 10pt;
             margin-bottom: 14pt;
-            margin-left: 65pt;
+            margin-left: 0;
+            text-align: left;
         }
 
         .recipient-box p {
             margin: 0;
-            text-align: left;
+            text-align: left !important;
             line-height: 1.25;
         }
 
-        .indent-1 { text-indent: 20pt; }
-        .indent-2 { text-indent: 35pt; }
+        .indent-di { margin-left: 15pt; }
+        .indent-tempat { margin-left: 30pt; }
 
         /* Isi Surat */
         .salutation {
+            margin-top: 10pt;
             margin-bottom: 8pt;
+            text-align: left;
         }
 
         .body-copy {
             text-indent: 30pt;
             margin-bottom: 10pt;
             line-height: 1.4;
+            text-align: justify;
         }
 
-        /* Tabel Peserta */
+        /* Tabel Peserta Magang */
         .participants {
             width: 100%;
             border-collapse: collapse;
@@ -137,6 +143,7 @@
         .participants th {
             font-weight: bold;
             text-align: center;
+            background-color: #fcfcfc;
         }
 
         .center { text-align: center; }
@@ -158,7 +165,7 @@
 
         .signature-box p {
             margin: 0;
-            text-align: center;
+            text-align: center !important;
             line-height: 1.25;
         }
 
@@ -218,12 +225,12 @@
         </tr>
     </table>
 
-    <!-- Tujuan / Kepada Yth. -->
+    <!-- Tujuan / Kepada Yth. (Rata Kiri) -->
     <div class="recipient-box">
         <p>Kepada</p>
         <p>Yth. Pimpinan {{ $application->institution_name ?? $pendaftar->institution_name ?? '—' }}</p>
-        <p class="indent-1">di -</p>
-        <p class="indent-2">Tempat</p>
+        <p class="indent-di">di -</p>
+        <p class="indent-tempat">Tempat</p>
     </div>
 
     <!-- Isi Surat -->
