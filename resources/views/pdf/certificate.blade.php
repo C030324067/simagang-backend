@@ -30,38 +30,38 @@
         /* Bingkai Luar & Dalam */
         .page-container {
             position: absolute;
-            top: 15px;
-            bottom: 15px;
-            left: 15px;
-            right: 15px;
+            top: 12px;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
             border: 4px solid #0284c7;
-            padding: 6px;
+            padding: 5px;
             box-sizing: border-box;
         }
         .cert-inner-border {
             border: 2px double #1e3a8a;
-            padding: 25px 40px;
+            padding: 20px 35px 15px 35px;
             height: 100%;
             box-sizing: border-box;
             text-align: center;
             position: relative;
         }
 
-        /* Header Logo Kiri - Tengah - Kanan */
+        /* Header Logo & Instansi */
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         .header-table td {
             vertical-align: middle;
         }
         .logo-img {
-            max-height: 85px;
+            max-height: 68px;
             width: auto;
         }
         .header-title {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 800;
             color: #1e3a8a;
             text-transform: uppercase;
@@ -69,70 +69,70 @@
             margin: 0;
         }
         .header-sub {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             color: #0369a1;
             text-transform: uppercase;
             letter-spacing: 3px;
-            margin-top: 5px;
+            margin-top: 3px;
         }
 
         /* Judul Sertifikat & Nomor */
         .cert-title {
-            font-size: 34px;
+            font-size: 30px;
             font-weight: 900;
             color: #0284c7;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-top: 10px;
-            margin-bottom: 5px;
+            margin-top: 4px;
+            margin-bottom: 2px;
         }
         .cert-number {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             color: #475569;
             letter-spacing: 1px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .recipient-label {
-            font-size: 16px;
+            font-size: 14px;
             color: #64748b;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
-        /* Nama Peserta (Ukuran Ekstra Besar) */
+        /* Nama Peserta */
         .intern-name {
-            font-size: 48px;
+            font-size: 42px;
             font-weight: bold;
             color: #0f172a;
             text-transform: uppercase;
-            margin: 10px auto;
+            margin: 4px auto;
             display: inline-block;
-            border-bottom: 4px solid #0284c7;
-            padding-bottom: 6px;
-            letter-spacing: 2px;
+            border-bottom: 3.5px solid #0284c7;
+            padding-bottom: 4px;
+            letter-spacing: 1.5px;
         }
 
         .division-badge {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             color: #0369a1;
             background-color: #e0f2fe;
             border: 1px solid #bae6fd;
             border-radius: 6px;
             display: inline-block;
-            padding: 6px 22px;
-            margin-top: 12px;
-            margin-bottom: 18px;
+            padding: 4px 18px;
+            margin-top: 8px;
+            margin-bottom: 12px;
         }
 
         .description {
-            font-size: 14px;
-            line-height: 1.7;
+            font-size: 13px;
+            line-height: 1.5;
             color: #334155;
             width: 88%;
-            margin: 0 auto 20px auto;
+            margin: 0 auto 12px auto;
         }
 
         /* Box Nilai Akhir */
@@ -140,49 +140,46 @@
             background-color: #f8fafc;
             border: 1.5px solid #cbd5e1;
             border-radius: 8px;
-            padding: 12px 24px;
-            margin: 0 auto 25px auto;
+            padding: 8px 18px;
+            margin: 0 auto 15px auto;
             width: 85%;
         }
         .final-score {
-            font-size: 17px;
+            font-size: 15px;
             font-weight: bold;
             color: #0f172a;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .score-badge {
             color: #0284c7;
-            font-size: 22px;
+            font-size: 19px;
         }
         .score-table {
             width: 100%;
-            font-size: 13px;
+            font-size: 12px;
             color: #334155;
             border-collapse: collapse;
         }
         .score-table td {
-            padding: 4px 8px;
+            padding: 2px 6px;
         }
 
-        /* Block Tanda Tangan Mentok Di Bawah */
+        /* Blok Tanda Tangan */
         .ttd-table {
-            position: absolute;
-            bottom: 45px;
-            left: 40px;
-            right: 40px;
-            width: calc(100% - 80px);
+            width: 88%;
+            margin: 15px auto 0 auto;
             border-collapse: collapse;
         }
         .ttd-title {
-            font-size: 14px;
+            font-size: 13px;
             color: #334155;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         .ttd-space {
-            height: 65px; /* Ruang untuk tanda tangan fisik / stempel */
+            height: 50px; /* Ruang TTD fisik / stempel */
         }
         .ttd-name {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             color: #0f172a;
             text-decoration: underline;
@@ -190,16 +187,16 @@
         .ttd-nip {
             font-size: 12px;
             color: #64748b;
-            margin-top: 3px;
+            margin-top: 2px;
         }
 
         /* Footer Verifikasi */
         .footer-table {
             position: absolute;
-            bottom: 12px;
-            left: 40px;
-            right: 40px;
-            width: calc(100% - 80px);
+            bottom: 8px;
+            left: 35px;
+            right: 35px;
+            width: calc(100% - 70px);
             font-size: 10px;
             color: #64748b;
             text-align: left;
@@ -266,7 +263,7 @@
                 @endif
             </div>
 
-            <!-- Blok Tanda Tangan Mentok Di Bawah -->
+            <!-- Blok Tanda Tangan Pembimbing & Kadis -->
             <table class="ttd-table">
                 <tr>
                     <td style="width: 50%; text-align: center; vertical-align: top;">
@@ -281,8 +278,8 @@
                             Kepala Dinas Kominfo
                         </div>
                         <div class="ttd-space"></div>
-                        <div class="ttd-name">H. HM. NORNAHAR, S.STP., M.Si.</div>
-                        <div class="ttd-nip">Pembina Utama Muda (IV/c)</div>
+                        <div class="ttd-name">Eddy Suriyani, S.Sos., MA</div>
+                        <div class="ttd-nip">NIP. 19741223 199403 1 004</div>
                     </td>
                 </tr>
             </table>
