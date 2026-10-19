@@ -75,6 +75,11 @@ class User extends Authenticatable
         return $this->hasMany(InternApplication::class, 'user_id');
     }
 
+    public function internApplications(): HasMany
+    {
+        return $this->applications();
+    }
+
     public function activeApplication(): HasOne
     {
         return $this->hasOne(InternApplication::class, 'user_id')->latestOfMany();
@@ -82,12 +87,12 @@ class User extends Authenticatable
 
     public function attendances(): HasMany
     {
-        return $this->hasMany(Attendance::class, 'user_id');
+        return $this->hasManyThrough(Attendance::class, InternApplication::class, 'user_id', 'intern_application_id');
     }
 
     public function logbooks(): HasMany
     {
-        return $this->hasMany(Logbook::class, 'user_id');
+        return $this->hasManyThrough(Logbook::class, InternApplication::class, 'user_id', 'intern_application_id');
     }
 
     public function assignedTasks(): HasMany
@@ -102,12 +107,12 @@ class User extends Authenticatable
 
     public function evaluations(): HasMany
     {
-        return $this->hasMany(Evaluation::class, 'intern_id');
+        return $this->hasManyThrough(Evaluation::class, InternApplication::class, 'user_id', 'intern_application_id');
     }
 
     public function certificates(): HasMany
     {
-        return $this->hasMany(Certificate::class, 'intern_id');
+        return $this->hasManyThrough(Certificate::class, InternApplication::class, 'user_id', 'intern_application_id');
     }
 
     public function isIntern(): bool

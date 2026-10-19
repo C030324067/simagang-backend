@@ -111,6 +111,11 @@ class InternApplication extends Model
         return $this->hasMany(InternApplicationHistory::class);
     }
 
+    public function attendances(): HasMany { return $this->hasMany(Attendance::class); }
+    public function logbooks(): HasMany { return $this->hasMany(Logbook::class); }
+    public function evaluation(): HasOne { return $this->hasOne(Evaluation::class); }
+    public function certificate(): HasOne { return $this->hasOne(Certificate::class); }
+
     public function scopeForKabidDivision(Builder $query, int $divisionId): Builder
     {
         return $query->where('division_id', $divisionId);

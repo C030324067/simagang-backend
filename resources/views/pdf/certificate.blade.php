@@ -6,299 +6,396 @@
     @php
         $komdigiPath = public_path('images/logo/logo komdigi.png');
         $setdaPath = public_path('images/logo/logo_setda.png');
-
-        $logoKomdigi = (file_exists($komdigiPath) && is_file($komdigiPath)) ? 'data:image/png;base64,' . base64_encode(file_get_contents($komdigiPath)) : null;
-        $logoSetda = (file_exists($setdaPath) && is_file($setdaPath)) ? 'data:image/png;base64,' . base64_encode(file_get_contents($setdaPath)) : null;
-
-        $issuedDate = isset($certificate->issued_at) ? \Carbon\Carbon::parse($certificate->issued_at)->locale('id')->translatedFormat('d F Y') : \Carbon\Carbon::now()->locale('id')->translatedFormat('d F Y');
+        $logoKomdigi = is_file($komdigiPath)
+            ? 'data:image/png;base64,'.base64_encode(file_get_contents($komdigiPath))
+            : null;
+        $logoSetda = is_file($setdaPath)
+            ? 'data:image/png;base64,'.base64_encode(file_get_contents($setdaPath))
+            : null;
+        $issuedDate = ! empty($certificate?->issued_at)
+            ? \Carbon\Carbon::parse($certificate->issued_at)->locale('id')->translatedFormat('d F Y')
+            : \Carbon\Carbon::now()->locale('id')->translatedFormat('d F Y');
     @endphp
     <style>
         @page {
-            margin: 0;
             size: A4 landscape;
+            margin: 0;
         }
-        html, body {
+
+        html,
+        body {
+            width: 297mm;
+            height: 210mm;
             margin: 0;
             padding: 0;
+            font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
+            color: #172033;
+            background: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .certificate-container {
+            position: relative;
+            width: 291mm;
+            height: 204mm;
+            margin: 3mm auto;
+            padding: 20mm 25mm;
+            overflow: hidden;
+            border: 1.2mm solid #1d5b83;
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+
+        .certificate-container:before {
+            position: absolute;
+            top: 2.5mm;
+            right: 2.5mm;
+            bottom: 2.5mm;
+            left: 2.5mm;
+            border: 0.45mm solid #b58b43;
+            content: "";
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
             width: 100%;
             height: 100%;
-            font-family: 'Helvetica', 'Arial', sans-serif;
-            background-color: #ffffff;
-            color: #0f172a;
-        }
-
-        /* Bingkai Luar & Dalam */
-        .page-container {
-            position: absolute;
-            top: 15px;
-            bottom: 15px;
-            left: 15px;
-            right: 15px;
-            border: 4px solid #0284c7;
-            padding: 5px;
-            box-sizing: border-box;
-        }
-        .cert-inner-border {
-            border: 2px double #1e3a8a;
-            padding: 20px 35px;
-            height: 100%;
-            box-sizing: border-box;
             text-align: center;
-            position: relative;
+            page-break-inside: avoid;
         }
 
-        /* Header Logo & Instansi */
+        table {
+            border-collapse: collapse;
+        }
+
         .header-table {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
+            height: 18mm;
+            margin: 0 0 2mm;
         }
+
         .header-table td {
             vertical-align: middle;
         }
-        .logo-img {
-            max-height: 75px;
-            width: auto;
-        }
-        .header-title {
-            font-size: 23px;
-            font-weight: 800;
-            color: #1e3a8a;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin: 0;
-        }
-        .header-sub {
-            font-size: 14px;
-            font-weight: bold;
-            color: #0369a1;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-top: 4px;
+
+        .logo-cell {
+            width: 18%;
         }
 
-        /* Judul Sertifikat & Nomor */
-        .cert-title {
-            font-size: 32px;
-            font-weight: 900;
-            color: #0284c7;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 6px;
-            margin-bottom: 2px;
+        .logo-img {
+            max-width: 28mm;
+            max-height: 17mm;
         }
-        .cert-number {
-            font-size: 13px;
+
+        .agency-name {
+            margin: 0;
+            color: #173f63;
+            font-size: 15pt;
             font-weight: bold;
-            color: #475569;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
+            letter-spacing: 0.4pt;
+            text-transform: uppercase;
+        }
+
+        .agency-region {
+            margin-top: 1.2mm;
+            color: #315d7d;
+            font-size: 10pt;
+            font-weight: bold;
+            letter-spacing: 1.4pt;
+            text-transform: uppercase;
+        }
+
+        .certificate-title {
+            margin: 1mm 0 1.5mm;
+            color: #1d5b83;
+            font-size: 34pt;
+            font-weight: bold;
+            letter-spacing: 1.2pt;
+            line-height: 1.05;
+            text-transform: uppercase;
+        }
+
+        .certificate-number {
+            margin: 0 0 2mm;
+            color: #536579;
+            font-size: 9pt;
+            font-weight: bold;
+            letter-spacing: 0.5pt;
         }
 
         .recipient-label {
-            font-size: 15px;
-            color: #64748b;
-            margin-bottom: 6px;
+            margin: 1mm 0 0;
+            color: #536579;
+            font-size: 12pt;
         }
 
-        /* Nama Peserta (Gagah & Renggang) */
         .intern-name {
-            font-size: 44px;
-            font-weight: bold;
-            color: #0f172a;
-            text-transform: uppercase;
-            margin: 6px auto;
             display: inline-block;
-            border-bottom: 3.5px solid #0284c7;
-            padding-bottom: 4px;
-            letter-spacing: 1.5px;
+            max-width: 100%;
+            margin: 2mm 0 1mm;
+            padding: 0 8mm 1.5mm;
+            border-bottom: 0.6mm solid #333;
+            color: #172033;
+            font-size: 28pt;
+            font-weight: bold;
+            line-height: 1.15;
+            text-transform: uppercase;
         }
 
-        .division-badge {
-            font-size: 15px;
+        .division-name {
+            margin: 1mm 0 2mm;
+            color: #1d5b83;
+            font-size: 11pt;
             font-weight: bold;
-            color: #0369a1;
-            background-color: #e0f2fe;
-            border: 1px solid #bae6fd;
-            border-radius: 6px;
-            display: inline-block;
-            padding: 5px 20px;
-            margin-top: 10px;
-            margin-bottom: 14px;
+            letter-spacing: 0.4pt;
         }
 
         .description {
-            font-size: 13.5px;
-            line-height: 1.6;
-            color: #334155;
-            width: 88%;
-            margin: 0 auto 15px auto;
+            width: 92%;
+            margin: 0 auto 3mm;
+            color: #344256;
+            font-size: 12pt;
+            line-height: 1.45;
         }
 
-        /* Box Nilai Akhir */
-        .score-box {
-            background-color: #f8fafc;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 10px 20px;
-            margin: 0 auto;
-            width: 85%;
+        .evaluation-block {
+            width: 100%;
+            margin: 2mm 0 3mm;
+            page-break-inside: avoid;
         }
+
         .final-score {
-            font-size: 16px;
+            margin: 0;
+            padding: 2mm 3mm;
+            border: 0.35mm solid #b8c8d5;
+            border-bottom: 0;
+            background: #edf4f8;
+            color: #173f63;
+            font-size: 13pt;
             font-weight: bold;
-            color: #0f172a;
-            margin-bottom: 5px;
         }
-        .score-badge {
-            color: #0284c7;
-            font-size: 20px;
+
+        .final-score-value {
+            color: #a47625;
+            font-size: 16pt;
         }
+
         .score-table {
             width: 100%;
-            font-size: 12.5px;
-            color: #334155;
-            border-collapse: collapse;
-        }
-        .score-table td {
-            padding: 3px 6px;
+            margin: 0;
+            border: 0.35mm solid #b8c8d5;
+            color: #26384a;
+            font-size: 11pt;
         }
 
-        /* Tanda Tangan Mengunci Di Bawah Tanpa Mepet */
-        .ttd-table {
-            position: absolute;
-            bottom: 35px;
-            left: 35px;
-            right: 35px;
-            width: calc(100% - 70px);
-            border-collapse: collapse;
+        .score-table td {
+            width: 25%;
+            padding: 2.2mm 3mm;
+            border: 0.25mm solid #cbd6df;
+            vertical-align: middle;
         }
-        .ttd-title {
-            font-size: 13px;
-            color: #334155;
-            line-height: 1.4;
+
+        .score-label {
+            display: block;
+            margin-bottom: 1mm;
+            color: #536579;
+            font-size: 8.5pt;
         }
-        .ttd-space {
-            height: 48px; /* Ruang tanda tangan / stempel */
-        }
-        .ttd-name {
-            font-size: 14.5px;
+
+        .score-value {
+            color: #173f63;
+            font-size: 13pt;
             font-weight: bold;
-            color: #0f172a;
+        }
+
+        .grade-line {
+            margin-top: 1.5mm;
+            color: #536579;
+            font-size: 10pt;
+        }
+
+        .signature-table {
+            width: 100%;
+            margin: 2mm 0 0;
+            page-break-inside: avoid;
+        }
+
+        .signature-table td {
+            width: 50%;
+            padding: 0 8mm;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .signature-title {
+            min-height: 8mm;
+            color: #344256;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+
+        .signature-space {
+            height: 70px;
+        }
+
+        .signer-name {
+            color: #172033;
+            font-size: 10pt;
+            font-weight: bold;
             text-decoration: underline;
         }
-        .ttd-nip {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 2px;
+
+        .signer-id {
+            margin-top: 1mm;
+            color: #536579;
+            font-size: 8.5pt;
         }
 
-        /* Footer Verifikasi Digital */
         .footer-table {
-            position: absolute;
-            bottom: 10px;
-            left: 35px;
-            right: 35px;
-            width: calc(100% - 70px);
-            font-size: 10px;
-            color: #64748b;
-            text-align: left;
+            width: 100%;
+            margin: 2mm 0 0;
+            border-top: 0.3mm solid #d5dee6;
+            color: #536579;
+            font-size: 7.5pt;
+            page-break-inside: avoid;
+        }
+
+        .footer-table td {
+            padding-top: 1.5mm;
+            vertical-align: middle;
+        }
+
+        .verification-box {
+            width: 60mm;
+            text-align: right;
+            overflow-wrap: break-word;
+        }
+
+        .qr-cell {
+            width: 22mm;
+            padding-left: 3mm;
+            text-align: right;
+            vertical-align: middle;
+        }
+
+        .qr-image {
+            width: 19mm;
+            height: 19mm;
+        }
+
+        .verification-hash {
+            color: #173f63;
+            font-size: 7pt;
+            font-weight: bold;
+        }
+
+        .verification-url {
+            margin-top: 0.8mm;
+            overflow-wrap: break-word;
         }
     </style>
 </head>
 <body>
-    <div class="page-container">
-        <div class="cert-inner-border">
-            
-            <!-- Header Logo & Instansi -->
+    <div class="certificate-container">
+        <div class="content">
             <table class="header-table">
                 <tr>
-                    <td style="width: 20%; text-align: left;">
-                        @if($logoKomdigi)
+                    <td class="logo-cell" style="text-align:left">
+                        @if ($logoKomdigi)
                             <img src="{{ $logoKomdigi }}" class="logo-img" alt="Logo Komdigi">
                         @endif
                     </td>
-                    <td style="width: 60%; text-align: center;">
-                        <div class="header-title">Dinas Komunikasi dan Informatika</div>
-                        <div class="header-sub">Kabupaten Tabalong</div>
+                    <td style="width:64%;text-align:center">
+                        <div class="agency-name">Dinas Komunikasi dan Informatika</div>
+                        <div class="agency-region">Kabupaten Tabalong</div>
                     </td>
-                    <td style="width: 20%; text-align: right;">
-                        @if($logoSetda)
+                    <td class="logo-cell" style="text-align:right">
+                        @if ($logoSetda)
                             <img src="{{ $logoSetda }}" class="logo-img" alt="Logo Setda">
                         @endif
                     </td>
                 </tr>
             </table>
 
-            <!-- Judul & Nomor Sertifikat -->
-            <div class="cert-title">SERTIFIKAT KELULUSAN MAGANG</div>
-            <div class="cert-number">NOMOR: {{ $certificate->certificate_number ?? '-' }}</div>
+            <div class="certificate-title">Sertifikat Magang</div>
+            <div class="certificate-number">NOMOR: {{ $certificate->certificate_number ?? '-' }}</div>
 
-            <div class="recipient-label">Sertifikat ini diberikan secara resmi kepada:</div>
-            
-            <!-- Nama Peserta -->
-            <div class="intern-name">{{ $intern->name ?? 'Peserta' }}</div>
-            <br>
-            <div class="division-badge">
-                {{ $intern->division?->name ?? 'Dinas Komunikasi dan Informatika' }}
-            </div>
+            <div class="recipient-label">Dengan ini diberikan kepada:</div>
+            <div class="intern-name">{{ $intern->name ?? 'Peserta Magang' }}</div>
+            <div class="division-name">{{ $intern->division?->name ?? 'Dinas Komunikasi dan Informatika' }}</div>
 
-            <!-- Deskripsi -->
             <div class="description">
-                Atas partisipasi, dedikasi, dan keberhasilannya dalam menyelesaikan seluruh rangkaian program Praktik Kerja Lapangan / Magang di Dinas Komunikasi dan Informatika Kabupaten Tabalong.
+                Atas partisipasi, dedikasi, dan keberhasilannya menyelesaikan program Praktik Kerja Lapangan / Magang
+                di Dinas Komunikasi dan Informatika Kabupaten Tabalong.
             </div>
 
-            <!-- Box Nilai Akhir -->
-            <div class="score-box">
+            <div class="evaluation-block">
                 <div class="final-score">
-                    Nilai Akhir (Final Score): 
-                    <span class="score-badge">{{ number_format($evaluation->final_score ?? 0, 2) }} / 100</span>
+                    NILAI AKHIR&nbsp;&nbsp;
+                    <span class="final-score-value">{{ number_format((float) ($evaluation?->final_score ?? 0), 2) }}</span>
+                    <span style="font-size:10pt;font-weight:normal"> / 100</span>
                 </div>
-                
-                @if($evaluation)
                 <table class="score-table">
                     <tr>
-                        <td style="text-align: center; width: 33%;">Kehadiran & Disiplin: <b>{{ number_format($evaluation->discipline_score ?? 0, 2) }}</b></td>
-                        <td style="text-align: center; width: 34%;">Tugas & Logbook: <b>{{ number_format($evaluation->skill_score ?? 0, 2) }}</b></td>
-                        <td style="text-align: center; width: 33%;">Softskill & Sikap: <b>{{ number_format($evaluation->softskill_score ?? 0, 2) }}</b></td>
+                        <td>
+                            <span class="score-label">Disiplin</span>
+                            <span class="score-value">{{ number_format((float) ($evaluation?->score_discipline ?? 0), 2) }}</span>
+                        </td>
+                        <td>
+                            <span class="score-label">Kualitas Kerja</span>
+                            <span class="score-value">{{ number_format((float) ($evaluation?->score_quality ?? 0), 2) }}</span>
+                        </td>
+                        <td>
+                            <span class="score-label">Softskill</span>
+                            <span class="score-value">{{ number_format((float) ($evaluation?->score_softskill ?? 0), 2) }}</span>
+                        </td>
+                        <td>
+                            <span class="score-label">Tanggung Jawab</span>
+                            <span class="score-value">{{ number_format((float) ($evaluation?->score_responsibility ?? 0), 2) }}</span>
+                        </td>
                     </tr>
                 </table>
-                @endif
+                <div class="grade-line">Predikat: <strong>{{ $evaluation?->grade_letter ?? '-' }}</strong></div>
             </div>
 
-            <!-- Blok Tanda Tangan Pembimbing & Kadis -->
-            <table class="ttd-table">
+            <table class="signature-table">
                 <tr>
-                    <td style="width: 50%; text-align: center; vertical-align: top;">
-                        <div class="ttd-title">Pembimbing Lapangan Magang</div>
-                        <div class="ttd-space"></div>
-                        <div class="ttd-name">{{ $evaluation?->mentor?->name ?? 'Pembimbing Lapangan' }}</div>
-                        <div class="ttd-nip">NIP. {{ $evaluation?->mentor?->nip ?? '-' }}</div>
+                    <td>
+                        <div class="signature-title">Pembimbing Lapangan / Mentor</div>
+                        <div class="signature-space"></div>
+                        <div class="signer-name">{{ $evaluation?->mentor?->name ?? 'Pembimbing Lapangan' }}</div>
+                        <div class="signer-id">NIP. {{ $evaluation?->mentor?->nip ?? '-' }}</div>
                     </td>
-                    <td style="width: 50%; text-align: center; vertical-align: top;">
-                        <div class="ttd-title">
-                            Tanjung, {{ $issuedDate }}<br>
-                            Kepala Dinas Kominfo
-                        </div>
-                        <div class="ttd-space"></div>
-                        <div class="ttd-name">Eddy Suriyani, S.Sos., MA</div>
-                        <div class="ttd-nip">NIP. 19741223 199403 1 004</div>
+                    <td>
+                        <div class="signature-title">Tanjung, {{ $issuedDate }}<br>Kepala Dinas Komunikasi dan Informatika</div>
+                        <div class="signature-space"></div>
+                        <div class="signer-name">Eddy Suriyani, S.Sos., MA</div>
+                        <div class="signer-id">NIP. 19741223 199403 1 004</div>
                     </td>
                 </tr>
             </table>
 
-            <!-- Footer Keaslian Digital -->
             <table class="footer-table">
                 <tr>
-                    <td style="width: 60%; text-align: left;">
-                        <b>Verifikasi Keaslian Digital:</b> {{ $verify_url ?? '-' }}
+                    <td style="text-align:left">
+                        <strong>Sertifikat digital resmi</strong><br>
+                        Gunakan kode atau tautan berikut untuk verifikasi digital.
                     </td>
-                    <td style="width: 40%; text-align: right;">
-                        Sertifikat Sah Diterbitkan Oleh Diskominfo Tabalong
+                    <td class="verification-box">
+                        <div class="verification-hash">KODE VERIFIKASI: {{ $certificate->qr_hash ?? '-' }}</div>
+                        <div class="verification-url">{{ $verify_url ?? '-' }}</div>
                     </td>
+                    @if (! empty($qr_code_data_uri))
+                        <td class="qr-cell">
+                            <img src="{{ $qr_code_data_uri }}" class="qr-image" alt="QR verifikasi sertifikat">
+                        </td>
+                    @endif
                 </tr>
             </table>
-
         </div>
     </div>
 </body>

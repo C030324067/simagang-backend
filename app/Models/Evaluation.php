@@ -5,18 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Evaluation extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'intern_id',
+        'intern_application_id',
         'mentor_id',
-        'discipline_score',
-        'skill_score',
-        'softskill_score',
-        'responsibility_score',
         'task_average',
         'attendance_percentage',
         'final_score',
@@ -25,6 +22,8 @@ class Evaluation extends Model
         'score_quality',
         'score_initiative',
         'score_teamwork',
+        'score_softskill',
+        'score_responsibility',
         'grade_letter',
         'notes',
         'evaluated_at',
@@ -33,10 +32,6 @@ class Evaluation extends Model
     protected function casts(): array
     {
         return [
-            'discipline_score' => 'decimal:2',
-            'skill_score' => 'decimal:2',
-            'softskill_score' => 'decimal:2',
-            'responsibility_score' => 'decimal:2',
             'task_average' => 'decimal:2',
             'attendance_percentage' => 'decimal:2',
             'final_score' => 'decimal:2',
@@ -44,13 +39,20 @@ class Evaluation extends Model
             'score_quality' => 'decimal:2',
             'score_initiative' => 'decimal:2',
             'score_teamwork' => 'decimal:2',
+            'score_softskill' => 'decimal:2',
+            'score_responsibility' => 'decimal:2',
             'evaluated_at' => 'datetime',
         ];
     }
 
-    public function intern(): BelongsTo
+    public function intern(): HasOneThrough
     {
-        return $this->belongsTo(User::class, 'intern_id');
+        return $this->hasOneThrough(User::class, InternApplication::class, 'id', 'id', 'intern_application_id', 'user_id');
+    }
+
+    public function internApplication(): BelongsTo
+    {
+        return $this->belongsTo(InternApplication::class);
     }
 
     public function mentor(): BelongsTo

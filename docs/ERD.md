@@ -72,10 +72,8 @@ erDiagram
 
     ATTENDANCES {
         bigint id PK
-        bigint user_id FK
-        date date "unik bersama user_id"
-        time check_in_time
-        time check_out_time
+        bigint intern_application_id FK
+        date date "unik bersama intern_application_id"
         timestamp clock_in_at
         timestamp clock_out_at
         string photo_in
@@ -95,7 +93,7 @@ erDiagram
 
     LOGBOOKS {
         bigint id PK
-        bigint user_id FK
+        bigint intern_application_id FK
         bigint verified_by FK
         date date
         text activity_description
@@ -126,19 +124,17 @@ erDiagram
 
     EVALUATIONS {
         bigint id PK
-        bigint intern_id FK
+        bigint intern_application_id FK
         bigint mentor_id FK
-        decimal discipline_score
-        decimal skill_score
-        decimal softskill_score
-        decimal responsibility_score
-        decimal task_average
-        decimal attendance_percentage
-        decimal final_score
         decimal score_discipline
         decimal score_quality
         decimal score_initiative
         decimal score_teamwork
+        decimal score_softskill
+        decimal score_responsibility
+        decimal task_average
+        decimal attendance_percentage
+        decimal final_score
         string grade_letter
         text remarks
         text notes
@@ -149,7 +145,7 @@ erDiagram
 
     CERTIFICATES {
         bigint id PK
-        bigint intern_id FK
+        bigint intern_application_id FK
         string certificate_number UK
         string qr_hash UK
         string pdf_path
@@ -165,15 +161,15 @@ erDiagram
     USERS o|--o{ INTERN_APPLICATIONS : "memverifikasi kepegawaian"
     USERS o|--o{ INTERN_APPLICATIONS : "memverifikasi kabid"
     USERS o|--o{ INTERN_APPLICATIONS : "memverifikasi kadis"
-    USERS ||--o{ ATTENDANCES : "mencatat"
-    USERS ||--o{ LOGBOOKS : "mengisi"
+    INTERN_APPLICATIONS ||--o{ ATTENDANCES : "memiliki presensi"
+    INTERN_APPLICATIONS ||--o{ LOGBOOKS : "memiliki logbook"
     USERS o|--o{ LOGBOOKS : "memverifikasi"
     USERS ||--o{ TASKS : "menerima tugas"
     USERS ||--o{ TASKS : "membuat tugas"
     DIVISIONS o|--o{ TASKS : "mengelompokkan"
-    USERS ||--o{ EVALUATIONS : "dinilai sebagai peserta"
+    INTERN_APPLICATIONS ||--o{ EVALUATIONS : "menjadi dasar evaluasi"
     USERS ||--o{ EVALUATIONS : "menilai sebagai mentor"
-    USERS ||--o{ CERTIFICATES : "menerima"
+    INTERN_APPLICATIONS ||--o{ CERTIFICATES : "menjadi dasar sertifikat"
 ```
 
 ## Metode Agile yang disarankan
@@ -192,20 +188,163 @@ ERD dikembangkan dan ditinjau secara bertahap bersama Product Owner/pengguna. Se
 
 - Master `DIVISIONS` disediakan dinamis melalui API. Seeder saat ini memastikan empat kode: `ikp`, `statistik`, `aptika`, dan `tki`; Kabid/mentor ditautkan dengan `division_id`.
 - `USERS.nip` bersifat unik dan nullable agar akun non-pegawai serta akun lama tetap kompatibel; `position` menyimpan jabatan pegawai dan nullable.
-- Presensi dan logbook saat ini terhubung langsung ke `users`, bukan ke `intern_applications`.
+- Presensi, logbook, evaluasi, dan sertifikat memiliki `intern_application_id` yang mengacu ke `intern_applications.id` dengan penghapusan berantai.
 - Verifikator persetujuan dan mentor disimpan sebagai relasi ke `users`.
-- `ATTENDANCES` memiliki batasan unik gabungan pada `user_id` dan `date`.
+- `ATTENDANCES` menyimpan waktu sebagai `clock_in_at`/`clock_out_at` dan memiliki batasan unik gabungan pada `intern_application_id` dan `date`.
+- `EVALUATIONS` menggunakan kolom nilai `score_*`; kolom skor duplikat dengan nama lama telah dihapus. Foreign key mentor tetap mengacu ke `users`.
 - Notasi `o|` menunjukkan relasi opsional karena foreign key terkait nullable; `||--o{` menunjukkan satu induk dapat memiliki banyak data turunan.
-- Diagram ini menggambarkan struktur yang sudah ada pada migrasi, bukan usulan perubahan database.
+- Karena migration belum menambahkan batasan unik pada `evaluations.intern_application_id` dan `certificates.intern_application_id`, diagram fisik menggambarkan relasi satu-ke-banyak. Alur aplikasi dapat membatasi penggunaan menjadi satu evaluasi/sertifikat per penempatan.
+- `internship_status` adalah kolom string dengan nilai awal `in_progress`; aplikasi dapat memperbaruinya, misalnya menjadi `completed`.
+- Diagram ini menggambarkan struktur setelah migration refactoring aktivitas diterapkan.
 
 ## ERD Konseptual Proses Bisnis
 
-Diagram konseptual berikut memakai notasi Chen: persegi panjang untuk entitas, oval untuk atribut, berlian untuk hubungan, dan angka `1`/`N` untuk kardinalitas. Buka gambar langsung atau tampilkan Markdown Preview dengan **Ctrl+Shift+V**.
+Diagram berikut disematkan langsung di dokumen menggunakan bentuk Mermaid yang mendekati notasi Chen: kotak untuk entitas, oval biru untuk atribut, belah ketupat oranye untuk relasi, serta label `1`, `N`, dan `0..1` untuk kardinalitas. Sumber PlantUML versi Chen tersedia di [`erd_konseptual.puml`](./erd_konseptual.puml).
 
-![ERD konseptual SIMAGANG dengan notasi Chen](./erd-konseptual.svg)
+```mermaid
+flowchart LR
+    PEMOHON[PEMOHON]
+    P_EMAIL([Email])
+    P_NAMA([Nama])
+    P_PENDIDIKAN([Pendidikan])
+    PEMOHON --- P_EMAIL
+    PEMOHON --- P_NAMA
+    PEMOHON --- P_PENDIDIKAN
+
+    PERMOHONAN[PERMOHONAN]
+    A_TRACKING([Kode Tracking])
+    A_INSTITUSI([Institusi])
+    A_STATUS([Status])
+    PERMOHONAN --- A_TRACKING
+    PERMOHONAN --- A_INSTITUSI
+    PERMOHONAN --- A_STATUS
+
+    PERSETUJUAN[PERSETUJUAN]
+    S_TAHAP([Tahap])
+    S_KEPUTUSAN([Keputusan])
+    S_CATATAN([Catatan])
+    PERSETUJUAN --- S_TAHAP
+    PERSETUJUAN --- S_KEPUTUSAN
+    PERSETUJUAN --- S_CATATAN
+
+    PEMERIKSA[PEMERIKSA]
+    R_NAMA([Nama])
+    R_JABATAN([Jabatan])
+    R_BIDANG([Bidang])
+    PEMERIKSA --- R_NAMA
+    PEMERIKSA --- R_JABATAN
+    PEMERIKSA --- R_BIDANG
+
+    MENGAJUKAN{MENGAJUKAN}
+    MELALUI{MELALUI}
+    DIPUTUSKAN{DIPUTUSKAN OLEH}
+    PEMOHON -->|1| MENGAJUKAN
+    MENGAJUKAN -->|N| PERMOHONAN
+    PERMOHONAN -->|1| MELALUI
+    MELALUI -->|N| PERSETUJUAN
+    PEMERIKSA -->|1| DIPUTUSKAN
+    DIPUTUSKAN -->|N| PERSETUJUAN
+
+    PEGAWAI[PEGAWAI]
+    E_IDENTITAS([NIP / Email])
+    E_NAMA([Nama])
+    E_JABATAN([Jabatan])
+    PEGAWAI --- E_IDENTITAS
+    PEGAWAI --- E_NAMA
+    PEGAWAI --- E_JABATAN
+
+    PENEMPATAN[PENEMPATAN]
+    N_MULAI([Tanggal Mulai])
+    N_BIDANG([Bidang Magang])
+    N_SELESAI([Tanggal Selesai])
+    PENEMPATAN --- N_MULAI
+    PENEMPATAN --- N_BIDANG
+    PENEMPATAN --- N_SELESAI
+
+    BIDANG[BIDANG]
+    B_KODE([Kode])
+    B_NAMA([Nama])
+    B_JENIS([Jenis Divisi])
+    BIDANG --- B_KODE
+    BIDANG --- B_NAMA
+    BIDANG --- B_JENIS
+
+    DISETUJUI{DISETUJUI}
+    MEMBIMBING{MEMBIMBING}
+    WADAH{WADAH DIVISI}
+    PERMOHONAN -->|1| DISETUJUI
+    DISETUJUI -->|0..1| PENEMPATAN
+    PEGAWAI -->|1| MEMBIMBING
+    MEMBIMBING -->|N| PENEMPATAN
+    BIDANG -->|1| WADAH
+    WADAH -->|N| PENEMPATAN
+
+    PRESENSI[PRESENSI]
+    PR_TANGGAL([Tanggal])
+    PR_STATUS([Status])
+    PR_KETERANGAN([Keterangan])
+    PRESENSI --- PR_TANGGAL
+    PRESENSI --- PR_STATUS
+    PRESENSI --- PR_KETERANGAN
+
+    LOGBOOK[LOGBOOK]
+    L_TANGGAL([Tanggal])
+    L_DESKRIPSI([Deskripsi])
+    L_VERIFIKASI([Verifikasi])
+    LOGBOOK --- L_TANGGAL
+    LOGBOOK --- L_DESKRIPSI
+    LOGBOOK --- L_VERIFIKASI
+
+    TUGAS[TUGAS]
+    T_JUDUL([Judul])
+    T_TANGGAL([Tanggal])
+    T_NILAI([Nilai])
+    TUGAS --- T_JUDUL
+    TUGAS --- T_TANGGAL
+    TUGAS --- T_NILAI
+
+    EVALUASI[EVALUASI]
+    EV_NILAI([Nilai Akhir])
+    EV_PREDIKAT([Predikat])
+    EV_CATATAN([Catatan])
+    EVALUASI --- EV_NILAI
+    EVALUASI --- EV_PREDIKAT
+    EVALUASI --- EV_CATATAN
+
+    SERTIFIKAT[SERTIFIKAT]
+    C_NOMOR([Nomor])
+    C_TERBIT([Tanggal Terbit])
+    C_QR([QR Code])
+    SERTIFIKAT --- C_NOMOR
+    SERTIFIKAT --- C_TERBIT
+    SERTIFIKAT --- C_QR
+
+    MENCATAT{MENCATAT}
+    MENGISI{MENGISI}
+    MENERIMA_TUGAS{MENERIMA}
+    DINILAI{DINILAI}
+    MENERIMA_SERTIFIKAT{MENERIMA}
+    PENEMPATAN -->|1| MENCATAT
+    MENCATAT -->|N| PRESENSI
+    PENEMPATAN -->|1| MENGISI
+    MENGISI -->|N| LOGBOOK
+    PENEMPATAN -->|1| MENERIMA_TUGAS
+    MENERIMA_TUGAS -->|N| TUGAS
+    PENEMPATAN -->|1| DINILAI
+    DINILAI -->|0..1| EVALUASI
+    PENEMPATAN -->|1| MENERIMA_SERTIFIKAT
+    MENERIMA_SERTIFIKAT -->|0..1| SERTIFIKAT
+
+    classDef entity fill:#FFFFFF,stroke:#111111,color:#111111,stroke-width:1.5px
+    classDef attribute fill:#EAF6FF,stroke:#69B7E8,color:#183B56
+    classDef relationship fill:#FFF0E4,stroke:#F2A66F,color:#633719
+    class PEMOHON,PERMOHONAN,PERSETUJUAN,PEMERIKSA,PEGAWAI,PENEMPATAN,BIDANG,PRESENSI,LOGBOOK,TUGAS,EVALUASI,SERTIFIKAT entity
+    class P_EMAIL,P_NAMA,P_PENDIDIKAN,A_TRACKING,A_INSTITUSI,A_STATUS,S_TAHAP,S_KEPUTUSAN,S_CATATAN,R_NAMA,R_JABATAN,R_BIDANG,E_IDENTITAS,E_NAMA,E_JABATAN,N_MULAI,N_BIDANG,N_SELESAI,B_KODE,B_NAMA,B_JENIS,PR_TANGGAL,PR_STATUS,PR_KETERANGAN,L_TANGGAL,L_DESKRIPSI,L_VERIFIKASI,T_JUDUL,T_TANGGAL,T_NILAI,EV_NILAI,EV_PREDIKAT,EV_CATATAN,C_NOMOR,C_TERBIT,C_QR attribute
+    class MENGAJUKAN,MELALUI,DIPUTUSKAN,DISETUJUI,MEMBIMBING,WADAH,MENCATAT,MENGISI,MENERIMA_TUGAS,DINILAI,MENERIMA_SERTIFIKAT relationship
+```
 
 ### Batasan diagram konseptual
 
 - Satu permohonan dapat melewati beberapa tahap persetujuan; diagram tidak membatasi jumlah pemeriksa atau tahapan pada implementasi tertentu.
-- Penempatan hanya terbentuk setelah permohonan diterima dan menghubungkan peserta, bidang, serta pembimbing dalam konteks satu kegiatan magang.
-- Presensi, logbook, tugas, evaluasi, dan sertifikat diletakkan di bawah penempatan untuk menunjukkan keterkaitan proses bisnis. Implementasi database saat ini menghubungkan beberapa data aktivitas langsung ke akun pengguna.
+- Penempatan konseptual diwakili oleh `INTERN_APPLICATIONS`; entitas tersebut menghubungkan pemohon, bidang, dan mentor untuk satu periode magang.
+- Presensi, logbook, evaluasi, dan sertifikat mengacu ke penempatan melalui `intern_application_id`. Tugas masih terkait dengan akun melalui `assigned_to`, serta dapat dikelompokkan menurut `division_id`.

@@ -22,7 +22,7 @@ class LogbookController extends Controller
         $query = Logbook::with(['user', 'verifier'])->latest('date');
 
         if ($user->role === 'intern') {
-            $query->where('user_id', $user->id);
+            $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $user->id));
         } elseif ($user->role === 'mentor') {
             if (! $user->division_id) {
                 return $this->errorResponse('Akun mentor belum terhubung dengan divisi.', 403);
@@ -30,9 +30,9 @@ class LogbookController extends Controller
 
             $query->whereHas('user', fn ($query) => $query
                 ->where('role', 'intern')
-                ->where('division_id', $user->division_id));
+                ->where('users.division_id', $user->division_id));
         } elseif ($request->filled('user_id')) {
-            $query->where('user_id', $request->input('user_id'));
+            $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $request->input('user_id')));
         }
 
         if ($request->filled('verification_status')) {
@@ -61,8 +61,11 @@ class LogbookController extends Controller
             $attachmentPath = $request->file('attachment')->store('logbooks', 'public');
         }
 
+        $application = $request->user()->internApplications()->where('internship_status', 'active')->first();
+        if (! $application) return $this->errorResponse('Peserta belum memiliki aplikasi magang aktif.', 422);
+
         $logbook = Logbook::create([
-            'user_id' => $request->user()->id,
+            'intern_application_id' => $application->id,
             'date' => $validated['date'],
             'activity_description' => $validated['activity_description'],
             'category' => $validated['category'] ?? null,
@@ -86,7 +89,7 @@ class LogbookController extends Controller
             && (! $user->division_id
                 || ! $logbook->user()
                     ->where('role', 'intern')
-                    ->where('division_id', $user->division_id)
+                    ->where('users.division_id', $user->division_id)
                     ->exists())) {
             return $this->errorResponse('Anda tidak berhak memverifikasi logbook dari divisi lain.', 403);
         }

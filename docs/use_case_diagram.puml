@@ -1,0 +1,96 @@
+@startuml UseCase_SIMAGANG
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F7FBFF
+  BorderColor #315A7D
+}
+
+actor "Peserta Magang" as Peserta
+actor "Admin Kepegawaian" as Admin
+actor "Pembimbing Lapangan\n(Mentor)" as Mentor
+actor "Kabid" as Kabid
+actor "Kadis" as Kadis
+
+rectangle "Sistem SIMAGANG" {
+  usecase "Login" as UC_Login
+
+  usecase "Mengajukan Permohonan\nMagang" as UC_Ajukan
+  usecase "Mengunggah Berkas\nPengajuan" as UC_Unggah
+  usecase "Melihat Status\nPengajuan Magang" as UC_Status
+  usecase "Melakukan Presensi Harian\n(Clock-In / Clock-Out)" as UC_Presensi
+  usecase "Mengisi Logbook /\nJurnal Harian" as UC_Logbook
+  usecase "Melihat Hasil\nPenilaian Magang" as UC_HasilNilai
+  usecase "Mengunduh\nSertifikat Digital" as UC_UnduhSertifikat
+
+  usecase "Mengelola Data\nMahasiswa / Pemohon" as UC_DataPemohon
+  usecase "Mengelola Pengajuan\nMagang" as UC_KelolaPengajuan
+  usecase "Memverifikasi Berkas\nPengajuan" as UC_VerifikasiBerkas
+  usecase "Mengelola Data\nPeserta Magang" as UC_DataPeserta
+  usecase "Mengelola Data\nPembimbing (Mentor)" as UC_DataMentor
+  usecase "Mengelola Sertifikat\nMagang" as UC_KelolaSertifikat
+
+  usecase "Melihat Data Peserta\nBimbingan" as UC_PesertaBimbingan
+  usecase "Memantau Presensi\nPeserta Magang" as UC_PantauPresensi
+  usecase "Melihat & Memvalidasi\nLogbook / Jurnal" as UC_ValidasiLogbook
+  usecase "Memberikan Penilaian Evaluasi\n(4 Kriteria)" as UC_Evaluasi
+
+  usecase "Melihat Data Peserta" as UC_DataPesertaKabid
+  usecase "Melihat Pengajuan Magang\n& Plotting Mentor" as UC_Plotting
+  usecase "Memantau Kegiatan\n& Presensi Magang" as UC_PantauKegiatan
+  usecase "Melihat Jurnal Kegiatan" as UC_JurnalKabid
+
+  usecase "Memantau Pengajuan\nMagang" as UC_PengajuanKadis
+  usecase "Melihat Perkembangan\nMagang" as UC_Perkembangan
+  usecase "Melihat & Mengunduh\nLaporan Magang" as UC_Laporan
+}
+
+Peserta -- UC_Login
+Peserta -- UC_Ajukan
+Peserta -- UC_Unggah
+Peserta -- UC_Status
+Peserta -- UC_Presensi
+Peserta -- UC_Logbook
+Peserta -- UC_HasilNilai
+Peserta -- UC_UnduhSertifikat
+
+Admin -- UC_Login
+Admin -- UC_DataPemohon
+Admin -- UC_KelolaPengajuan
+Admin -- UC_VerifikasiBerkas
+Admin -- UC_DataPeserta
+Admin -- UC_DataMentor
+Admin -- UC_KelolaSertifikat
+
+Mentor -- UC_Login
+Mentor -- UC_PesertaBimbingan
+Mentor -- UC_PantauPresensi
+Mentor -- UC_ValidasiLogbook
+Mentor -- UC_Evaluasi
+Mentor -- UC_HasilNilai
+Mentor -- UC_KelolaSertifikat
+
+Kabid -- UC_Login
+Kabid -- UC_DataPesertaKabid
+Kabid -- UC_Plotting
+Kabid -- UC_PantauKegiatan
+Kabid -- UC_JurnalKabid
+Kabid -- UC_HasilNilai
+
+Kadis -- UC_Login
+Kadis -- UC_DataPeserta
+Kadis -- UC_PengajuanKadis
+Kadis -- UC_Perkembangan
+Kadis -- UC_HasilNilai
+Kadis -- UC_Laporan
+
+UC_Ajukan ..> UC_Unggah : <<include>>
+
+note right of UC_Evaluasi
+  Kriteria penilaian:
+  Disiplin, Kualitas,
+  Softskill, Tanggung Jawab
+end note
+@enduml

@@ -73,7 +73,7 @@ class ApplicationController extends Controller
                 ->whereHas('user', fn ($query) => $query
                     ->where('role', 'intern')
                     ->where('status_akun', 'approved')
-                    ->where('division_id', $request->user()->division_id));
+                    ->where('users.division_id', $request->user()->division_id));
         }
 
         $applications = $query->paginate($this->perPage($request));
@@ -564,7 +564,7 @@ class ApplicationController extends Controller
             ->forKabidDivision((int) $request->user()->division_id)
             ->whereHas('user', fn ($query) => $query
                 ->where('role', 'applicant')
-                ->where('division_id', $request->user()->division_id))
+                ->where('users.division_id', $request->user()->division_id))
             ->latest()
             ->paginate($this->perPage($request));
 

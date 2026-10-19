@@ -1,0 +1,229 @@
+@startuml ERD_Konseptual_SIMAGANG
+' ERD konseptual SIMAGANG dengan notasi Chen.
+' Entitas: persegi putih; atribut: oval biru muda; relasi: belah ketupat oranye muda.
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultFontName Arial
+skinparam entity {
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+}
+skinparam usecase {
+  BackgroundColor #EAF6FF
+  BorderColor #69B7E8
+  FontColor #183B56
+}erDiagram
+    USERS ||--o{ INTERN_APPLICATIONS : "user_id"
+    USERS ||--o{ INTERN_APPLICATIONS : "mentor_id"
+    INTERN_APPLICATIONS ||--o{ ATTENDANCES : "intern_application_id"
+    INTERN_APPLICATIONS ||--o{ LOGBOOKS : "intern_application_id"
+    INTERN_APPLICATIONS ||--|| EVALUATIONS : "intern_application_id"
+    INTERN_APPLICATIONS ||--|| CERTIFICATES : "intern_application_id"
+
+    USERS {
+        int id PK
+        string name
+        string email
+        string password
+        string role "'intern', 'mentor', 'kabid', 'admin'"
+        string status_akun
+        int division_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    INTERN_APPLICATIONS {
+        int id PK
+        int user_id FK "ref: users.id"
+        int mentor_id FK "ref: users.id"
+        int division_id FK
+        string application_type "'mandiri', 'reguler'"
+        string institution_name
+        string major
+        string recommendation_letter_number
+        string tracking_code
+        date start_date
+        date end_date
+        string status
+        string final_status "'accepted', 'pending'"
+        string internship_status "'active', 'completed'"
+    }
+
+    ATTENDANCES {
+        int id PK
+        int intern_application_id FK
+        timestamp clock_in_at
+        timestamp clock_out_at
+        string status "'present', 'late', 'absent'"
+        string notes
+    }
+
+    LOGBOOKS {
+        int id PK
+        int intern_application_id FK
+        date date
+        text activity_description
+        string status "'pending', 'approved', 'rejected'"
+        string mentor_notes
+    }
+
+    EVALUATIONS {
+        int id PK
+        int intern_application_id FK
+        decimal score_discipline
+        decimal score_quality
+        decimal score_softskill
+        decimal score_responsibility
+        decimal total_score
+        text notes
+    }
+
+    CERTIFICATES {
+        int id PK
+        int intern_application_id FK
+        string certificate_number
+        date issue_date
+        string file_path
+    }
+skinparam diamond {
+  BackgroundColor #FFF0E4
+  BorderColor #F2A66F
+  FontColor #633719
+}
+skinparam ArrowColor #333333
+
+entity "PEMOHON" as PEMOHON
+usecase "Email" as P_EMAIL
+usecase "Nama" as P_NAMA
+usecase "Pendidikan" as P_PENDIDIKAN
+PEMOHON -- P_EMAIL
+PEMOHON -- P_NAMA
+PEMOHON -- P_PENDIDIKAN
+
+entity "PERMOHONAN" as PERMOHONAN
+usecase "Kode Tracking" as A_TRACKING
+usecase "Institusi" as A_INSTITUSI
+usecase "Status" as A_STATUS
+PERMOHONAN -- A_TRACKING
+PERMOHONAN -- A_INSTITUSI
+PERMOHONAN -- A_STATUS
+
+entity "PERSETUJUAN" as PERSETUJUAN
+usecase "Tahap" as S_TAHAP
+usecase "Keputusan" as S_KEPUTUSAN
+usecase "Catatan" as S_CATATAN
+PERSETUJUAN -- S_TAHAP
+PERSETUJUAN -- S_KEPUTUSAN
+PERSETUJUAN -- S_CATATAN
+
+entity "PEMERIKSA" as PEMERIKSA
+usecase "Nama" as R_NAMA
+usecase "Jabatan" as R_JABATAN
+usecase "Bidang" as R_BIDANG
+PEMERIKSA -- R_NAMA
+PEMERIKSA -- R_JABATAN
+PEMERIKSA -- R_BIDANG
+
+diamond "MENGAJUKAN" as MENGAJUKAN
+diamond "MELALUI" as MELALUI
+diamond "DIPUTUSKAN\nOLEH" as DIPUTUSKAN
+PEMOHON "1" -- MENGAJUKAN
+MENGAJUKAN -- "N" PERMOHONAN
+PERMOHONAN "1" -- MELALUI
+MELALUI -- "N" PERSETUJUAN
+PEMERIKSA "1" -- DIPUTUSKAN
+DIPUTUSKAN -- "N" PERSETUJUAN
+
+entity "PEGAWAI" as PEGAWAI
+usecase "NIP / Email" as E_IDENTITAS
+usecase "Nama" as E_NAMA
+usecase "Jabatan" as E_JABATAN
+PEGAWAI -- E_IDENTITAS
+PEGAWAI -- E_NAMA
+PEGAWAI -- E_JABATAN
+
+entity "PENEMPATAN" as PENEMPATAN
+usecase "Tanggal Mulai" as N_MULAI
+usecase "Bidang Magang" as N_BIDANG
+usecase "Tanggal Selesai" as N_SELESAI
+PENEMPATAN -- N_MULAI
+PENEMPATAN -- N_BIDANG
+PENEMPATAN -- N_SELESAI
+
+entity "BIDANG" as BIDANG
+usecase "Kode" as B_KODE
+usecase "Nama" as B_NAMA
+usecase "Jenis Divisi" as B_JENIS
+BIDANG -- B_KODE
+BIDANG -- B_NAMA
+BIDANG -- B_JENIS
+
+diamond "DISETUJUI" as DISETUJUI
+diamond "MEMBIMBING" as MEMBIMBING
+diamond "WADAH\nDIVISI" as WADAH
+PERMOHONAN "1" -- DISETUJUI
+DISETUJUI -- "0..1" PENEMPATAN
+PEGAWAI "1" -- MEMBIMBING
+MEMBIMBING -- "N" PENEMPATAN
+BIDANG "1" -- WADAH
+WADAH -- "N" PENEMPATAN
+
+entity "PRESENSI" as PRESENSI
+usecase "Tanggal" as PR_TANGGAL
+usecase "Status" as PR_STATUS
+usecase "Keterangan" as PR_KETERANGAN
+PRESENSI -- PR_TANGGAL
+PRESENSI -- PR_STATUS
+PRESENSI -- PR_KETERANGAN
+
+entity "LOGBOOK" as LOGBOOK
+usecase "Tanggal" as L_TANGGAL
+usecase "Deskripsi" as L_DESKRIPSI
+usecase "Verifikasi" as L_VERIFIKASI
+LOGBOOK -- L_TANGGAL
+LOGBOOK -- L_DESKRIPSI
+LOGBOOK -- L_VERIFIKASI
+
+entity "TUGAS" as TUGAS
+usecase "Judul" as T_JUDUL
+usecase "Tanggal" as T_TANGGAL
+usecase "Nilai" as T_NILAI
+TUGAS -- T_JUDUL
+TUGAS -- T_TANGGAL
+TUGAS -- T_NILAI
+
+entity "EVALUASI" as EVALUASI
+usecase "Nilai Akhir" as EV_NILAI
+usecase "Predikat" as EV_PREDIKAT
+usecase "Catatan" as EV_CATATAN
+EVALUASI -- EV_NILAI
+EVALUASI -- EV_PREDIKAT
+EVALUASI -- EV_CATATAN
+
+entity "SERTIFIKAT" as SERTIFIKAT
+usecase "Nomor" as C_NOMOR
+usecase "Tanggal Terbit" as C_TERBIT
+usecase "QR Code" as C_QR
+SERTIFIKAT -- C_NOMOR
+SERTIFIKAT -- C_TERBIT
+SERTIFIKAT -- C_QR
+
+diamond "MENCATAT" as MENCATAT
+diamond "MENGISI" as MENGISI
+diamond "MENERIMA" as MENERIMA_TUGAS
+diamond "DINILAI" as DINILAI
+diamond "MENERIMA" as MENERIMA_SERTIFIKAT
+PENEMPATAN "1" -- MENCATAT
+MENCATAT -- "N" PRESENSI
+PENEMPATAN "1" -- MENGISI
+MENGISI -- "N" LOGBOOK
+PENEMPATAN "1" -- MENERIMA_TUGAS
+MENERIMA_TUGAS -- "N" TUGAS
+PENEMPATAN "1" -- DINILAI
+DINILAI -- "0..1" EVALUASI
+PENEMPATAN "1" -- MENERIMA_SERTIFIKAT
+MENERIMA_SERTIFIKAT -- "0..1" SERTIFIKAT
+
+@enduml

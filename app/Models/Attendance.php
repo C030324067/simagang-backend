@@ -5,16 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Attendance extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'intern_application_id',
         'date',
-        'check_in_time',
-        'check_out_time',
         'photo_in',
         'photo_out',
         'status',
@@ -42,9 +41,14 @@ class Attendance extends Model
         ];
     }
 
-    public function user(): BelongsTo
+    public function user(): HasOneThrough
     {
-        return $this->belongsTo(User::class);
+        return $this->hasOneThrough(User::class, InternApplication::class, 'id', 'id', 'intern_application_id', 'user_id');
+    }
+
+    public function internApplication(): BelongsTo
+    {
+        return $this->belongsTo(InternApplication::class);
     }
 
     public function distanceTo(float $latitude, float $longitude): ?float

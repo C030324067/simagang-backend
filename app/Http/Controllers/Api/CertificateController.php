@@ -41,13 +41,13 @@ class CertificateController extends Controller
         }
 
         // Check if intern has an evaluation
-        $evaluation = Evaluation::where('intern_id', $intern->id)->first();
+        $evaluation = Evaluation::where('intern_application_id', $application->id)->first();
         if (! $evaluation) {
             return $this->errorResponse('Pemohon magang belum memiliki nilai evaluasi akhir dari pembimbing', 422);
         }
 
         // Check if certificate already generated
-        $existing = Certificate::where('intern_id', $intern->id)->first();
+        $existing = Certificate::where('intern_application_id', $application->id)->first();
         if ($existing) {
             $existing->load('intern.division');
 
@@ -58,7 +58,7 @@ class CertificateController extends Controller
         $qrHash = hash('sha256', $intern->id.'-'.time().'-'.Str::random(16));
 
         $certificate = Certificate::create([
-            'intern_id' => $intern->id,
+            'intern_application_id' => $application->id,
             'certificate_number' => $certificateNumber,
             'qr_hash' => $qrHash,
             'issued_at' => now(),
@@ -75,11 +75,11 @@ class CertificateController extends Controller
         if ($mentor->role !== 'mentor'
             || (int) $evaluation->mentor_id !== (int) $mentor->id
             || ! $mentor->division_id
-            || (int) User::query()->whereKey($evaluation->intern_id)->value('division_id') !== (int) $mentor->division_id) {
+            || (int) $evaluation->internApplication?->user?->division_id !== (int) $mentor->division_id) {
             return $this->errorResponse('Anda tidak berhak menerbitkan sertifikat untuk evaluasi ini.', 403);
         }
 
-        $request->merge(['intern_id' => $evaluation->intern_id]);
+        $request->merge(['intern_id' => $evaluation->internApplication?->user_id]);
 
         return $this->generate($request);
     }
@@ -112,9 +112,9 @@ class CertificateController extends Controller
                 'division' => $certificate->intern->division?->name ?? 'Dinas Kominfo',
             ],
             'evaluation' => $evaluation ? [
-                'discipline_score' => $evaluation->discipline_score,
-                'skill_score' => $evaluation->skill_score,
-                'softskill_score' => $evaluation->softskill_score,
+                'score_discipline' => $evaluation->score_discipline,
+                'score_quality' => $evaluation->score_quality,
+                'score_softskill' => $evaluation->score_softskill,
                 'final_score' => $evaluation->final_score,
                 'mentor_name' => $evaluation->mentor?->name ?? 'Pembimbing Lapangan',
             ] : null,
@@ -130,7 +130,7 @@ class CertificateController extends Controller
     public function myCertificate(Request $request): JsonResponse
     {
         $certificate = Certificate::with(['intern.division', 'intern.evaluations.mentor', 'intern.activeApplication'])
-            ->where('intern_id', $request->user()->id)
+            ->whereHas('internApplication', fn ($q) => $q->where('user_id', $request->user()->id))
             ->first();
 
         if (! $certificate) {
@@ -147,7 +147,7 @@ class CertificateController extends Controller
     {
         $certificate = Certificate::with(['intern.division', 'intern.evaluations.mentor', 'intern.activeApplication'])
             ->where('id', $id)
-            ->orWhere('intern_id', $id)
+            ->orWhere('intern_application_id', $id)
             ->firstOrFail();
 
         $data = [

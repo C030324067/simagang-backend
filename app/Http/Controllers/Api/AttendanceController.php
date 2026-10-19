@@ -31,12 +31,12 @@ class AttendanceController extends Controller
         $query = Attendance::with('user')->latest('date');
 
         if ($user->role === 'intern') {
-            $query->where('user_id', $user->id);
+            $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $user->id));
         } elseif ($user->role === 'mentor') {
             abort_unless($user->division_id, 403, 'Akun mentor belum terhubung dengan divisi.');
-            $query->whereHas('user', fn ($userQuery) => $userQuery->where('division_id', $user->division_id));
+            $query->whereHas('user', fn ($userQuery) => $userQuery->where('users.division_id', $user->division_id));
         } elseif ($request->filled('user_id')) {
-            $query->where('user_id', $request->input('user_id'));
+            $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $request->input('user_id')));
         }
 
         if ($request->filled('month') && $request->filled('year')) {
@@ -112,7 +112,7 @@ class AttendanceController extends Controller
         }
 
         $totalHadir = count($workingDates) === 0 ? 0 : Attendance::query()
-            ->where('user_id', $intern->id)
+            ->where('intern_application_id', $application->id)
             ->whereBetween('date', [$startDate->toDateString(), $endDateForCalculation])
             ->whereIn('date', $workingDates)
             ->whereIn('status', ['present', 'late'])
@@ -135,7 +135,8 @@ class AttendanceController extends Controller
     public function today(Request $request, EffectiveWorkingDaysCalculator $workingDays): JsonResponse
     {
         $today = Carbon::today()->toDateString();
-        $attendance = Attendance::where('user_id', $request->user()->id)
+        $application = $request->user()->internApplications()->where('internship_status', 'active')->first();
+        $attendance = Attendance::where('intern_application_id', $application?->id)
             ->where('date', $today)
             ->first();
 
@@ -161,7 +162,9 @@ class AttendanceController extends Controller
         $today = Carbon::today()->toDateString();
         $now = now();
 
-        $existing = Attendance::where('user_id', $user->id)
+        $application = $user->internApplications()->where('internship_status', 'active')->first();
+        if (! $application) return $this->errorResponse('Peserta belum memiliki aplikasi magang aktif.', 422);
+        $existing = Attendance::where('intern_application_id', $application->id)
             ->where('date', $today)
             ->first();
 
@@ -206,9 +209,8 @@ class AttendanceController extends Controller
 
         try {
             $attendance = Attendance::create([
-                'user_id' => $user->id,
+                'intern_application_id' => $application->id,
                 'date' => $today,
-                'check_in_time' => $now->format('H:i:s'),
                 'clock_in_at' => $now,
                 'photo_in' => $selfiePath,
                 'selfie_path' => $selfiePath,
@@ -247,20 +249,20 @@ class AttendanceController extends Controller
         $today = Carbon::today()->toDateString();
         $now = now();
 
-        $attendance = Attendance::where('user_id', $user->id)
+        $application = $user->internApplications()->where('internship_status', 'active')->first();
+        $attendance = Attendance::where('intern_application_id', $application?->id)
             ->where('date', $today)
             ->first();
 
-        if (! $attendance || ! $attendance->check_in_time) {
+        if (! $attendance || ! $attendance->clock_in_at) {
             return $this->errorResponse('Anda belum melakukan check-in hari ini', 422);
         }
 
-        if ($attendance->check_out_time) {
+        if ($attendance->clock_out_at) {
             return $this->errorResponse('Anda sudah melakukan check-out hari ini', 422);
         }
 
         $attendance->update([
-            'check_out_time' => $now->format('H:i:s'),
             'clock_out_at' => $now,
         ]);
 
@@ -275,7 +277,7 @@ class AttendanceController extends Controller
         $attendances = Attendance::query()
             ->with('user:id,name,email,division_id')
             ->where('approval_status', 'pending_approval')
-            ->whereHas('user', fn ($query) => $query->where('division_id', $mentor->division_id))
+            ->whereHas('user', fn ($query) => $query->where('users.division_id', $mentor->division_id))
             ->latest('date')
             ->latest('id')
             ->get();
@@ -298,7 +300,7 @@ class AttendanceController extends Controller
     {
         $mentor = $request->user();
         abort_unless($mentor->division_id, 403, 'Akun mentor belum terhubung dengan divisi.');
-        abort_unless((int) $attendance->user()->value('division_id') === (int) $mentor->division_id, 404);
+        abort_unless((int) $attendance->user()->value('users.division_id') === (int) $mentor->division_id, 404);
 
         $validated = $request->validate([
             'approval_status' => ['required', Rule::in(['approved', 'rejected'])],
@@ -328,7 +330,7 @@ class AttendanceController extends Controller
     {
         $mentor = $request->user();
         abort_unless($mentor->division_id, 403, 'Akun mentor belum terhubung dengan divisi.');
-        abort_unless((int) $attendance->user()->value('division_id') === (int) $mentor->division_id, 404);
+        abort_unless((int) $attendance->user()->value('users.division_id') === (int) $mentor->division_id, 404);
 
         $path = match ($kind) {
             'selfie' => $attendance->selfie_path ?: $attendance->photo_in,

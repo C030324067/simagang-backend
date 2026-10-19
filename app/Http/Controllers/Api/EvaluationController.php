@@ -28,7 +28,7 @@ class EvaluationController extends Controller
         $query = Evaluation::with(['intern.division', 'mentor'])->latest();
 
         if ($user->role === 'intern') {
-            $query->where('intern_id', $user->id);
+            $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $user->id));
         } elseif ($user->role === 'mentor') {
             $query->where('mentor_id', $user->id);
         }
@@ -47,7 +47,7 @@ class EvaluationController extends Controller
             return $this->errorResponse('Anda tidak berhak melihat evaluasi peserta lain.', 403);
         }
 
-        $evaluation = Evaluation::with(['intern.division', 'mentor'])->where('intern_id', $intern->id)->first();
+        $evaluation = Evaluation::with(['intern.division', 'mentor'])->whereHas('internApplication', fn ($q) => $q->where('user_id', $intern->id))->latest('id')->first();
         if (! $evaluation) {
             return $this->errorResponse('Evaluasi akhir peserta belum tersedia.', 404);
         }
@@ -132,17 +132,15 @@ class EvaluationController extends Controller
 
         $evaluation = DB::transaction(function () use ($application, $intern, $mentor, $validated, $metrics, $finalScore, $gradeLetter): Evaluation {
             $evaluation = Evaluation::updateOrCreate(
-                ['intern_id' => $intern->id],
+                ['intern_application_id' => $application->id],
                 [
                     'mentor_id' => $mentor->id,
                     'score_discipline' => $validated['score_discipline'],
                     'score_quality' => $validated['score_quality'],
                     'score_initiative' => $validated['score_initiative'],
                     'score_teamwork' => $validated['score_teamwork'],
-                    'discipline_score' => $validated['score_discipline'],
-                    'skill_score' => $validated['score_quality'],
-                    'responsibility_score' => $validated['score_initiative'],
-                    'softskill_score' => $validated['score_teamwork'],
+                    'score_softskill' => $validated['score_teamwork'],
+                    'score_responsibility' => $validated['score_initiative'],
                     'task_average' => 0,
                     'attendance_percentage' => $metrics['attendance_percentage'],
                     'final_score' => $finalScore,
