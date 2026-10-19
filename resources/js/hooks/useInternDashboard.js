@@ -125,17 +125,31 @@ export default function useInternDashboard(user) {
     if (!result.success) notify(result.message, 'error');
   };
 
+  // FUNGSI UNDUH SERTIFIKAT DENGAN TEMPLATE DINAMIS BARU
   const downloadCertificate = async () => {
     if (certificate?.is_eligible === false) {
       return notify('Sertifikat belum dapat diunduh karena syarat belum terpenuhi.', 'error');
     }
-    if (!certificate?.pdf_path) {
-      return notify('File PDF sertifikat belum tersedia.', 'error');
+    if (!certificate?.id) {
+      return notify('Data sertifikat belum tersedia.', 'error');
     }
-    const response = await fetch(`/storage/${certificate.pdf_path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
-    if (!response.ok) return notify('Sertifikat belum dapat diunduh.', 'error');
-    const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement('a'); link.href = url; link.download = 'sertifikat-magang.pdf'; link.click(); URL.revokeObjectURL(url);
+    try {
+      const response = await fetch(`/api/certificates/${certificate.id}/download`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!response.ok) return notify('Sertifikat belum dapat diunduh.', 'error');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Sertifikat-${user?.name || 'Magang'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      notify('Gagal mengunduh sertifikat.', 'error');
+    }
   };
 
   const hour = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Makassar' }).format(now));
