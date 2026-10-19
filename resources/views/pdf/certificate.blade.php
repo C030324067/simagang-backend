@@ -17,7 +17,7 @@
         }
         .container {
             border: 8px double #2563eb;
-            padding: 40px;
+            padding: 35px 40px;
             text-align: center;
             box-sizing: border-box;
         }
@@ -34,39 +34,70 @@
             color: #475569;
             text-transform: uppercase;
             letter-spacing: 3px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         .title {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             color: #0f172a;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         .recipient-label {
             font-size: 13px;
             color: #64748b;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         .name {
-            font-size: 32px;
+            font-size: 30px;
             font-weight: bold;
             color: #2563eb;
             text-transform: uppercase;
-            margin: 15px 0;
+            margin: 10px 0;
             border-bottom: 2px solid #cbd5e1;
             display: inline-block;
             padding-bottom: 5px;
         }
         .description {
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
             color: #334155;
             max-width: 700px;
-            margin: 20px auto;
+            margin: 10px auto;
         }
+        
+        /* Tampilan Nilai Akhir & Rincian Evaluasi */
+        .score-box {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin: 15px auto;
+            width: 80%;
+        }
+        .final-score {
+            font-size: 15px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+        .score-badge {
+            color: #2563eb;
+            font-size: 18px;
+        }
+        .score-table {
+            width: 100%;
+            font-size: 11px;
+            color: #475569;
+            margin-top: 5px;
+            border-collapse: collapse;
+        }
+        .score-table td {
+            padding: 3px 6px;
+        }
+
         .footer-table {
             width: 100%;
-            margin-top: 40px;
+            margin-top: 25px;
             font-size: 11px;
             text-align: left;
         }
@@ -90,6 +121,24 @@
         <div class="description">
             Atas dedikasi dan keberhasilannya dalam menyelesaikan seluruh rangkaian kegiatan Praktik Kerja Lapangan / Magang pada unit kerja 
             <b>{{ $intern->division->name ?? 'Dinas Komunikasi dan Informatika' }}</b>.
+        </div>
+
+        <!-- Section Nilai Akhir (Final Score) -->
+        <div class="score-box">
+            <div class="final-score">
+                Nilai Akhir (Final Score): 
+                <span class="score-badge">{{ $evaluation->final_score ?? '85' }} / 100</span>
+            </div>
+            
+            @if($evaluation)
+            <table class="score-table">
+                <tr>
+                    <td style="text-align: center;">Kedisiplinan & Kehadiran: <b>{{ $evaluation->discipline_score ?? '-' }}</b></td>
+                    <td style="text-align: center;">Tugas & Logbook Kegiatan: <b>{{ $evaluation->skill_score ?? '-' }}</b></td>
+                    <td style="text-align: center;">Softskill & Sikap: <b>{{ $evaluation->softskill_score ?? '-' }}</b></td>
+                </tr>
+            </table>
+            @endif
         </div>
 
         <table class="footer-table">

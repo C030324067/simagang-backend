@@ -10,7 +10,6 @@ import {
   Download,
   GraduationCap,
   Plus,
-  Share2,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -81,7 +80,6 @@ export default function InternDashboard() {
   // State Modal
   const [isAllActivitiesModalOpen, setIsAllActivitiesModalOpen] = useState(false);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
-  const [certificateNotice, setCertificateNotice] = useState('');
 
   const userName = user?.name || 'Peserta Magang';
   const pendingTasksCount = tasks.filter((t) => t.status !== 'completed').length;
@@ -116,22 +114,7 @@ export default function InternDashboard() {
     : 'bg-amber-100 text-amber-800';
 
   const handleCertificateClick = () => {
-    setCertificateNotice('');
     setIsCertificateModalOpen(true);
-  };
-
-  const handleShareCertificate = async () => {
-    if (!certificate?.qr_hash) {
-      setCertificateNotice('Tautan verifikasi sertifikat belum tersedia.');
-      return;
-    }
-    const verificationUrl = `${window.location.origin}/verify-cert/${encodeURIComponent(certificate.qr_hash)}`;
-    try {
-      await navigator.clipboard.writeText(verificationUrl);
-      setCertificateNotice('Tautan verifikasi berhasil disalin.');
-    } catch {
-      setCertificateNotice(verificationUrl);
-    }
   };
 
   return (
@@ -464,7 +447,6 @@ export default function InternDashboard() {
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white opacity-50"><Download className="h-4 w-4" />Unduh PDF</button>
-                    <button type="button" disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 opacity-50"><Share2 className="h-4 w-4" />Bagikan</button>
                   </div>
                 </div>
               ) : (
@@ -491,9 +473,7 @@ export default function InternDashboard() {
                     </div>
                     <div className="flex gap-2 pt-2">
                       <button type="button" onClick={downloadCertificate} className="inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white hover:bg-[#4338CA] transition"><Download className="h-4 w-4" />Unduh PDF</button>
-                      <button type="button" onClick={handleShareCertificate} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition"><Share2 className="h-4 w-4" />Bagikan</button>
                     </div>
-                    {certificateNotice && <p className="text-xs text-indigo-600 font-medium">{certificateNotice}</p>}
                   </div>
                 </div>
               )}
@@ -505,11 +485,10 @@ export default function InternDashboard() {
       {/* COMPONENT PRESENSI */}
       <InternAttendance open={isCheckInModalOpen} onClose={() => setIsCheckInModalOpen(false)} attendance={attendance} attendanceDay={attendanceDay} attendanceHistory={attendanceHistory} onUpdated={loadDashboard} />
 
-      {/* MODAL TAMBAH KEGIATAN (SESUAI UI REFERENSI) */}
+      {/* MODAL TAMBAH KEGIATAN */}
       {isLogbookModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
-            {/* Header Modal */}
             <div className="flex items-center justify-between pb-3">
               <h3 className="text-lg font-bold text-[#0F2942]">Tambah Kegiatan</h3>
               <button 
@@ -521,9 +500,7 @@ export default function InternDashboard() {
               </button>
             </div>
 
-            {/* Form Modal */}
             <form onSubmit={submitLogbook} className="space-y-4 text-xs font-medium">
-              {/* Field Tanggal */}
               <div>
                 <label className="block text-slate-800 font-bold mb-1.5">Tanggal</label>
                 <input
@@ -535,7 +512,6 @@ export default function InternDashboard() {
                 />
               </div>
 
-              {/* Field Kegiatan */}
               <div>
                 <label className="block text-slate-800 font-bold mb-1.5">Kegiatan</label>
                 <textarea
@@ -548,7 +524,6 @@ export default function InternDashboard() {
                 />
               </div>
 
-              {/* Field Kategori */}
               <div>
                 <label className="block text-slate-800 font-bold mb-1.5">Kategori</label>
                 <div className="relative">
@@ -570,7 +545,6 @@ export default function InternDashboard() {
                 </div>
               </div>
 
-              {/* Tombol Aksi */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
