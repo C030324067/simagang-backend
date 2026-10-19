@@ -30,17 +30,17 @@
         /* Bingkai Luar & Dalam */
         .page-container {
             position: absolute;
-            top: 12px;
-            bottom: 12px;
-            left: 12px;
-            right: 12px;
+            top: 15px;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
             border: 4px solid #0284c7;
             padding: 5px;
             box-sizing: border-box;
         }
         .cert-inner-border {
             border: 2px double #1e3a8a;
-            padding: 20px 35px 15px 35px;
+            padding: 20px 35px;
             height: 100%;
             box-sizing: border-box;
             text-align: center;
@@ -51,17 +51,17 @@
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
         .header-table td {
             vertical-align: middle;
         }
         .logo-img {
-            max-height: 68px;
+            max-height: 75px;
             width: auto;
         }
         .header-title {
-            font-size: 22px;
+            font-size: 23px;
             font-weight: 800;
             color: #1e3a8a;
             text-transform: uppercase;
@@ -74,17 +74,17 @@
             color: #0369a1;
             text-transform: uppercase;
             letter-spacing: 3px;
-            margin-top: 3px;
+            margin-top: 4px;
         }
 
         /* Judul Sertifikat & Nomor */
         .cert-title {
-            font-size: 30px;
+            font-size: 32px;
             font-weight: 900;
             color: #0284c7;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-top: 4px;
+            margin-top: 6px;
             margin-bottom: 2px;
         }
         .cert-number {
@@ -92,22 +92,22 @@
             font-weight: bold;
             color: #475569;
             letter-spacing: 1px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .recipient-label {
-            font-size: 14px;
+            font-size: 15px;
             color: #64748b;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
-        /* Nama Peserta */
+        /* Nama Peserta (Gagah & Renggang) */
         .intern-name {
-            font-size: 42px;
+            font-size: 44px;
             font-weight: bold;
             color: #0f172a;
             text-transform: uppercase;
-            margin: 4px auto;
+            margin: 6px auto;
             display: inline-block;
             border-bottom: 3.5px solid #0284c7;
             padding-bottom: 4px;
@@ -115,24 +115,24 @@
         }
 
         .division-badge {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: bold;
             color: #0369a1;
             background-color: #e0f2fe;
             border: 1px solid #bae6fd;
             border-radius: 6px;
             display: inline-block;
-            padding: 4px 18px;
-            margin-top: 8px;
-            margin-bottom: 12px;
+            padding: 5px 20px;
+            margin-top: 10px;
+            margin-bottom: 14px;
         }
 
         .description {
-            font-size: 13px;
-            line-height: 1.5;
+            font-size: 13.5px;
+            line-height: 1.6;
             color: #334155;
             width: 88%;
-            margin: 0 auto 12px auto;
+            margin: 0 auto 15px auto;
         }
 
         /* Box Nilai Akhir */
@@ -140,46 +140,49 @@
             background-color: #f8fafc;
             border: 1.5px solid #cbd5e1;
             border-radius: 8px;
-            padding: 8px 18px;
-            margin: 0 auto 15px auto;
+            padding: 10px 20px;
+            margin: 0 auto;
             width: 85%;
         }
         .final-score {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             color: #0f172a;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
         .score-badge {
             color: #0284c7;
-            font-size: 19px;
+            font-size: 20px;
         }
         .score-table {
             width: 100%;
-            font-size: 12px;
+            font-size: 12.5px;
             color: #334155;
             border-collapse: collapse;
         }
         .score-table td {
-            padding: 2px 6px;
+            padding: 3px 6px;
         }
 
-        /* Blok Tanda Tangan */
+        /* Tanda Tangan Mengunci Di Bawah Tanpa Mepet */
         .ttd-table {
-            width: 88%;
-            margin: 15px auto 0 auto;
+            position: absolute;
+            bottom: 35px;
+            left: 35px;
+            right: 35px;
+            width: calc(100% - 70px);
             border-collapse: collapse;
         }
         .ttd-title {
             font-size: 13px;
             color: #334155;
-            line-height: 1.3;
+            line-height: 1.4;
         }
         .ttd-space {
-            height: 50px; /* Ruang TTD fisik / stempel */
+            height: 48px; /* Ruang tanda tangan / stempel */
         }
         .ttd-name {
-            font-size: 14px;
+            font-size: 14.5px;
             font-weight: bold;
             color: #0f172a;
             text-decoration: underline;
@@ -190,10 +193,10 @@
             margin-top: 2px;
         }
 
-        /* Footer Verifikasi */
+        /* Footer Verifikasi Digital */
         .footer-table {
             position: absolute;
-            bottom: 8px;
+            bottom: 10px;
             left: 35px;
             right: 35px;
             width: calc(100% - 70px);
