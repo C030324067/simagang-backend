@@ -135,7 +135,7 @@ class AttendanceController extends Controller
     public function today(Request $request, EffectiveWorkingDaysCalculator $workingDays): JsonResponse
     {
         $today = Carbon::today()->toDateString();
-        $application = $request->user()->internApplications()->where('internship_status', 'active')->first();
+        $application = $this->findAttendanceApplication($request->user());
         $attendance = Attendance::where('intern_application_id', $application?->id)
             ->where('date', $today)
             ->first();
@@ -162,7 +162,7 @@ class AttendanceController extends Controller
         $today = Carbon::today()->toDateString();
         $now = now();
 
-        $application = $user->internApplications()->where('internship_status', 'active')->first();
+        $application = $this->findAttendanceApplication($user);
         if (! $application) {
             return $this->errorResponse('Peserta belum memiliki aplikasi magang aktif.', 422);
         }
@@ -251,7 +251,10 @@ class AttendanceController extends Controller
         $today = Carbon::today()->toDateString();
         $now = now();
 
-        $application = $user->internApplications()->where('internship_status', 'active')->first();
+        $application = $this->findAttendanceApplication($user);
+        if (! $application) {
+            return $this->errorResponse('Peserta belum memiliki aplikasi magang aktif.', 422);
+        }
         $attendance = Attendance::where('intern_application_id', $application?->id)
             ->where('date', $today)
             ->first();
@@ -345,5 +348,19 @@ class AttendanceController extends Controller
         abort_unless($path && Storage::disk('public')->exists($path), 404);
 
         return Storage::disk('public')->download($path, basename($path));
+    }
+
+    private function findAttendanceApplication(User $user): ?InternApplication
+    {
+        $application = InternApplication::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['APPROVED', 'ACCEPTED', 'approved', 'accepted', 'diterima', 'Aktif', 'aktif'])
+            ->latest()
+            ->first();
+
+        return $application ?? InternApplication::query()
+            ->where('user_id', $user->id)
+            ->latest()
+            ->first();
     }
 }

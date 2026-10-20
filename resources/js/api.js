@@ -80,8 +80,8 @@ export async function apiRequest(endpoint, options = {}) {
       message: `Error parsing server response (HTTP ${res.status})`,
     }));
 
-    if (!res.ok && data.message === 'Unauthenticated.') {
-      // Clear invalid token
+    if (res.status === 401) {
+      // A 401 confirms that the stored token is no longer accepted.
       setToken(null);
     }
 
