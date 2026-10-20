@@ -11,11 +11,19 @@ return new class extends Migration
     {
         foreach (['attendances' => 'user_id', 'logbooks' => 'user_id', 'evaluations' => 'intern_id', 'certificates' => 'intern_id'] as $table => $oldKey) {
             Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
-                $blueprint->dropForeign([$oldKey]);
+                try {
+                    $blueprint->dropForeign([$oldKey]);
+                } catch (Throwable $e) {
+                    // Ignore when the foreign key is already absent.
+                }
             });
             if ($table === 'attendances') {
                 Schema::table($table, function (Blueprint $blueprint): void {
-                    $blueprint->dropUnique('attendances_user_id_date_unique');
+                    try {
+                        $blueprint->dropUnique('attendances_user_id_date_unique');
+                    } catch (Throwable $e) {
+                        // Ignore when the unique index is already absent.
+                    }
                 });
             }
             Schema::table($table, function (Blueprint $blueprint): void {
@@ -63,11 +71,19 @@ return new class extends Migration
     {
         foreach (['attendances' => 'user_id', 'logbooks' => 'user_id', 'evaluations' => 'intern_id', 'certificates' => 'intern_id'] as $table => $oldKey) {
             Schema::table($table, function (Blueprint $blueprint): void {
-                $blueprint->dropForeign(['intern_application_id']);
+                try {
+                    $blueprint->dropForeign(['intern_application_id']);
+                } catch (Throwable $e) {
+                    // Ignore when the foreign key is already absent.
+                }
             });
             if ($table === 'attendances') {
                 Schema::table($table, function (Blueprint $blueprint): void {
-                    $blueprint->dropUnique('attendances_intern_application_id_date_unique');
+                    try {
+                        $blueprint->dropUnique('attendances_intern_application_id_date_unique');
+                    } catch (Throwable $e) {
+                        // Ignore when the unique index is already absent.
+                    }
                 });
             }
             Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
