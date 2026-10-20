@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Services\EffectiveWorkingDaysCalculator;
 use App\Traits\ApiResponse;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -278,7 +277,7 @@ class AttendanceController extends Controller
         abort_unless($mentor->division_id, 403, 'Akun mentor belum terhubung dengan divisi.');
 
         $attendances = Attendance::query()
-            ->with(['user' => function (Builder $query): void {
+            ->with(['user' => function ($query): void {
                 $query->select('users.id', 'users.name', 'users.email', 'users.division_id');
             }])
             ->where('approval_status', 'pending_approval')
