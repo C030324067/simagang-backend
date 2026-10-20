@@ -9,13 +9,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('attendances', function (Blueprint $table): void {
-            $table->dropUnique(['user_id', 'date']);
-        });
         foreach (['attendances' => 'user_id', 'logbooks' => 'user_id', 'evaluations' => 'intern_id', 'certificates' => 'intern_id'] as $table => $oldKey) {
             Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
                 $blueprint->dropForeign([$oldKey]);
             });
+            if ($table === 'attendances') {
+                Schema::table($table, function (Blueprint $blueprint): void {
+                    $blueprint->dropUnique('attendances_user_id_date_unique');
+                });
+            }
             Schema::table($table, function (Blueprint $blueprint): void {
                 $blueprint->foreignId('intern_application_id')->nullable()->constrained('intern_applications')->cascadeOnDelete();
             });
@@ -36,16 +38,81 @@ return new class extends Migration
             $table->unique(['intern_application_id', 'date']);
         });
 
+        foreach (['discipline_score', 'skill_score', 'softskill_score', 'responsibility_score'] as $column) {
+            if (Schema::hasColumn('evaluations', $column)) {
+                Schema::table('evaluations', function (Blueprint $table) use ($column): void {
+                    $table->dropColumn($column);
+                });
+            }
+        }
+
         Schema::table('evaluations', function (Blueprint $table): void {
-            $table->dropColumn(['discipline_score', 'skill_score', 'softskill_score', 'responsibility_score']);
-            $table->decimal('score_softskill', 5, 2)->nullable();
-            $table->decimal('score_responsibility', 5, 2)->nullable();
+            if (! Schema::hasColumn('evaluations', 'score_softskill')) {
+                $table->decimal('score_softskill', 5, 2)->nullable();
+            }
+            if (! Schema::hasColumn('evaluations', 'score_responsibility')) {
+                $table->decimal('score_responsibility', 5, 2)->nullable();
+            }
         });
     }
 
     public function down(): void
     {
-        // The original user links cannot be reconstructed uniquely after an intern has multiple applications.
-        throw new RuntimeException('This migration is intentionally irreversible because activity rows now belong to a specific application.');
+        foreach (['attendances' => 'user_id', 'logbooks' => 'user_id', 'evaluations' => 'intern_id', 'certificates' => 'intern_id'] as $table => $oldKey) {
+            Schema::table($table, function (Blueprint $blueprint): void {
+                $blueprint->dropForeign(['intern_application_id']);
+            });
+            if ($table === 'attendances') {
+                Schema::table($table, function (Blueprint $blueprint): void {
+                    $blueprint->dropUnique('attendances_intern_application_id_date_unique');
+                });
+            }
+            Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
+                $blueprint->unsignedBigInteger($oldKey)->nullable();
+            });
+
+            DB::table($table)->orderBy('id')->get(['id', 'intern_application_id'])->each(function ($row) use ($table): void {
+                $userId = DB::table('intern_applications')->where('id', $row->intern_application_id)->value('user_id');
+                if ($userId) {
+                    $oldKey = in_array($table, ['evaluations', 'certificates'], true) ? 'intern_id' : 'user_id';
+                    DB::table($table)->where('id', $row->id)->update([$oldKey => $userId]);
+                }
+            });
+
+            Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
+                $blueprint->dropColumn('intern_application_id');
+                $blueprint->unsignedBigInteger($oldKey)->nullable(false)->change();
+                $blueprint->foreign($oldKey)->references('id')->on('users')->cascadeOnDelete();
+            });
+        }
+
+        Schema::table('attendances', function (Blueprint $table): void {
+            $table->unique(['user_id', 'date']);
+            $table->time('check_in_time')->nullable();
+            $table->time('check_out_time')->nullable();
+        });
+
+        foreach (['score_softskill', 'score_responsibility'] as $column) {
+            if (Schema::hasColumn('evaluations', $column)) {
+                Schema::table('evaluations', function (Blueprint $table) use ($column): void {
+                    $table->dropColumn($column);
+                });
+            }
+        }
+
+        Schema::table('evaluations', function (Blueprint $table): void {
+            if (! Schema::hasColumn('evaluations', 'discipline_score')) {
+                $table->decimal('discipline_score', 5, 2);
+            }
+            if (! Schema::hasColumn('evaluations', 'skill_score')) {
+                $table->decimal('skill_score', 5, 2);
+            }
+            if (! Schema::hasColumn('evaluations', 'softskill_score')) {
+                $table->decimal('softskill_score', 5, 2);
+            }
+            if (! Schema::hasColumn('evaluations', 'responsibility_score')) {
+                $table->decimal('responsibility_score', 5, 2);
+            }
+        });
     }
 };
