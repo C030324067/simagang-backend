@@ -27,6 +27,9 @@ return new class extends Migration
                     DB::table($table)->where('id', $row->id)->update(['intern_application_id' => $applicationId]);
                 }
             });
+
+            DB::table($table)->whereNull('intern_application_id')->delete();
+
             Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
                 $blueprint->dropColumn($oldKey);
                 $blueprint->unsignedBigInteger('intern_application_id')->nullable(false)->change();
