@@ -2,6 +2,36 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiRequest, getToken, setToken } from '../api';
 
 const AuthContext = createContext(null);
+const USER_STORAGE_KEY = 'simagang_user';
+
+function getCachedUser() {
+  try {
+    const user = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null');
+    return user && typeof user === 'object' ? user : null;
+  } catch {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    return null;
+  }
+}
+
+function cacheUser(user) {
+  if (!user) {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    return;
+  }
+
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    division: user.division ? {
+      id: user.division.id,
+      name: user.division.name,
+      code: user.division.code,
+    } : null,
+  }));
+}
 
 export const DEMO_ACCOUNTS = {
   intern: {
@@ -37,8 +67,8 @@ export const DEMO_ACCOUNTS = {
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
   const [token, setTokenState] = useState(getToken());
+  const [user, setUser] = useState(() => (getToken() ? getCachedUser() : null));
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
@@ -51,7 +81,8 @@ export function AuthProvider({ children }) {
     const res = await apiRequest('/auth/me');
     if (res.success && res.data) {
       setUser(res.data);
-    } else {
+      cacheUser(res.data);
+    } else if (res.status === 401) {
       setUser(null);
       setToken(null);
       setTokenState('');
@@ -73,6 +104,7 @@ export function AuthProvider({ children }) {
       setToken(res.data.token);
       setTokenState(res.data.token);
       setUser(res.data.user);
+      cacheUser(res.data.user);
       return { success: true };
     }
 

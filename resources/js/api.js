@@ -13,6 +13,7 @@ export function setToken(token) {
     localStorage.setItem('simagang_token', token);
   } else {
     localStorage.removeItem('simagang_token');
+    localStorage.removeItem('simagang_user');
   }
 }
 
