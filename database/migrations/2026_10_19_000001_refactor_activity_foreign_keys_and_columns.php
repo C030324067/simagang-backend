@@ -10,21 +10,21 @@ return new class extends Migration
     public function up(): void
     {
         foreach (['attendances' => 'user_id', 'logbooks' => 'user_id', 'evaluations' => 'intern_id', 'certificates' => 'intern_id'] as $table => $oldKey) {
-            Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
-                try {
+            try {
+                Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
                     $blueprint->dropForeign([$oldKey]);
-                } catch (Throwable $e) {
-                    // Ignore when the foreign key is already absent.
-                }
-            });
-            if ($table === 'attendances') {
-                Schema::table($table, function (Blueprint $blueprint): void {
-                    try {
-                        $blueprint->dropUnique('attendances_user_id_date_unique');
-                    } catch (Throwable $e) {
-                        // Ignore when the unique index is already absent.
-                    }
                 });
+            } catch (Throwable $e) {
+                // Ignore when the foreign key is already absent.
+            }
+            if ($table === 'attendances') {
+                try {
+                    Schema::table($table, function (Blueprint $blueprint): void {
+                        $blueprint->dropUnique('attendances_user_id_date_unique');
+                    });
+                } catch (Throwable $e) {
+                    // Ignore when the unique index is already absent.
+                }
             }
             Schema::table($table, function (Blueprint $blueprint): void {
                 $blueprint->foreignId('intern_application_id')->nullable()->constrained('intern_applications')->cascadeOnDelete();
@@ -70,21 +70,21 @@ return new class extends Migration
     public function down(): void
     {
         foreach (['attendances' => 'user_id', 'logbooks' => 'user_id', 'evaluations' => 'intern_id', 'certificates' => 'intern_id'] as $table => $oldKey) {
-            Schema::table($table, function (Blueprint $blueprint): void {
-                try {
-                    $blueprint->dropForeign(['intern_application_id']);
-                } catch (Throwable $e) {
-                    // Ignore when the foreign key is already absent.
-                }
-            });
-            if ($table === 'attendances') {
+            try {
                 Schema::table($table, function (Blueprint $blueprint): void {
-                    try {
-                        $blueprint->dropUnique('attendances_intern_application_id_date_unique');
-                    } catch (Throwable $e) {
-                        // Ignore when the unique index is already absent.
-                    }
+                    $blueprint->dropForeign(['intern_application_id']);
                 });
+            } catch (Throwable $e) {
+                // Ignore when the foreign key is already absent.
+            }
+            if ($table === 'attendances') {
+                try {
+                    Schema::table($table, function (Blueprint $blueprint): void {
+                        $blueprint->dropUnique('attendances_intern_application_id_date_unique');
+                    });
+                } catch (Throwable $e) {
+                    // Ignore when the unique index is already absent.
+                }
             }
             Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
                 $blueprint->unsignedBigInteger($oldKey)->nullable();
