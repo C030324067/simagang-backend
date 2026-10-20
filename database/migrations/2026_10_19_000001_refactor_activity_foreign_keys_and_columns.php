@@ -10,14 +10,16 @@ return new class extends Migration
     public function up(): void
     {
         foreach (['attendances' => 'user_id', 'logbooks' => 'user_id', 'evaluations' => 'intern_id', 'certificates' => 'intern_id'] as $table => $oldKey) {
-            try {
-                Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
-                    $blueprint->dropForeign([$oldKey]);
-                });
-            } catch (Throwable $e) {
-                // Ignore when the foreign key is already absent.
+            if (Schema::hasColumn($table, $oldKey)) {
+                try {
+                    Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
+                        $blueprint->dropForeign([$oldKey]);
+                    });
+                } catch (Throwable $e) {
+                    // Ignore when the foreign key is already absent.
+                }
             }
-            if ($table === 'attendances') {
+            if ($table === 'attendances' && Schema::hasColumn($table, $oldKey)) {
                 try {
                     Schema::table($table, function (Blueprint $blueprint): void {
                         $blueprint->dropUnique('attendances_user_id_date_unique');
@@ -26,20 +28,39 @@ return new class extends Migration
                     // Ignore when the unique index is already absent.
                 }
             }
-            Schema::table($table, function (Blueprint $blueprint): void {
-                $blueprint->foreignId('intern_application_id')->nullable()->constrained('intern_applications')->cascadeOnDelete();
-            });
-            DB::table($table)->orderBy('id')->get(['id', $oldKey])->each(function ($row) use ($table, $oldKey): void {
-                $applicationId = DB::table('intern_applications')->where('user_id', $row->{$oldKey})->orderByDesc('id')->value('id');
-                if ($applicationId) {
-                    DB::table($table)->where('id', $row->id)->update(['intern_application_id' => $applicationId]);
-                }
-            });
+
+            if (! Schema::hasColumn($table, 'intern_application_id')) {
+                Schema::table($table, function (Blueprint $blueprint): void {
+                    $blueprint->foreignId('intern_application_id')->nullable();
+                });
+            }
+
+            if (Schema::hasColumn($table, $oldKey)) {
+                DB::table($table)->orderBy('id')->get(['id', $oldKey])->each(function ($row) use ($table, $oldKey): void {
+                    $applicationId = DB::table('intern_applications')->where('user_id', $row->{$oldKey})->orderByDesc('id')->value('id');
+                    if ($applicationId) {
+                        DB::table($table)->where('id', $row->id)->update(['intern_application_id' => $applicationId]);
+                    }
+                });
+            }
 
             DB::table($table)->whereNull('intern_application_id')->delete();
 
-            Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
-                $blueprint->dropColumn($oldKey);
+            if (Schema::hasColumn($table, $oldKey)) {
+                Schema::table($table, function (Blueprint $blueprint) use ($oldKey): void {
+                    $blueprint->dropColumn($oldKey);
+                });
+            }
+
+            try {
+                Schema::table($table, function (Blueprint $blueprint): void {
+                    $blueprint->foreign('intern_application_id')->references('id')->on('intern_applications')->cascadeOnDelete();
+                });
+            } catch (Throwable $e) {
+                // Ignore when the new foreign key is already present.
+            }
+
+            Schema::table($table, function (Blueprint $blueprint): void {
                 $blueprint->unsignedBigInteger('intern_application_id')->nullable(false)->change();
             });
         }
