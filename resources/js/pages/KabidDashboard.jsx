@@ -21,8 +21,7 @@ export default function KabidDashboard() {
   } = useApplicationReviewDashboard({ 
     endpoint: '/applications/kabid', 
     decisionEndpoint: '/applications/{application}/approve-kabid',
-    decisionStatusMap: { review_kadis: 'approved', rejected: 'rejected' },
-    initialStatus: 'review_kadis', 
+    initialStatus: 'approved', 
     initialNotes: 'Kandidat memiliki kualifikasi teknis yang relevan dengan kegiatan bidang.', 
     successMessage: 'Verifikasi teknis bidang berhasil disimpan.', 
     failureMessage: 'Gagal memproses verifikasi.' 
@@ -96,7 +95,7 @@ export default function KabidDashboard() {
       setModalErr('Mohon isi alasan penolakan pada catatan pertimbangan teknis.');
       return;
     }
-    if (actionForm.status === 'review_kadis' && !actionForm.mentor_id) {
+    if (actionForm.status === 'approved' && !actionForm.mentor_id) {
       setModalErr('Pilih Pembimbing Lapangan sebelum menyetujui permohonan.');
       return;
     }
@@ -334,9 +333,9 @@ export default function KabidDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setActionForm({ ...actionForm, status: 'review_kadis' })}
+                    onClick={() => setActionForm({ ...actionForm, status: 'approved' })}
                     className={`flex items-center justify-center gap-2 p-3 rounded-xl font-bold text-xs border transition cursor-pointer ${
-                      actionForm.status === 'review_kadis'
+                      actionForm.status === 'approved'
                         ? 'bg-[#4F46E5] border-[#4F46E5] text-white shadow-xs'
                         : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
@@ -360,7 +359,7 @@ export default function KabidDashboard() {
                 </div>
               </div>
 
-              {actionForm.status === 'review_kadis' && (
+              {actionForm.status === 'approved' && (
                 <div className="space-y-2">
                   <label htmlFor="mentor_id" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     Pilih Pembimbing Lapangan <span className="text-rose-600">*</span>
@@ -435,10 +434,10 @@ export default function KabidDashboard() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || mentorsLoading || (actionForm.status === 'review_kadis' && !actionForm.mentor_id)}
+                  disabled={submitting || mentorsLoading || (actionForm.status === 'approved' && !actionForm.mentor_id)}
                   className="px-5 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-semibold transition shadow-2xs cursor-pointer disabled:opacity-50"
                 >
-                  {submitting ? 'Menyimpan...' : 'Kirim Keputusan Kabid'}
+                  {submitting ? 'Mengirim keputusan...' : actionForm.status === 'approved' ? 'Kirim Keputusan ke Kadis' : 'Kirim Penolakan Kabid'}
                 </button>
               </div>
             </form>

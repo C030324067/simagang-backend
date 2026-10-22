@@ -18,6 +18,7 @@ export default function useMentorDashboard() {
   const [evaluations, setEvaluations] = useState([]);
   const [interns, setInterns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [generatingCertificateId, setGeneratingCertificateId] = useState(null);
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [selectedLogbook, setSelectedLogbook] = useState(null);
   const [selectedApplication, setSelectedApplication] = useState(null);
@@ -148,14 +149,20 @@ export default function useMentorDashboard() {
   };
 
   const handleGenerateCert = async (evaluation) => {
-    const response = await apiRequest(`/evaluations/${evaluation.id}/generate-certificate`, { method: 'POST' });
-    setMsg({
-      type: response.success ? 'success' : 'error',
-      text: response.success
-        ? `${response.message || 'Sertifikat diterbitkan.'}${response.data?.certificate_number ? ` Nomor: ${response.data.certificate_number}` : ''}`
-        : apiErrorMessage(response, 'Penerbitan sertifikat gagal.'),
-    });
-    if (response.success) await loadData();
+    setGeneratingCertificateId(evaluation.id);
+    try {
+      const response = await apiRequest(`/evaluations/${evaluation.id}/generate-certificate`, { method: 'POST' });
+      setMsg({
+        type: response.success ? 'success' : 'error',
+        text: response.success
+          ? `${response.message || 'Sertifikat diterbitkan.'}${response.data?.certificate_number ? ` Nomor: ${response.data.certificate_number}` : ''}`
+          : apiErrorMessage(response, 'Penerbitan sertifikat gagal.'),
+      });
+      if (response.success) await loadData();
+      return response;
+    } finally {
+      setGeneratingCertificateId(null);
+    }
   };
 
   const handleDownloadTaskFile = async (task, kind) => {
@@ -164,7 +171,7 @@ export default function useMentorDashboard() {
   };
 
   return {
-    activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg,
+    activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg, generatingCertificateId,
     selectedLogbook, setSelectedLogbook, selectedApplication, setSelectedApplication,
     logbookVerifyForm, setLogbookVerifyForm, showTaskModal, setShowTaskModal,
     taskForm, setTaskForm, loadData, handleLoadApplication, handleVerifyLogbook, handleCreateTask,

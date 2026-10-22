@@ -27,7 +27,7 @@ export default function MentorDashboard() {
   const [savingRevision, setSavingRevision] = React.useState(false);
   const [taskStatusSelections, setTaskStatusSelections] = React.useState({});
   const {
-    activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg,
+    activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg, generatingCertificateId,
     selectedLogbook, setSelectedLogbook, selectedApplication, setSelectedApplication,
     logbookVerifyForm, setLogbookVerifyForm, showTaskModal, setShowTaskModal,
     taskForm, setTaskForm, loadData, handleLoadApplication, handleUpdateTaskStatus,
@@ -95,7 +95,13 @@ export default function MentorDashboard() {
             Tugas Baru
           </button>
           <button
-            onClick={() => setActiveTab('evaluations')}
+            onClick={() => {
+              setActiveTab('evaluations');
+              window.requestAnimationFrame(() => {
+                document.getElementById('mentor-evaluation-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('mentor-evaluation-intern')?.focus({ preventScroll: true });
+              });
+            }}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
           >
             <Star className="w-4 h-4 fill-white/20" />
@@ -470,7 +476,7 @@ export default function MentorDashboard() {
       {/* TAB: PENILAIAN & SERTIFIKAT */}
       {activeTab === 'evaluations' && (
         <div className="space-y-6">
-          <MentorFinalEvaluation interns={interns} evaluations={evaluations} onSaved={loadData} onGenerateCertificate={handleGenerateCert} />
+          <MentorFinalEvaluation interns={interns} evaluations={evaluations} onSaved={loadData} onGenerateCertificate={handleGenerateCert} generatingCertificateId={generatingCertificateId} />
           
           <section className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xs p-6 space-y-6">
             <div className="flex items-center justify-between">
@@ -479,7 +485,10 @@ export default function MentorDashboard() {
                 <h3 className="text-sm font-bold">Daftar Evaluasi Kinerja & Penerbitan Sertifikat QR</h3>
               </div>
               <button 
-                onClick={() => setActiveTab('evaluations')}
+                onClick={() => {
+                  document.getElementById('mentor-evaluation-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  document.getElementById('mentor-evaluation-intern')?.focus({ preventScroll: true });
+                }}
                 className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold transition"
               >
                 + Input Nilai Magang
@@ -518,9 +527,10 @@ export default function MentorDashboard() {
                           <button 
                             type="button" 
                             onClick={() => handleGenerateCert(evaluation)} 
-                            className="rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] px-4 py-2 font-bold text-white transition cursor-pointer"
+                            disabled={generatingCertificateId === evaluation.id}
+                            className="rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] px-4 py-2 font-bold text-white transition cursor-pointer disabled:cursor-wait disabled:opacity-60"
                           >
-                            Terbitkan Sertifikat QR
+                            {generatingCertificateId === evaluation.id ? 'Menerbitkan…' : 'Terbitkan Sertifikat QR'}
                           </button>
                         </td>
                       </tr>

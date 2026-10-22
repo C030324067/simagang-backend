@@ -79,6 +79,7 @@ export default function InternDashboard() {
 
   // State Modal
   const [isAllActivitiesModalOpen, setIsAllActivitiesModalOpen] = useState(false);
+  const [isAllTasksModalOpen, setIsAllTasksModalOpen] = useState(false);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
 
   const userName = user?.name || 'Peserta Magang';
@@ -241,10 +242,10 @@ export default function InternDashboard() {
                   </div>
                 </div>
                 <button 
-                  onClick={() => setIsAllActivitiesModalOpen(true)}
+                  onClick={() => setIsAllTasksModalOpen(true)}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition shrink-0 cursor-pointer"
                 >
-                  Lihat Semua
+                  Lihat Semua Tugas
                 </button>
               </div>
 
@@ -647,6 +648,67 @@ export default function InternDashboard() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* MODAL SEMUA TUGAS */}
+      {isAllTasksModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs" onClick={() => setIsAllTasksModalOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-labelledby="all-tasks-title" className="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>
+            <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <div>
+                <h3 id="all-tasks-title" className="font-bold text-[#0F2942]">Daftar Seluruh Tugas</h3>
+                <p className="text-xs text-slate-400">Semua tugas yang diberikan oleh pembimbing lapangan.</p>
+              </div>
+              <button type="button" aria-label="Tutup" onClick={() => setIsAllTasksModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </header>
+
+            <div className="overflow-y-auto p-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-[11px] font-bold uppercase text-slate-400">
+                      <th className="pb-3 pr-3">Tenggat</th>
+                      <th className="px-3 pb-3">Judul Tugas</th>
+                      <th className="px-3 pb-3">Deskripsi</th>
+                      <th className="px-3 pb-3">Status</th>
+                      <th className="pb-3 pl-3">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {tasks.length === 0 ? (
+                      <tr><td colSpan="5" className="py-8 text-center text-slate-400">Belum ada tugas dari pembimbing.</td></tr>
+                    ) : tasks.map((task) => {
+                      const badge = taskStatusStyle[task.status] || taskStatusStyle.pending;
+                      return (
+                        <tr key={task.id} className="hover:bg-slate-50">
+                          <td className="whitespace-nowrap py-3.5 pr-3 font-bold text-[#0F2942]">{formatDate(task.deadline)}</td>
+                          <td className="px-3 py-3.5 font-medium text-slate-800">{task.title}</td>
+                          <td className="max-w-sm px-3 py-3.5 text-slate-500">{task.description || '—'}</td>
+                          <td className="px-3 py-3.5"><span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-[11px] ${badge.style}`}>{task.status === 'completed' ? 'Telah Dikumpulkan' : badge.label}</span></td>
+                          <td className="py-3.5 pl-3">
+                            {task.status === 'completed' ? (
+                              <span className="whitespace-nowrap text-[11px] font-bold text-emerald-700">Selesai</span>
+                            ) : (
+                              <button type="button" onClick={() => { setIsAllTasksModalOpen(false); openTaskSubmission(task); }} className="whitespace-nowrap rounded-lg bg-indigo-50 px-3 py-1.5 text-[11px] font-bold text-[#4F46E5] hover:bg-indigo-100">
+                                {task.status === 'revision_needed' ? 'Perbaiki Tugas' : 'Detail / Upload'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <footer className="flex justify-end border-t border-slate-100 px-6 py-3">
+              <button type="button" onClick={() => setIsAllTasksModalOpen(false)} className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200">Tutup</button>
+            </footer>
+          </section>
         </div>
       )}
 

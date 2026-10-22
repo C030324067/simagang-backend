@@ -25,6 +25,15 @@ const divisionPortraits = {
   tki: '/images/pimpinan/kabid-tki.png',
 };
 
+// Identitas pada landing page mengikuti penempatan resmi Kabid per bidang.
+// Nilai ini juga mencegah data akun Kabid lama/duplikat memasangkan nama ke foto bidang lain.
+const landingKabidProfiles = {
+  ikp: { name: 'Eka Rismawina, SP., MP', position: 'Kabid IKP' },
+  aptika: { name: 'M. Zainaini, S.Kom, M.T', position: 'Kabid Aptika' },
+};
+
+const divisionOrder = ['ikp', 'statistik', 'aptika', 'tki'];
+
 export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNavigateTracking }) {
   const [activeTab, setActiveTab] = useState('home');
   const { divisions, error: divisionError } = useDivisions();
@@ -36,9 +45,15 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
   const periodLabel = period?.period_label || 'periode berjalan';
 
   // Filter agar Sekretariat tidak muncul di daftar bidang/kabid
-  const filteredDivisions = divisions.filter(
-    (division) => (division.code || division.slug || division.name || '').toLowerCase() !== 'sekretariat'
-  );
+  const filteredDivisions = divisions
+    .filter((division) => (division.code || division.slug || division.name || '').toLowerCase() !== 'sekretariat')
+    .sort((left, right) => {
+      const leftCode = String(left.code || left.slug || '').toLowerCase();
+      const rightCode = String(right.code || right.slug || '').toLowerCase();
+      const leftIndex = divisionOrder.indexOf(leftCode);
+      const rightIndex = divisionOrder.indexOf(rightCode);
+      return (leftIndex < 0 ? divisionOrder.length : leftIndex) - (rightIndex < 0 ? divisionOrder.length : rightIndex);
+    });
 
   const scrollToSection = (id) => {
     setActiveTab(id);
@@ -281,13 +296,19 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
 
             {/* 2. KABID (4 BIDANG UTAMA) */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
-              {filteredDivisions.length > 0 ? filteredDivisions.map((division) => (
+              {filteredDivisions.length > 0 ? filteredDivisions.map((division) => {
+                const divisionCode = String(division.code || division.slug || '').toLowerCase();
+                const kabidProfile = landingKabidProfiles[divisionCode];
+                const kabidName = kabidProfile?.name || division.active_kabid?.name || division.name;
+                const kabidPosition = kabidProfile?.position || division.active_kabid?.position || 'Kepala Bidang';
+
+                return (
                 <div key={division.id} className="group p-6 rounded-2xl bg-white border border-[#bae6fd]/80 text-[#0f172a] shadow-sm hover:shadow-md hover:bg-gradient-to-b hover:from-[#e0f2fe] hover:to-[#bae6fd]/70 hover:border-[#7dd3fc] hover:scale-[1.01] transition-all duration-300 flex flex-col items-center text-center">
                   <div className="relative p-1.5 rounded-full mb-3 bg-[#e0f2fe] group-hover:bg-white transition-colors">
                     <ProfilePhoto
-                      src={divisionPortraits[String(division.code || '').toLowerCase()]}
-                      alt={`Foto ${division.active_kabid?.name || division.name}`}
-                      initials={(division.active_kabid?.name || division.name).split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+                      src={divisionPortraits[divisionCode]}
+                      alt={`Foto ${kabidName}`}
+                      initials={kabidName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
                       className="h-24 w-24 rounded-full border-2 border-white object-cover shadow-sm"
                     />
                   </div>
@@ -295,16 +316,17 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
                     {division.name}
                   </span>
                   <h4 className="text-base font-extrabold mb-1 text-[#0f172a] group-hover:text-[#0c4a6e] transition-colors">
-                    {division.active_kabid?.name || 'Kepala bidang belum ditetapkan'}
+                    {kabidName}
                   </h4>
                   <p className="text-xs font-bold mb-3 text-[#64748b] group-hover:text-[#0284c7] transition-colors">
-                    {division.active_kabid?.position || 'Kepala Bidang'}
+                    {kabidPosition}
                   </p>
                   <p className="text-xs leading-relaxed border-t border-[#f1f5f9] pt-3 w-full text-left text-[#64748b] group-hover:border-[#bae6fd] group-hover:text-[#334155] transition-colors">
                     {division.description || 'Informasi bidang belum tersedia.'}
                   </p>
                 </div>
-              )) : (
+              );
+              }) : (
                 <>
                   {/* Fallback Kabid IKP */}
                   <div className="group p-6 rounded-2xl bg-white border border-[#bae6fd]/80 text-[#0f172a] shadow-sm hover:shadow-md hover:bg-gradient-to-b hover:from-[#e0f2fe] hover:to-[#bae6fd]/70 hover:border-[#7dd3fc] hover:scale-[1.01] transition-all duration-300 flex flex-col items-center text-center">
