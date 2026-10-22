@@ -104,7 +104,9 @@ export default function InternDashboard() {
       : []),
   ];
   const certificateProgress = Math.round((certificateChecklist.filter((item) => item.done).length / certificateChecklist.length) * 100);
-  const isCertificateEligible = certificate?.is_eligible !== false && certificateChecklist.every((item) => item.done);
+  const certificateIssued = Boolean(certificate?.id);
+  const certificateAwaitingIssue = internshipCompleted && Boolean(evaluation) && !certificateIssued;
+  const canDownloadCertificate = certificateIssued;
   const evaluationScore = Number(certificate?.intern?.evaluations?.[0]?.final_score ?? evaluation?.final_score);
   const certificateType = ['kelulusan', 'mengikuti'].includes(certificate?.certificate_type)
     ? certificate.certificate_type
@@ -421,7 +423,7 @@ export default function InternDashboard() {
                 <p className="mt-1 text-xs text-slate-500">Pantau progres kelayakan dan unduh sertifikat setelah kegiatan magang selesai.</p>
               </div>
 
-              {!isCertificateEligible ? (
+              {!canDownloadCertificate ? (
                 <div className="space-y-5 rounded-2xl border border-slate-100 bg-slate-50/50 p-6">
                   <div role="alert" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-relaxed text-amber-900">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -433,7 +435,12 @@ export default function InternDashboard() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="font-bold text-[#0F2942]">Sertifikat belum tersedia</h3>
-                      <p className="mt-1 text-xs leading-relaxed text-slate-500">Sertifikat diterbitkan setelah penilaian akhir pembimbing selesai. {applicationEndDate && !internshipCompleted ? <>Sisa waktu magang: <strong className="text-slate-800">{remainingDays} hari</strong>.</> : null}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                        {certificateAwaitingIssue
+                          ? 'Magang dan penilaian akhir sudah selesai. Sertifikat sedang menunggu diterbitkan oleh pembimbing.'
+                          : 'Sertifikat diterbitkan setelah penilaian akhir pembimbing selesai.'}
+                        {applicationEndDate && !internshipCompleted ? <> Sisa waktu magang: <strong className="text-slate-800">{remainingDays} hari</strong>.</> : null}
+                      </p>
                     </div>
                   </div>
 

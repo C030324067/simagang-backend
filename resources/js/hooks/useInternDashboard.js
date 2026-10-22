@@ -127,26 +127,27 @@ export default function useInternDashboard(user) {
 
   // FUNGSI UNDUH SERTIFIKAT DENGAN TEMPLATE DINAMIS BARU
   const downloadCertificate = async () => {
-    if (certificate?.is_eligible === false) {
-      return notify('Sertifikat belum dapat diunduh karena syarat belum terpenuhi.', 'error');
-    }
     if (!certificate?.id) {
-      return notify('Data sertifikat belum tersedia.', 'error');
+      return notify('Sertifikat belum diterbitkan oleh pembimbing.', 'error');
     }
     try {
       const response = await fetch(`/api/certificates/${certificate.id}/download`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-      if (!response.ok) return notify('Sertifikat belum dapat diunduh.', 'error');
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        return notify(error.message || 'Sertifikat belum dapat diunduh.', 'error');
+      }
       const blob = await response.blob();
+      if (!blob.size) return notify('Berkas sertifikat kosong. Silakan coba lagi.', 'error');
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Sertifikat-${user?.name || 'Magang'}.pdf`;
+      link.download = `Sertifikat-${String(user?.name || 'Magang').replace(/[\\/:*?"<>|]/g, '-').trim()}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (error) {
       notify('Gagal mengunduh sertifikat.', 'error');
     }

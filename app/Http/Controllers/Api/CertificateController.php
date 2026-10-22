@@ -143,12 +143,15 @@ class CertificateController extends Controller
     /**
      * Render & download official certificate PDF dynamically.
      */
-    public function downloadPdf($id)
+    public function downloadPdf(Request $request, string $id)
     {
         $certificate = Certificate::with(['intern.division', 'intern.evaluations.mentor', 'intern.activeApplication'])
-            ->where('id', $id)
-            ->orWhere('intern_application_id', $id)
-            ->firstOrFail();
+            ->findOrFail($id);
+
+        if ($request->user()->role === 'intern'
+            && (int) $certificate->internApplication()->value('user_id') !== (int) $request->user()->id) {
+            abort(404);
+        }
 
         $data = [
             'certificate' => $certificate,
