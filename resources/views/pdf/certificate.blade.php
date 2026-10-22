@@ -24,8 +24,9 @@
 
         html,
         body {
-            width: 297mm;
-            height: 210mm;
+            /* DomPDF menghitung padding di luar width/height elemen ini. */
+            width: 258mm;
+            height: 183mm;
             margin: 0;
             padding: 0;
             font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
@@ -261,6 +262,7 @@
             border-top: 0.3mm solid #d5dee6;
             color: #536579;
             font-size: 7.5pt;
+            table-layout: fixed;
             page-break-inside: avoid;
         }
 
@@ -291,11 +293,12 @@
             color: #173f63;
             font-size: 7pt;
             font-weight: bold;
+            word-break: break-all;
         }
 
         .verification-url {
             margin-top: 0.8mm;
-            word-wrap: break-word;
+            word-break: break-all;
         }
     </style>
 </head>
