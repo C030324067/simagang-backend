@@ -24,9 +24,8 @@
 
         html,
         body {
-            /* DomPDF menghitung padding di luar width/height elemen ini. */
-            width: 258mm;
-            height: 183mm;
+            width: 297mm;
+            height: 210mm;
             margin: 0;
             padding: 0;
             font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
@@ -40,8 +39,9 @@
 
         .certificate-container {
             position: relative;
-            width: 297mm;
-            height: 210mm;
+            /* Sisakan ruang untuk padding/border yang dihitung di luar ukuran oleh DomPDF. */
+            width: 258mm;
+            height: 183mm;
             margin: 0 auto;
             padding: 12mm 18mm;
             overflow: hidden;
