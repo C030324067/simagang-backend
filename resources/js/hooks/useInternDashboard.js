@@ -5,6 +5,31 @@ import { getGrade } from '../utils/evaluation';
 import { downloadTaskFile as downloadTaskFileRequest } from '../utils/downloadTaskSubmission';
 
 const getCollection = (response) => Array.isArray(response?.data) ? response.data : response?.data?.data || [];
+const getCertificateData = (response) => {
+  const payload = response?.data ?? null;
+  if (!payload) return null;
+
+  const certificate = payload.certificate ?? payload.data ?? payload;
+  if (!certificate || typeof certificate !== 'object') return null;
+
+  const isPublished = Boolean(
+    certificate.id
+    || certificate.is_published === true
+    || certificate.is_issued === true
+    || certificate.status === 'published'
+    || payload.is_published === true
+    || payload.is_issued === true
+    || payload.certificate_status === 'published'
+    || payload.status === 'published'
+  );
+
+  return {
+    ...certificate,
+    id: certificate.id ?? certificate.certificate_id ?? null,
+    is_published: isPublished,
+    status: isPublished ? 'published' : certificate.status,
+  };
+};
 const initialLogbookForm = { date: '', activity_description: '', category: 'Pekerjaan', attachment: null };
 const initialTaskForm = { submission_notes: '', submission_file: null };
 
@@ -52,7 +77,7 @@ export default function useInternDashboard(user) {
       if (taskResponse.success) setTasks(getCollection(taskResponse));
       if (logbookResponse.success) setLogbooks(getCollection(logbookResponse));
       if (evaluationResponse.success) setEvaluation(getCollection(evaluationResponse)[0] || null);
-      if (certificateResponse.success) setCertificate(certificateResponse.data || null);
+      if (certificateResponse.success) setCertificate(getCertificateData(certificateResponse));
       if (applicationResponse.success) setApplication(applicationResponse.data || null);
       if (metricsResponse.success) setProgressMetrics(metricsResponse.data || null);
     } finally {
@@ -60,15 +85,16 @@ export default function useInternDashboard(user) {
     }
   }, [user?.id]);
 
-  const refreshCertificate = async () => {
+  const refreshCertificate = useCallback(async () => {
     const response = await apiRequest('/certificates/my-certificate');
     if (response.success) {
-      setCertificate(response.data || null);
+      setCertificate(getCertificateData(response));
       return true;
     }
-    notify(response.message || 'Status sertifikat gagal diperbarui.', 'error');
+    setMessage({ text: response.message || 'Status sertifikat gagal diperbarui.', type: 'error' });
+    window.setTimeout(() => setMessage(null), 4000);
     return false;
-  };
+  }, []);
 
   useEffect(() => {
     loadDashboard();

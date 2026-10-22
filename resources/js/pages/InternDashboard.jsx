@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AlertCircle,
   Award,
@@ -84,6 +84,20 @@ export default function InternDashboard() {
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
   const [certificateRefreshing, setCertificateRefreshing] = useState(false);
 
+  useEffect(() => {
+    if (!isCertificateModalOpen) return undefined;
+
+    let active = true;
+    setCertificateRefreshing(true);
+    refreshCertificate().finally(() => {
+      if (active) setCertificateRefreshing(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [isCertificateModalOpen, refreshCertificate]);
+
   const userName = user?.name || 'Peserta Magang';
   const pendingTasksCount = tasks.filter((t) => t.status !== 'completed').length;
 
@@ -106,7 +120,12 @@ export default function InternDashboard() {
       : []),
   ];
   const certificateProgress = Math.round((certificateChecklist.filter((item) => item.done).length / certificateChecklist.length) * 100);
-  const certificateIssued = Boolean(certificate?.id);
+  const certificateIssued = Boolean(
+    certificate?.id
+    || certificate?.is_published === true
+    || certificate?.is_issued === true
+    || certificate?.status === 'published'
+  );
   const certificateAwaitingIssue = internshipCompleted && Boolean(evaluation) && !certificateIssued;
   const canDownloadCertificate = certificateIssued;
   const evaluationScore = Number(certificate?.intern?.evaluations?.[0]?.final_score ?? evaluation?.final_score);
@@ -120,8 +139,6 @@ export default function InternDashboard() {
 
   const handleCertificateClick = () => {
     setIsCertificateModalOpen(true);
-    setCertificateRefreshing(true);
-    refreshCertificate().finally(() => setCertificateRefreshing(false));
   };
 
   return (
@@ -459,7 +476,6 @@ export default function InternDashboard() {
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white opacity-50"><Download className="h-4 w-4" />Unduh PDF</button>
-                    <button type="button" disabled={certificateRefreshing} onClick={() => { setCertificateRefreshing(true); refreshCertificate().finally(() => setCertificateRefreshing(false)); }} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50">{certificateRefreshing ? 'Memeriksa…' : 'Perbarui Status Sertifikat'}</button>
                   </div>
                 </div>
               ) : (
@@ -485,7 +501,7 @@ export default function InternDashboard() {
                       ))}
                     </div>
                     <div className="flex gap-2 pt-2">
-                      <button type="button" onClick={downloadCertificate} className="inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white hover:bg-[#4338CA] transition"><Download className="h-4 w-4" />Unduh PDF</button>
+                      <button type="button" onClick={downloadCertificate} className="inline-flex items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white hover:bg-[#4338CA] transition"><Download className="h-4 w-4" />Unduh Sertifikat Digital</button>
                     </div>
                   </div>
                 </div>
