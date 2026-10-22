@@ -60,6 +60,16 @@ export default function useInternDashboard(user) {
     }
   }, [user?.id]);
 
+  const refreshCertificate = async () => {
+    const response = await apiRequest('/certificates/my-certificate');
+    if (response.success) {
+      setCertificate(response.data || null);
+      return true;
+    }
+    notify(response.message || 'Status sertifikat gagal diperbarui.', 'error');
+    return false;
+  };
+
   useEffect(() => {
     loadDashboard();
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -165,6 +175,6 @@ export default function useInternDashboard(user) {
     division: application?.division?.name || user?.division?.name || 'Bidang belum ditetapkan',
     checkedInAt: formatLocalTime(attendance?.check_in_time), checkedOutAt: formatLocalTime(attendance?.check_out_time),
     grade: getGrade(evaluation?.final_score), currentTime: formatWitaDateTime(now, { hour: '2-digit', minute: '2-digit' }),
-    loadDashboard, submitLogbook, submitTask, downloadTaskFile, downloadCertificate,
+    loadDashboard, refreshCertificate, submitLogbook, submitTask, downloadTaskFile, downloadCertificate,
   };
 }

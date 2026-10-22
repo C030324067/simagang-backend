@@ -66,6 +66,7 @@ export default function InternDashboard() {
     setTaskForm,
     downloadCertificate,
     loadDashboard,
+    refreshCertificate,
     submitLogbook,
     submitTask,
     downloadTaskFile,
@@ -81,6 +82,7 @@ export default function InternDashboard() {
   const [isAllActivitiesModalOpen, setIsAllActivitiesModalOpen] = useState(false);
   const [isAllTasksModalOpen, setIsAllTasksModalOpen] = useState(false);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [certificateRefreshing, setCertificateRefreshing] = useState(false);
 
   const userName = user?.name || 'Peserta Magang';
   const pendingTasksCount = tasks.filter((t) => t.status !== 'completed').length;
@@ -118,6 +120,8 @@ export default function InternDashboard() {
 
   const handleCertificateClick = () => {
     setIsCertificateModalOpen(true);
+    setCertificateRefreshing(true);
+    refreshCertificate().finally(() => setCertificateRefreshing(false));
   };
 
   return (
@@ -425,9 +429,9 @@ export default function InternDashboard() {
 
               {!canDownloadCertificate ? (
                 <div className="space-y-5 rounded-2xl border border-slate-100 bg-slate-50/50 p-6">
-                  <div role="alert" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-relaxed text-amber-900">
+                  <div role="status" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-relaxed text-amber-900">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>Sertifikat belum dapat diunduh karena syarat belum terpenuhi.</span>
+                    <span>{certificateRefreshing ? 'Memeriksa status sertifikat terbaru…' : certificateAwaitingIssue ? 'Sertifikat belum diterbitkan oleh pembimbing.' : 'Sertifikat belum dapat diunduh karena syarat belum terpenuhi.'}</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-5">
                     <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#4F46E5 ${certificateProgress}%, #E2E8F0 ${certificateProgress}% 100%)` }}>
@@ -455,6 +459,7 @@ export default function InternDashboard() {
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" disabled className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white opacity-50"><Download className="h-4 w-4" />Unduh PDF</button>
+                    <button type="button" disabled={certificateRefreshing} onClick={() => { setCertificateRefreshing(true); refreshCertificate().finally(() => setCertificateRefreshing(false)); }} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50">{certificateRefreshing ? 'Memeriksa…' : 'Perbarui Status Sertifikat'}</button>
                   </div>
                 </div>
               ) : (
