@@ -39,10 +39,10 @@
 
         .certificate-container {
             position: relative;
-            width: 291mm;
-            height: 204mm;
-            margin: 3mm auto;
-            padding: 20mm 25mm;
+            width: 297mm;
+            height: 210mm;
+            margin: 0 auto;
+            padding: 12mm 18mm;
             overflow: hidden;
             border: 1.2mm solid #1d5b83;
             page-break-inside: avoid;
@@ -63,7 +63,7 @@
             position: relative;
             z-index: 1;
             width: 100%;
-            height: 100%;
+            height: auto;
             text-align: center;
             page-break-inside: avoid;
         }
@@ -110,9 +110,9 @@
         }
 
         .certificate-title {
-            margin: 1mm 0 1.5mm;
+            margin: 0.5mm 0 1mm;
             color: #1d5b83;
-            font-size: 34pt;
+            font-size: 30pt;
             font-weight: bold;
             letter-spacing: 1.2pt;
             line-height: 1.05;
@@ -239,7 +239,7 @@
         }
 
         .signature-space {
-            height: 70px;
+            height: 34px;
         }
 
         .signer-name {
@@ -272,7 +272,7 @@
         .verification-box {
             width: 60mm;
             text-align: right;
-            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         .qr-cell {
@@ -295,7 +295,7 @@
 
         .verification-url {
             margin-top: 0.8mm;
-            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
     </style>
 </head>
