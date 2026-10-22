@@ -6,6 +6,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -90,7 +91,7 @@ class User extends Authenticatable
         return $this->hasManyThrough(Attendance::class, InternApplication::class, 'user_id', 'intern_application_id');
     }
 
-    public function logbooks(): HasMany
+    public function logbooks(): HasManyThrough
     {
         return $this->hasManyThrough(Logbook::class, InternApplication::class, 'user_id', 'intern_application_id');
     }
@@ -105,12 +106,12 @@ class User extends Authenticatable
         return $this->hasMany(Task::class, 'created_by');
     }
 
-    public function evaluations(): HasMany
+    public function evaluations(): HasManyThrough
     {
         return $this->hasManyThrough(Evaluation::class, InternApplication::class, 'user_id', 'intern_application_id');
     }
 
-    public function certificates(): HasMany
+    public function certificates(): HasManyThrough
     {
         return $this->hasManyThrough(Certificate::class, InternApplication::class, 'user_id', 'intern_application_id');
     }
