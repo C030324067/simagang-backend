@@ -201,7 +201,7 @@ class EvaluationController extends Controller
 
         $totalWorkingDays = count($workingDates);
         $filledDays = $totalWorkingDays === 0 ? 0 : Logbook::query()
-            ->where('user_id', $intern->id)
+            ->where('intern_application_id', $application->id)
             ->whereIn('date', $workingDates)
             ->distinct()
             ->count('date');
@@ -214,7 +214,7 @@ class EvaluationController extends Controller
         $taskPercentage = $totalTasks === 0 ? 100 : round(($completedTasks / $totalTasks) * 100, 2);
 
         $attendanceTotal = $totalWorkingDays === 0 ? 0 : Attendance::query()
-            ->where('user_id', $intern->id)
+            ->where('intern_application_id', $application->id)
             ->whereBetween('date', [$startDate, $endDateForCalculation])
             ->whereIn('date', $workingDates)
             ->whereIn('status', ['present', 'late'])
