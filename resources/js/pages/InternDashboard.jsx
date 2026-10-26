@@ -275,7 +275,7 @@ export default function InternDashboard() {
                 </div>
                 <button 
                   onClick={() => setIsAllTasksModalOpen(true)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition shrink-0 cursor-pointer"
+                  className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold shadow-xs transition shrink-0 cursor-pointer"
                 >
                   Lihat Semua Tugas
                 </button>

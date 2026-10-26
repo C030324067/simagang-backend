@@ -35,6 +35,13 @@ export default function MentorDashboard() {
     handleGenerateCert, handleDownloadTaskFile,
   } = useMentorDashboard();
 
+  const today = new Date();
+  const minimumTaskDeadline = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
+
   const pendingLogbooksCount = logbooks.filter(l => l.verification_status === 'pending').length;
 
   const updateTaskStatus = async (task, status) => {
@@ -685,6 +692,7 @@ export default function MentorDashboard() {
                 </label>
                 <input
                   type="date"
+                  min={minimumTaskDeadline}
                   value={taskForm.deadline}
                   onChange={(e) => setTaskForm({ ...taskForm, deadline: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"

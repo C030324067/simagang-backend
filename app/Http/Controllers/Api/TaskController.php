@@ -62,7 +62,8 @@ class TaskController extends Controller
                     ->where('status_akun', 'approved')
                     ->where('division_id', $user->division_id)),
             ],
-            'deadline' => ['nullable', 'date', 'after:now'],
+            // The form submits a date (YYYY-MM-DD), so allow any time today.
+            'deadline' => ['nullable', 'date', 'after_or_equal:today'],
         ], [
             'assigned_to.exists' => 'Peserta magang harus berasal dari divisi mentor.',
         ]);
