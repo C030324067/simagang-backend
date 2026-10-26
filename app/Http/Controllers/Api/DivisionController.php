@@ -24,7 +24,7 @@ class DivisionController extends Controller
         $divisions->each(function (Division $division): void {
             $division->setAttribute(
                 'remaining_quota',
-                $division->remainingQuota($division->active_applications_count),
+                $division->remainingQuota(),
             );
         });
 

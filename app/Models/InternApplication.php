@@ -128,4 +128,9 @@ class InternApplication extends Model
                 ->where('role', 'intern')
                 ->where('is_active', true));
     }
+
+    public function scopeCountsTowardsQuota(Builder $query): Builder
+    {
+        return $query->whereIn('final_status', ['in_review', 'accepted']);
+    }
 }

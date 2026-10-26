@@ -56,11 +56,16 @@ class Division extends Model
         return $this->hasMany(Task::class);
     }
 
-    public function remainingQuota(?int $activeApplicationsCount = null): int
+    public function remainingQuota(): int
     {
-        $activeApplicationsCount ??= $this->activeApplications()->count();
+        $applicationsCount = $this->applications()->countsTowardsQuota()->count();
 
-        return max(0, (int) $this->quota - $activeApplicationsCount);
+        return max(0, (int) $this->quota - $applicationsCount);
+    }
+
+    public function getRemainingQuotaAttribute(): int
+    {
+        return $this->remainingQuota();
     }
 
     public function applications(): HasMany
@@ -72,8 +77,6 @@ class Division extends Model
     {
         return $this->applications()
             ->where('final_status', 'accepted')
-            ->whereHas('user', fn ($query) => $query
-                ->where('role', 'intern')
-                ->where('is_active', true));
+            ->whereHas('user', fn ($query) => $query->where('is_active', true));
     }
 }

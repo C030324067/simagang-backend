@@ -36,14 +36,14 @@ class DivisionQuotaTest extends TestCase
         $this->getJson('/api/divisions')
             ->assertOk()
             ->assertJsonPath('data.0.active_applications_count', 2)
-            ->assertJsonPath('data.0.remaining_quota', 1);
+            ->assertJsonPath('data.0.remaining_quota', 0);
 
         $activeApplication->user->update(['is_active' => false]);
 
         $this->getJson('/api/divisions')
             ->assertOk()
             ->assertJsonPath('data.0.active_applications_count', 1)
-            ->assertJsonPath('data.0.remaining_quota', 2);
+            ->assertJsonPath('data.0.remaining_quota', 0);
     }
 
     public function test_registration_is_rejected_when_the_selected_division_has_no_remaining_quota(): void

@@ -33,11 +33,12 @@ class InternshipPeriodController extends Controller
                 $period = $periods->get($division->id);
                 $applicationsCount = $period?->applicationsCount() ?? InternApplication::query()
                     ->where('division_id', $division->id)
+                    ->countsTowardsQuota()
                     ->where('created_at', '>=', $now->copy()->startOfMonth())
                     ->where('created_at', '<', $now->copy()->startOfMonth()->addMonth())
                     ->count();
                 $status = $period?->registrationStatus($now, $applicationsCount) ?? 'not_configured';
-                $divisionRemainingQuota = $division->remainingQuota($division->active_applications_count);
+                $divisionRemainingQuota = $division->remainingQuota();
 
                 if ($status === 'open' && $divisionRemainingQuota <= 0) {
                     $status = 'division_full';

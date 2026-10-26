@@ -45,6 +45,7 @@ class InternshipPeriod extends Model
 
         return InternApplication::query()
             ->where('division_id', $this->division_id)
+            ->countsTowardsQuota()
             ->where('created_at', '>=', $start)
             ->where('created_at', '<', $end)
             ->count();
