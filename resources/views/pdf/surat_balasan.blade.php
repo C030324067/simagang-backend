@@ -202,7 +202,7 @@
         <tr>
             <td class="label-col">Nomor</td>
             <td class="colon-col">:</td>
-            <td>{{ $application->official_letter_number ?? $application->acceptance_letter_number ?? $pendaftar->official_letter_number ?? '-' }}</td>
+            <td>{{ $application->official_letter_number ?? $application->acceptance_letter_number ?? '-' }}</td>
             <td class="date-col">Tanjung, {{ $tanggalPenerbitan?->locale('id')->translatedFormat('j F Y') ?? now()->locale('id')->translatedFormat('j F Y') }}</td>
         </tr>
         <tr>
@@ -228,7 +228,7 @@
     <!-- Tujuan / Kepada Yth. (Rata Kiri) -->
     <div class="recipient-box">
         <p>Kepada</p>
-        <p>Yth. Pimpinan {{ $application->institution_name ?? $pendaftar->institution_name ?? '—' }}</p>
+        <p>Yth. Pimpinan {{ $application->institution_name ?? ($application->user?->institution_name ?? '—') }}</p>
         <p class="indent-di">di -</p>
         <p class="indent-tempat">Tempat</p>
     </div>
@@ -237,13 +237,13 @@
     <p class="salutation">Dengan Hormat,</p>
     <p class="body-copy">
         Menindaklanjuti Surat Permohonan Magang
-        @if (!empty($application->recommendation_letter_number ?? $pendaftar->recommendation_letter_number))
-            dengan nomor <strong>{{ $application->recommendation_letter_number ?? $pendaftar->recommendation_letter_number }}</strong>
+        @if (!empty($application->recommendation_letter_number ?? ($application->user?->recommendation_letter_number ?? null)))
+            dengan nomor <strong>{{ $application->recommendation_letter_number ?? ($application->user?->recommendation_letter_number ?? null) }}</strong>
         @else
-            dari {{ $application->institution_name ?? $pendaftar->institution_name ?? '—' }}
+            dari {{ $application->institution_name ?? ($application->user?->institution_name ?? '—') }}
         @endif, 
         Bersama dengan surat ini kami <strong>Bersedia</strong> memberi kesempatan Magang kepada mahasiswa/i dari 
-        {{ $application->institution_name ?? $pendaftar->institution_name ?? '—' }} di Dinas Komunikasi dan Informatika Kabupaten Tabalong
+        {{ $application->institution_name ?? ($application->user?->institution_name ?? '—') }} di Dinas Komunikasi dan Informatika Kabupaten Tabalong
         @if (!empty($application->start_date) && !empty($application->end_date))
             selama periode <strong>{{ $application->start_date?->locale('id')->translatedFormat('j F Y') }} s/d {{ $application->end_date?->locale('id')->translatedFormat('j F Y') }}</strong>
         @endif. 
@@ -273,16 +273,16 @@
         <tbody>
             <tr>
                 <td class="center">1</td>
-                <td class="left">{{ $application->user?->name ?? $pendaftar->user?->name ?? '—' }}</td>
-                <td class="center">{{ $application->student_number ?? $pendaftar->student_number ?? '—' }}</td>
-                <td class="left">{{ $application->major ?? $pendaftar->major ?? '—' }}</td>
+                <td class="left">{{ $application->user?->name ?? '—' }}</td>
+                <td class="center">{{ $application->student_number ?? '—' }}</td>
+                <td class="left">{{ $application->major ?? '—' }}</td>
                 <td class="left">
                     Dinas Komunikasi dan Informatika Kabupaten Tabalong
-                    @if (!empty($application->division?->name ?? $pendaftar->division?->name))
-                        — {{ $application->division?->name ?? $pendaftar->division?->name }}
+                    @if (!empty($application->division?->name))
+                        — {{ $application->division?->name }}
                     @endif
                 </td>
-                <td class="center">{{ $application->user?->no_hp ?? $pendaftar->user?->no_hp ?? '—' }}</td>
+                <td class="center">{{ $application->user?->no_hp ?? '—' }}</td>
             </tr>
         </tbody>
     </table>

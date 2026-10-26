@@ -5,6 +5,17 @@ import { getGrade } from '../utils/evaluation';
 import { downloadTaskFile as downloadTaskFileRequest } from '../utils/downloadTaskSubmission';
 
 const getCollection = (response) => Array.isArray(response?.data) ? response.data : response?.data?.data || [];
+const activeApplicationStatuses = new Set(['active', 'accepted', 'approved_kadis', 'approved_by_kadis', 'diterima']);
+const normalizeApplication = (value) => {
+  if (!value || typeof value !== 'object') return null;
+  const status = String(value.status || '').toLowerCase();
+  const finalStatus = String(value.final_status || '').toLowerCase();
+  const isActive = value.is_active === true
+    || finalStatus === 'accepted'
+    || activeApplicationStatuses.has(status);
+
+  return { ...value, is_active: isActive };
+};
 const getCertificateData = (response) => {
   const payload = response?.data ?? null;
   if (!payload) return null;
@@ -78,7 +89,7 @@ export default function useInternDashboard(user) {
       if (logbookResponse.success) setLogbooks(getCollection(logbookResponse));
       if (evaluationResponse.success) setEvaluation(getCollection(evaluationResponse)[0] || null);
       if (certificateResponse.success) setCertificate(getCertificateData(certificateResponse));
-      if (applicationResponse.success) setApplication(applicationResponse.data || null);
+      if (applicationResponse.success) setApplication(normalizeApplication(applicationResponse.data));
       if (metricsResponse.success) setProgressMetrics(metricsResponse.data || null);
     } finally {
       setLoading(false);
@@ -199,6 +210,7 @@ export default function useInternDashboard(user) {
     logbookForm, setLogbookForm, taskForm, setTaskForm, greeting,
     institution: application?.institution_name || 'Institusi belum diatur',
     division: application?.division?.name || user?.division?.name || 'Bidang belum ditetapkan',
+    hasActiveApplication: Boolean(application?.is_active),
     checkedInAt: formatLocalTime(attendance?.check_in_time), checkedOutAt: formatLocalTime(attendance?.check_out_time),
     grade: getGrade(evaluation?.final_score), currentTime: formatWitaDateTime(now, { hour: '2-digit', minute: '2-digit' }),
     loadDashboard, refreshCertificate, submitLogbook, submitTask, downloadTaskFile, downloadCertificate,

@@ -28,6 +28,15 @@ class AttendanceCalendarTest extends TestCase
     {
         Carbon::setTestNow(Carbon::parse('2026-10-10 09:00:00', 'Asia/Makassar'));
         $intern = User::factory()->create(['role' => 'intern']);
+        $application = InternApplication::create([
+            'user_id' => $intern->id,
+            'application_type' => 'mandiri',
+            'institution_name' => 'Universitas Tabalong',
+            'start_date' => Carbon::today()->subDays(5),
+            'end_date' => Carbon::today()->addMonths(3),
+            'status' => 'accepted',
+            'final_status' => 'accepted',
+        ]);
 
         $this->actingAs($intern, 'sanctum')
             ->getJson('/api/attendances/today')
@@ -42,9 +51,9 @@ class AttendanceCalendarTest extends TestCase
             ->assertJsonPath('message', 'Presensi tidak dibuka pada hari libur akhir pekan.');
 
         $attendance = Attendance::create([
-            'user_id' => $intern->id,
+            'intern_application_id' => $application->id,
             'date' => Carbon::today()->toDateString(),
-            'check_in_time' => '08:00:00',
+            'clock_in_at' => Carbon::today()->setTime(8, 0),
             'status' => 'present',
         ]);
 
@@ -53,7 +62,7 @@ class AttendanceCalendarTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('message', 'Presensi tidak dibuka pada hari libur akhir pekan.');
 
-        $this->assertNull($attendance->fresh()->check_out_time);
+        $this->assertNull($attendance->fresh()->clock_out_at);
     }
 
     public function test_named_holiday_check_in_is_blocked_and_holiday_name_is_returned(): void
@@ -121,7 +130,7 @@ class AttendanceCalendarTest extends TestCase
 
         foreach (['2026-10-08', '2026-10-09', '2026-10-10', '2026-10-12'] as $date) {
             Attendance::create([
-                'user_id' => $intern->id,
+                'intern_application_id' => $application->id,
                 'date' => $date,
                 'status' => 'present',
                 'approval_status' => 'approved',

@@ -223,12 +223,16 @@ class ApplicationController extends Controller
         $application = InternApplication::with(['division', 'verifierKepegawaian', 'verifierKabid', 'verifierKadis'])
             ->with('mentor:id,name,role')
             ->where('user_id', $request->user()->id)
+            ->orderByRaw("CASE WHEN final_status = 'accepted' OR status IN ('active', 'accepted', 'approved_kadis', 'approved_by_kadis', 'diterima') THEN 0 ELSE 1 END")
             ->latest()
             ->first();
 
         if (! $application) {
             return $this->successResponse(null, 'Belum ada pengajuan magang yang diajukan');
         }
+
+        $application->setAttribute('is_active', in_array($application->final_status, ['accepted'], true)
+            || in_array($application->status, ['active', 'accepted', 'approved_kadis', 'approved_by_kadis', 'diterima'], true));
 
         return $this->successResponse($application, 'Data pengajuan magang Anda');
     }

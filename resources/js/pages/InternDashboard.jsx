@@ -47,8 +47,10 @@ export default function InternDashboard() {
     tasks,
     progressMetrics,
     application,
+    hasActiveApplication,
     evaluation,
     certificate,
+    loading,
     submitting,
     message,
     setMessage,
@@ -146,6 +148,13 @@ export default function InternDashboard() {
       
       {/* MAIN CONTAINER */}
       <main className="mx-auto max-w-7xl space-y-6 px-4 pt-6 sm:px-6 lg:px-8">
+
+        {!hasActiveApplication && !loading && (
+          <div role="alert" className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Peserta belum memiliki aplikasi magang aktif.</span>
+          </div>
+        )}
         
         {/* NOTIFIKASI PESAN */}
         {message && (
@@ -192,10 +201,10 @@ export default function InternDashboard() {
           {/* CARD PRESENSI */}
           <div 
             onClick={() => {
-              if (attendanceDay?.is_attendance_open) setIsCheckInModalOpen(true);
+              if (hasActiveApplication && attendanceDay?.is_attendance_open) setIsCheckInModalOpen(true);
             }}
             className={`group flex items-center justify-between bg-white rounded-2xl p-5 border border-slate-100 shadow-xs transition ${
-              attendanceDay?.is_attendance_open ? 'hover:shadow-md cursor-pointer' : 'cursor-not-allowed'
+              hasActiveApplication && attendanceDay?.is_attendance_open ? 'hover:shadow-md cursor-pointer' : 'cursor-not-allowed'
             }`}
           >
             <div className="flex items-center gap-4">
@@ -206,14 +215,14 @@ export default function InternDashboard() {
                 <h3 className="text-sm sm:text-base font-bold text-[#0F2942] group-hover:text-[#4F46E5] transition-colors">
                   Presensi
                 </h3>
-                <p className={`text-xs font-medium mt-0.5 ${attendanceDay?.is_attendance_open ? 'text-slate-400' : 'text-amber-700'}`}>
-                  {attendanceDay?.is_attendance_open
+                <p className={`text-xs font-medium mt-0.5 ${hasActiveApplication && attendanceDay?.is_attendance_open ? 'text-slate-400' : 'text-amber-700'}`}>
+                  {hasActiveApplication && attendanceDay?.is_attendance_open
                     ? 'Lakukan presensi kehadiran selama kegiatan magang.'
                     : attendanceDay?.holiday_name || attendanceDay?.message || 'Memuat status hari kerja...'}
                 </p>
               </div>
             </div>
-            {attendanceDay?.is_attendance_open && (
+            {hasActiveApplication && attendanceDay?.is_attendance_open && (
               <ChevronRight className="h-5 w-5 text-[#4F46E5] transition-transform group-hover:translate-x-1 shrink-0" />
             )}
           </div>
@@ -353,9 +362,10 @@ export default function InternDashboard() {
                     </p>
                   </div>
                 </div>
-                <button 
+                <button
+                  disabled={!hasActiveApplication}
                   onClick={() => setIsLogbookModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold shadow-xs transition shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold shadow-xs transition shrink-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Plus className="h-4 w-4" /> Tambah Kegiatan
                 </button>

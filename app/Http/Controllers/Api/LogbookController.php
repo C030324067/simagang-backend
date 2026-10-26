@@ -61,7 +61,17 @@ class LogbookController extends Controller
             $attachmentPath = $request->file('attachment')->store('logbooks', 'public');
         }
 
-        $application = $request->user()->internApplications()->where('internship_status', 'active')->first();
+        // The application lifecycle is stored in final_status/status. The
+        // internship_status column tracks in_progress/completed, not active.
+        $application = $request->user()->internApplications()
+            ->where(function ($query) {
+                $query->where('final_status', 'accepted')
+                    ->orWhereIn('status', ['active', 'accepted', 'approved_kadis', 'approved_by_kadis', 'diterima']);
+            })
+            ->where('internship_status', '!=', 'completed')
+            ->with(['division', 'mentor:id,name,role'])
+            ->latest('id')
+            ->first();
         if (! $application) return $this->errorResponse('Peserta belum memiliki aplikasi magang aktif.', 422);
 
         $logbook = Logbook::create([

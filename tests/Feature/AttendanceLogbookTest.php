@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Logbook;
 use App\Models\Division;
+use App\Models\InternApplication;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,6 +22,8 @@ class AttendanceLogbookTest extends TestCase
 
     private Division $division;
 
+    private InternApplication $application;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -33,6 +36,16 @@ class AttendanceLogbookTest extends TestCase
         ]);
         $this->intern = User::factory()->create(['role' => 'intern', 'division_id' => $this->division->id]);
         $this->mentor = User::factory()->create(['role' => 'mentor', 'division_id' => $this->division->id]);
+        $this->application = InternApplication::create([
+            'user_id' => $this->intern->id,
+            'application_type' => 'mandiri',
+            'institution_name' => 'Universitas Tabalong',
+            'division_id' => $this->division->id,
+            'start_date' => now()->subDays(5)->toDateString(),
+            'end_date' => now()->addMonths(3)->toDateString(),
+            'status' => 'accepted',
+            'final_status' => 'accepted',
+        ]);
     }
 
     public function test_intern_can_check_in_and_check_out(): void
@@ -56,7 +69,7 @@ class AttendanceLogbookTest extends TestCase
             ->assertJsonPath('success', true);
 
         $this->assertDatabaseHas('attendances', [
-            'user_id' => $this->intern->id,
+            'intern_application_id' => $this->application->id,
             'date' => Carbon::today()->toDateString(),
         ]);
 
@@ -88,7 +101,7 @@ class AttendanceLogbookTest extends TestCase
             ->assertJsonPath('data.notes', 'Izin menghadiri acara keluarga.');
 
         $this->assertDatabaseHas('attendances', [
-            'user_id' => $this->intern->id,
+            'intern_application_id' => $this->application->id,
             'status' => 'leave',
             'notes' => 'Izin menghadiri acara keluarga.',
             'attachment_path' => null,
@@ -106,7 +119,7 @@ class AttendanceLogbookTest extends TestCase
             ->assertJsonPath('errors.notes.0', 'The notes field is required.');
 
         $this->assertDatabaseMissing('attendances', [
-            'user_id' => $this->intern->id,
+            'intern_application_id' => $this->application->id,
             'date' => Carbon::today()->toDateString(),
         ]);
     }
@@ -123,7 +136,7 @@ class AttendanceLogbookTest extends TestCase
             ->assertJsonValidationErrors('dokumen_skd');
 
         $this->assertDatabaseMissing('attendances', [
-            'user_id' => $this->intern->id,
+            'intern_application_id' => $this->application->id,
             'date' => Carbon::today()->toDateString(),
         ]);
     }

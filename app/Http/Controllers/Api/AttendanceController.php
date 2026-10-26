@@ -352,15 +352,15 @@ class AttendanceController extends Controller
 
     private function findAttendanceApplication(User $user): ?InternApplication
     {
-        $application = InternApplication::query()
+        return InternApplication::query()
             ->where('user_id', $user->id)
-            ->whereIn('status', ['APPROVED', 'ACCEPTED', 'approved', 'accepted', 'diterima', 'Aktif', 'aktif'])
-            ->latest()
-            ->first();
-
-        return $application ?? InternApplication::query()
-            ->where('user_id', $user->id)
-            ->latest()
+            ->where(function ($query) {
+                $query->where('final_status', 'accepted')
+                    ->orWhereIn('status', ['active', 'accepted', 'approved_kadis', 'approved_by_kadis', 'diterima']);
+            })
+            ->where('internship_status', '!=', 'completed')
+            ->with(['division', 'mentor:id,name,role'])
+            ->latest('id')
             ->first();
     }
 }
