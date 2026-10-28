@@ -49,10 +49,10 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
     
     // VALIDASI NIM / NISN : Mengizinkan kombinasi huruf dan angka (5-20 karakter)
     if (form.nim_nisn && !/^[a-zA-Z0-9]{5,20}$/.test(form.nim_nisn)) {
-      next.nim_nisn = 'NIM / NISN harus berupa 5–20 karakter alfanumerik (huruf dan angka).';
+      next.nim_nisn = 'NIM / NISN harus berupa 5â€“20 karakter alfanumerik (huruf dan angka).';
     }
     if (form.hp && !/^(?:08\d{8,11}|628\d{7,10})$/.test(form.hp)) {
-      next.hp = 'Nomor HP / WhatsApp harus terdiri dari 10–13 digit dan diawali 08 atau 628.';
+      next.hp = 'Nomor HP / WhatsApp harus terdiri dari 10â€“13 digit dan diawali 08 atau 628.';
     }
     if (form.pw && form.pw.length < 8) next.pw = 'Password minimal 8 karakter.';
     if (form.pw && form.pw2 && form.pw !== form.pw2) next.pw2 = 'Konfirmasi password tidak sama.';
@@ -119,16 +119,16 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           const isUnconfigured = !periodDivision?.configured;
           const isFull = isMonthlyFull || isUnconfigured || !periodDivision?.can_register;
           const isNotStarted = periodDivision?.availability_status === 'before_start';
-          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isMonthlyFull ? ' — Kuota penuh' : isNotStarted ? ` — Dibuka ${periodDivision.start_date}` : isUnconfigured || !periodDivision?.can_register ? ' — Periode belum dibuka' : ` — Sisa kuota: ${periodDivision.remaining_quota}/${periodDivision.monthly_quota}`}</option>;
+          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isMonthlyFull ? ' â€” Kuota penuh' : isNotStarted ? ` â€” Dibuka ${periodDivision.start_date}` : isUnconfigured || !periodDivision?.can_register ? ' â€” Periode belum dibuka' : ` â€” Sisa kuota: ${periodDivision.remaining_quota}/${periodDivision.monthly_quota}`}</option>;
         })}
       </select> : <input id={key} className={`input ${errors[key] ? 'invalid' : ''}`} type={type} value={form[key]} onChange={change} {...props} />}
       {key === 'bidang' && form[key] && (() => {
         const selectedDivision = divisions.find((division) => String(division.code) === form[key]);
           const selectedPeriod = periodDivisions.find((division) => division.code === form[key]);
           return selectedDivision && selectedPeriod?.availability_status === 'division_full'
-            ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>⚠️ Kuota bidang ini sudah penuh. Silakan pilih bidang lain.</p>)
+            ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>âš ï¸ Kuota bidang ini sudah penuh. Silakan pilih bidang lain.</p>)
             : selectedPeriod?.availability_status === 'full'
-              ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>⚠️ Kuota pendaftaran bulanan bidang ini sudah penuh.</p>)
+              ? (<p style={{color:'#dc2626',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>âš ï¸ Kuota pendaftaran bulanan bidang ini sudah penuh.</p>)
               : selectedPeriod && !selectedPeriod.can_register
                 ? (<p style={{color:'#64748b',fontSize:'0.8rem',marginTop:'6px',fontWeight:'600'}}>Pendaftaran bidang ini belum dibuka atau masa pendaftarannya telah berakhir.</p>)
             : null;
@@ -178,7 +178,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           <p>Lengkapi data diri dan dokumen untuk mengajukan permohonan magang.</p>
         </header>
         {periodLoading ? (
-          <p className="note full" role="status">Memeriksa kuota periode pendaftaran…</p>
+          <p className="note full" role="status">Memeriksa kuota periode pendaftaranâ€¦</p>
         ) : periodError ? (
           <p className="note full" role="alert">{periodError} Formulir dinonaktifkan sampai status kuota dapat diverifikasi.</p>
         ) : !hasOpenPeriod ? (
@@ -201,7 +201,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
               </label>
               <label className={`application-type-card ${form.application_type === 'rekomendasi_kampus' ? 'selected' : ''}`}>
                 <input type="radio" name="application_type" value="rekomendasi_kampus" checked={form.application_type === 'rekomendasi_kampus'} onChange={() => selectApplicationType('rekomendasi_kampus')} />
-                <span className="application-type-copy"><strong>Rekomendasi kampus</strong><small>Mengajukan magang dengan surat rekomendasi dari kampus.</small></span>
+                <span className="application-type-copy"><strong>Rekomendasi kampus/sekolah</strong><small>Mengajukan magang dengan surat rekomendasi dari kampus atau sekolah.</small></span>
               </label>
             </div>
           </fieldset>
@@ -248,7 +248,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
                       <label className="upload-label" htmlFor={key}>
                         <span className="upload-copy">
                           <strong>{file?.name || 'Pilih berkas untuk diunggah'}</strong>
-                          <small>{file ? `${formatFileSize(file.size)} &middot; klik untuk mengganti berkas` : `${accept.toUpperCase().replaceAll(',', ', ')} · maksimal ${key === 'b1' ? '5' : '2'} MB`}</small>
+                          <small>{file ? `${formatFileSize(file.size)} &middot; klik untuk mengganti berkas` : `${accept.toUpperCase().replaceAll(',', ', ')} Â· maksimal ${key === 'b1' ? '5' : '2'} MB`}</small>
                         </span>
                         <span className="upload-action">{file ? 'Ganti' : 'Pilih file'}</span>
                       </label>
@@ -271,7 +271,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
             ))}
           </div>
           <button className="submit full" type="submit" disabled={!agreements.every(Boolean) || loading}>
-            {loading ? 'Mengirim pendaftaran…' : 'Kirim pendaftaran'}
+            {loading ? 'Mengirim pendaftaranâ€¦' : 'Kirim pendaftaran'}
           </button>
           <p className="login full">
             Sudah punya akun? <a href="/login" onClick={event => { if (onLogin) { event.preventDefault(); onLogin(); } }}>Masuk</a>

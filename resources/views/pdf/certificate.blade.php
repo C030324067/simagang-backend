@@ -24,8 +24,6 @@
 
         html,
         body {
-            width: 297mm;
-            height: 210mm;
             margin: 0;
             padding: 0;
             font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
@@ -40,10 +38,10 @@
         .certificate-container {
             position: relative;
             /* Sisakan ruang untuk padding/border yang dihitung di luar ukuran oleh DomPDF. */
-            width: 258mm;
-            height: 183mm;
+            width: 287mm;
+            height: 190mm;
             margin: 0 auto;
-            padding: 12mm 18mm;
+            padding: 7mm 13mm;
             overflow: hidden;
             border: 1.2mm solid #1d5b83;
             page-break-inside: avoid;
@@ -51,10 +49,10 @@
         }
 
         .transcript-page {
-            width: 258mm;
-            min-height: 183mm;
+            width: 287mm;
+            height: 190mm;
             margin: 0 auto;
-            padding: 14mm 18mm;
+            padding: 8mm 13mm;
             border: 1.2mm solid #1d5b83;
             page-break-after: avoid;
         }
@@ -177,62 +175,6 @@
             line-height: 1.45;
         }
 
-        .evaluation-block {
-            width: 100%;
-            margin: 2mm 0 3mm;
-            page-break-inside: avoid;
-        }
-
-        .final-score {
-            margin: 0;
-            padding: 2mm 3mm;
-            border: 0.35mm solid #b8c8d5;
-            border-bottom: 0;
-            background: #edf4f8;
-            color: #173f63;
-            font-size: 13pt;
-            font-weight: bold;
-        }
-
-        .final-score-value {
-            color: #a47625;
-            font-size: 16pt;
-        }
-
-        .score-table {
-            width: 100%;
-            margin: 0;
-            border: 0.35mm solid #b8c8d5;
-            color: #26384a;
-            font-size: 11pt;
-        }
-
-        .score-table td {
-            width: 25%;
-            padding: 2.2mm 3mm;
-            border: 0.25mm solid #cbd6df;
-            vertical-align: middle;
-        }
-
-        .score-label {
-            display: block;
-            margin-bottom: 1mm;
-            color: #536579;
-            font-size: 8.5pt;
-        }
-
-        .score-value {
-            color: #173f63;
-            font-size: 13pt;
-            font-weight: bold;
-        }
-
-        .grade-line {
-            margin-top: 1.5mm;
-            color: #536579;
-            font-size: 10pt;
-        }
-
         .signature-table {
             width: 100%;
             margin: 2mm 0 0;
@@ -254,7 +196,7 @@
         }
 
         .signature-space {
-            height: 34px;
+            height: 22px;
         }
 
         .signer-name {
@@ -348,35 +290,6 @@
             <div class="description">
                 Atas partisipasi, dedikasi, dan keberhasilannya menyelesaikan program Praktik Kerja Lapangan / Magang
                 di Dinas Komunikasi dan Informatika Kabupaten Tabalong.
-            </div>
-
-            <div class="evaluation-block">
-                <div class="final-score">
-                    NILAI AKHIR&nbsp;&nbsp;
-                    <span class="final-score-value">{{ number_format((float) ($evaluation?->final_score ?? 0), 2) }}</span>
-                    <span style="font-size:10pt;font-weight:normal"> / 100</span>
-                </div>
-                <table class="score-table">
-                    <tr>
-                        <td>
-                            <span class="score-label">Disiplin</span>
-                            <span class="score-value">{{ number_format((float) ($evaluation?->score_discipline ?? 0), 2) }}</span>
-                        </td>
-                        <td>
-                            <span class="score-label">Kualitas Kerja</span>
-                            <span class="score-value">{{ number_format((float) ($evaluation?->score_quality ?? 0), 2) }}</span>
-                        </td>
-                        <td>
-                            <span class="score-label">Softskill</span>
-                            <span class="score-value">{{ number_format((float) ($evaluation?->score_softskill ?? 0), 2) }}</span>
-                        </td>
-                        <td>
-                            <span class="score-label">Tanggung Jawab</span>
-                            <span class="score-value">{{ number_format((float) ($evaluation?->score_responsibility ?? 0), 2) }}</span>
-                        </td>
-                    </tr>
-                </table>
-                <div class="grade-line">Predikat: <strong>{{ $evaluation?->grade_letter ?? '-' }}</strong></div>
             </div>
 
             <table class="signature-table">
