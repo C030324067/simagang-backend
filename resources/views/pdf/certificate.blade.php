@@ -218,7 +218,7 @@
         }
 
         .signature-space {
-            height: 40px;
+            height: 70px;
         }
 
         .signer-name {
