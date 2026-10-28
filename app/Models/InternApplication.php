@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class InternApplication extends Model
@@ -111,10 +112,25 @@ class InternApplication extends Model
         return $this->hasMany(InternApplicationHistory::class);
     }
 
-    public function attendances(): HasMany { return $this->hasMany(Attendance::class); }
-    public function logbooks(): HasMany { return $this->hasMany(Logbook::class); }
-    public function evaluation(): HasOne { return $this->hasOne(Evaluation::class); }
-    public function certificate(): HasOne { return $this->hasOne(Certificate::class); }
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function logbooks(): HasMany
+    {
+        return $this->hasMany(Logbook::class);
+    }
+
+    public function evaluation(): HasOne
+    {
+        return $this->hasOne(Evaluation::class);
+    }
+
+    public function certificate(): HasOne
+    {
+        return $this->hasOne(Certificate::class);
+    }
 
     public function scopeForKabidDivision(Builder $query, int $divisionId): Builder
     {

@@ -63,7 +63,7 @@ Target bernomor di tabel ini merupakan kriteria yang diusulkan untuk pengembanga
 | ID | Aspek | Kebutuhan / target |
 |---|---|---|
 | NFR-01 | Keamanan autentikasi | Token autentikasi dikirim melalui HTTPS pada lingkungan produksi, disimpan dengan cara yang sesuai pada klien, dan dapat dicabut saat logout. Password tidak pernah dikirim atau disimpan dalam bentuk teks biasa. |
-| NFR-02 | Otorisasi | Pemeriksaan peran, kepemilikan data, dan cakupan divisi dilakukan di backend untuk setiap operasi terlindungi; pembatasan UI saja tidak dianggap sebagai kontrol akses. |
+| NFR-02 | Otorisasi & keamanan | Pemeriksaan peran, kepemilikan data, dan cakupan divisi dilakukan di backend untuk setiap operasi terlindungi. Akun Intern hanya dapat mengakses sistem sampai H+7 setelah `end_date` aplikasi magang yang diterima; setelah batas tersebut akun berstatus `expired`, dinonaktifkan, seluruh token Sanctum dicabut, dan API mengembalikan HTTP 403 berkode `ACCOUNT_EXPIRED`. |
 | NFR-03 | Perlindungan data | Dokumen pribadi dan bukti presensi hanya dapat diakses pengguna berwenang; data yang diberikan ke endpoint publik dibatasi pada informasi yang diperlukan. |
 | NFR-04 | Validasi dan integritas | Input, tipe/ukuran berkas, status proses, foreign key, kuota, dan batas presensi divalidasi sebelum perubahan disimpan. Operasi multi-langkah yang saling bergantung menggunakan transaksi bila sesuai. |
 | NFR-05 | Ketersediaan | Target awal yang diusulkan adalah ketersediaan layanan minimal 99% per bulan, di luar pemeliharaan terjadwal. |
@@ -89,3 +89,8 @@ Target bernomor di tabel ini merupakan kriteria yang diusulkan untuk pengembanga
 - [Use case SIMAGANG](./USE_CASE.md)
 - [ERD SIMAGANG](./ERD.md)
 - [Dokumentasi API](./API.md)
+
+
+## Aturan akses pasca-magang
+
+Masa akses akun Intern berakhir setelah melewati tanggal `end_date + 7 hari` pada aplikasi magang yang diterima. Middleware memeriksa batas ini pada setiap request API terautentikasi. Command terjadwal berjalan pukul 00.00 WITA untuk menonaktifkan akun dan mencabut token lebih dini; pemeriksaan middleware tetap menjadi kontrol utama bila scheduler belum berjalan.

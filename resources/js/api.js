@@ -85,6 +85,11 @@ export async function apiRequest(endpoint, options = {}) {
       setToken(null);
     }
 
+    if (res.status === 403 && data.code === 'ACCOUNT_EXPIRED') {
+      setToken(null);
+      window.dispatchEvent(new CustomEvent('simagang:account-expired', { detail: data }));
+    }
+
     return {
       ok: res.ok,
       status: res.status,

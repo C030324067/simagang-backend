@@ -11,6 +11,7 @@ import KadisDashboard from './pages/KadisDashboard';
 import MentorDashboard from './pages/MentorDashboard';
 import VerifyCertificate from './pages/VerifyCertificate';
 import ApplicationController from './components/ApplicationController';
+import AccountExpirationNoticeModal from './components/AccountExpirationNoticeModal';
 
 // --- KOMPONEN FORM PENGAJUAN MAGANG (LANGSUNG DI SINI AGAR TIDAK BLANK) ---
 function ApplyPage({ onBack, onSuccess }) {
@@ -213,10 +214,25 @@ function ApplyPage({ onBack, onSuccess }) {
 
 // --- MAIN APP ---
 function MainApp() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [currentTab, setCurrentTab] = useState('landing');
   const [urlHash, setUrlHash] = useState('');
   const [passwordReset, setPasswordReset] = useState({ token: '', email: '' });
+  const [expirationNotice, setExpirationNotice] = useState(null);
+
+  useEffect(() => {
+    const onExpired = (event) => {
+      setExpirationNotice({ expired: true, message: event.detail?.message || '' });
+    };
+    window.addEventListener('simagang:account-expired', onExpired);
+    return () => window.removeEventListener('simagang:account-expired', onExpired);
+  }, [logout]);
+
+  useEffect(() => {
+    if (user?.role === 'intern' && currentTab === 'dashboard' && !localStorage.getItem('simagang_expiration_notice_seen')) {
+      setExpirationNotice({ expired: false, message: '' });
+    }
+  }, [user, currentTab]);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -361,6 +377,20 @@ function MainApp() {
         {renderDashboard()}
       </main>
       <Footer />
+      <AccountExpirationNoticeModal
+        open={Boolean(expirationNotice)}
+        expired={expirationNotice?.expired}
+        message={expirationNotice?.message}
+        onClose={() => {
+          if (expirationNotice?.expired) {
+            logout();
+            setCurrentTab('login');
+          } else {
+            localStorage.setItem('simagang_expiration_notice_seen', '1');
+          }
+          setExpirationNotice(null);
+        }}
+      />
     </div>
   );
 }
@@ -381,3 +411,4 @@ const rootElement = document.getElementById('root');
 if (rootElement) {
   createRoot(rootElement).render(<App />);
 }
+

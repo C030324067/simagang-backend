@@ -121,3 +121,19 @@ Dokumen ini melengkapi [diagram use case](./use_case_diagram.puml) dan merinci e
 - Diagram mencakup lima aktor dan daftar fitur yang diminta. Beberapa aktivitas pelaporan Kadis atau pengelolaan data dipresentasikan sebagai use case tingkat tujuan; detail implementasinya bergantung pada endpoint dan antarmuka yang tersedia.
 - Evaluasi menyebut empat kriteria bisnis. Pada formulir backend/frontend saat ini, nama rubrik input adalah disiplin, kualitas, inisiatif, dan kerja sama; keduanya dipetakan ke kolom tanggung jawab dan softskill saat disimpan.
 - Status awal logbook adalah `pending`; status presensi hadir menunggu persetujuan mentor. Istilah status pada dokumen mengikuti nilai yang digunakan backend.
+
+## UC-07 — Login dan Mengakses Dashboard dengan Masa Aktif Terbatas
+
+- **Aktor utama:** Peserta Magang (Intern).
+- **Deskripsi:** Sistem memeriksa masa akses peserta pada setiap request API terautentikasi dan memberi tahu kebijakan H+7.
+- **Prasyarat:** Peserta memiliki akun yang disetujui, token Sanctum valid, dan aplikasi magang diterima dengan `end_date`.
+- **Kondisi akhir:** Peserta yang masih dalam masa akses dapat menggunakan dashboard; peserta yang melewati H+7 dinonaktifkan dan seluruh tokennya dicabut.
+- **Alur utama:**
+  1. Peserta login dan sistem menerbitkan token Sanctum.
+  2. Dashboard menampilkan pemberitahuan masa aktif akun pada login pertama.
+  3. Pada setiap request terlindungi, middleware mengambil aplikasi magang diterima dan menghitung batas akses `end_date + 7 hari`.
+  4. Jika tanggal server belum melewati batas, sistem meneruskan request.
+  5. Scheduler harian pukul 00.00 WITA menjalankan `app:deactivate-expired-interns` untuk menonaktifkan akun yang sudah melewati batas dan mencabut tokennya.
+- **Alur alternatif:**
+  - **A1 — Masa akses terlampaui:** Middleware mengubah `status_akun` menjadi `expired`, menonaktifkan akun, mencabut seluruh token, lalu mengembalikan HTTP 403 dengan kode `ACCOUNT_EXPIRED`. Client menghapus kredensial lokal dan menampilkan pemberitahuan penutupan akun sebelum kembali ke login.
+  - **A2 — Tidak ada `end_date` pada aplikasi diterima:** Pengecekan batas waktu tidak dapat diterapkan; request diteruskan dan kondisi data perlu ditinjau pengelola.

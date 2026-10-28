@@ -8,6 +8,7 @@ use App\Traits\ApiResponse;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Str;
@@ -66,6 +67,21 @@ class AuthController extends Controller
 
         if (! Hash::check($validated['password'], $user->password)) {
             return $this->errorResponse('Password yang Anda masukkan salah.', 401);
+        }
+
+        if ($user->isIntern() && $user->status_akun === 'expired') {
+            $endDate = $user->applications()
+                ->where('final_status', 'accepted')
+                ->whereNotNull('end_date')
+                ->orderByDesc('end_date')
+                ->value('end_date');
+            $gracePeriodUntil = $endDate ? Carbon::parse($endDate)->addDays(7)->format('d-m-Y') : null;
+
+            return response()->json([
+                'success' => false,
+                'code' => 'ACCOUNT_EXPIRED',
+                'message' => 'Masa aktif akun Anda telah berakhir'.($gracePeriodUntil ? ' pada '.$gracePeriodUntil : '').'. Silakan hubungi admin Diskominfo jika memerlukan akses kembali.',
+            ], 403);
         }
 
         if ($user->role === 'applicant') {

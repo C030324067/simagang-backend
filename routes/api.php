@@ -43,7 +43,7 @@ Route::get('/applications/track/{trackingCode}/letter', [ApplicationController::
 | Protected Routes (Sanctum Authenticated)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
     Route::middleware('role:admin_kepegawaian')->group(function () {
         Route::get('/internship-periods', [InternshipPeriodController::class, 'index']);
         Route::put('/internship-periods', [InternshipPeriodController::class, 'upsert']);
