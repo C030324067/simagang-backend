@@ -19,7 +19,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 8mm;
+            margin: 1.5cm 2cm;
         }
 
         html,
@@ -39,28 +39,29 @@
             position: relative;
             /* Sisakan ruang untuk padding/border yang dihitung di luar ukuran oleh DomPDF. */
             width: 100%;
-            height: 180mm;
+            height: 170mm;
             margin: 0 auto;
             padding: 7mm 12mm;
             overflow: hidden;
             border: 1.2mm solid #1d5b83;
             page-break-inside: avoid;
-            page-break-after: always;
+            page-break-after: avoid;
         }
 
         .transcript-page {
             width: 100%;
-            height: 180mm;
+            height: 170mm;
             margin: 0 auto;
             padding: 8mm 10mm;
             border: 1.2mm solid #1d5b83;
+            page-break-before: always;
             page-break-after: avoid;
         }
 
         .transcript-page h1 { color: #1d5b83; text-align: center; font-size: 17pt; }
         .transcript-page p { text-align: center; font-size: 9pt; }
         .transcript-table { width: 100%; margin-top: 8mm; border-collapse: collapse; table-layout: fixed; font-size: 9pt; }
-        .transcript-table th, .transcript-table td { border: 0.35mm solid #64748b; padding: 2mm; overflow-wrap: break-word; }
+        .transcript-table th, .transcript-table td { border: 0.35mm solid #64748b; padding: 2.5mm; overflow-wrap: break-word; }
         .transcript-table th:nth-child(1), .transcript-table td:nth-child(1) { width: 8%; text-align: center; }
         .transcript-table th:nth-child(2), .transcript-table td:nth-child(2) { width: 38%; }
         .transcript-table th:nth-child(3), .transcript-table td:nth-child(3) { width: 12%; text-align: center; }
@@ -80,7 +81,7 @@
             position: relative;
             z-index: 1;
             width: 100%;
-            height: auto;
+            height: 100%;
             text-align: center;
             page-break-inside: avoid;
         }
@@ -100,12 +101,12 @@
         }
 
         .logo-cell {
-            width: 18%;
+            width: 17%;
         }
 
         .logo-img {
-            max-width: 28mm;
-            max-height: 17mm;
+            max-width: 25mm;
+            max-height: 15mm;
         }
 
         .agency-name {
@@ -181,7 +182,7 @@
 
         .signature-table {
             width: 100%;
-            margin: 2mm 0 0;
+            margin: 2mm 0 10mm;
             page-break-inside: avoid;
         }
 
@@ -217,8 +218,12 @@
         }
 
         .footer-table {
+            position: absolute;
+            right: 0;
+            bottom: 2mm;
+            left: 0;
             width: 100%;
-            margin: 2mm 0 0;
+            margin: 0;
             border-top: 0.3mm solid #d5dee6;
             color: #536579;
             font-size: 7.5pt;
@@ -227,38 +232,45 @@
         }
 
         .footer-table td {
-            padding-top: 1.5mm;
+            padding: 1mm 1.5mm 0;
             vertical-align: middle;
+            line-height: 1.25;
         }
 
         .verification-box {
             width: 40%;
             text-align: right;
             word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-all;
+            line-height: 1.25;
         }
 
         .qr-cell {
-            width: 20mm;
+            width: 18mm;
             padding-left: 2mm;
             text-align: right;
             vertical-align: middle;
         }
 
         .qr-image {
-            width: 16mm;
-            height: 16mm;
+            width: 15mm;
+            height: 15mm;
         }
 
         .verification-hash {
             color: #173f63;
-            font-size: 7pt;
+            font-size: 6.5pt;
             font-weight: bold;
             word-break: break-all;
+            line-height: 1.2;
         }
 
         .verification-url {
-            margin-top: 0.8mm;
+            margin-top: 1mm;
             word-break: break-all;
+            overflow-wrap: break-word;
+            line-height: 1.2;
         }
     </style>
 </head>
