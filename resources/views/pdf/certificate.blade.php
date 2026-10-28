@@ -19,7 +19,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 1.5cm 2cm;
+            margin: 1.2cm 1.5cm 1cm;
         }
 
         html,
@@ -37,8 +37,8 @@
 
         .certificate-container {
             position: relative;
-            width: 257mm;
-            height: 180mm;
+            width: 267mm;
+            height: 188mm;
             margin: 0 auto;
             padding: 7mm 12mm;
             overflow: hidden;
@@ -48,13 +48,25 @@
         }
 
         .transcript-page {
-            width: 257mm;
-            height: 180mm;
+            position: relative;
+            width: 267mm;
+            height: 188mm;
             margin: 0 auto;
             padding: 8mm 10mm;
+            overflow: hidden;
             border: 1.2mm solid #1d5b83;
             page-break-before: always;
             page-break-after: avoid;
+        }
+
+        .transcript-page:before {
+            position: absolute;
+            top: 2.5mm;
+            right: 2.5mm;
+            bottom: 2.5mm;
+            left: 2.5mm;
+            border: 0.45mm solid #b58b43;
+            content: "";
         }
 
         .transcript-page h1 { color: #1d5b83; text-align: center; font-size: 17pt; }
@@ -75,6 +87,11 @@
             left: 2.5mm;
             border: 0.45mm solid #b58b43;
             content: "";
+        }
+
+        .transcript-page > * {
+            position: relative;
+            z-index: 1;
         }
 
         .content {
@@ -182,7 +199,7 @@
 
         .signature-table {
             width: 100%;
-            margin: 2mm 0 10mm;
+            margin: 12mm 0 0;
             page-break-inside: avoid;
         }
 
@@ -220,7 +237,7 @@
         .footer-table {
             position: absolute;
             right: 0;
-            bottom: 8mm;
+            bottom: 14mm;
             left: 0;
             width: 100%;
             margin: 0;
@@ -234,7 +251,7 @@
         .footer-table td {
             padding: 1mm 1.5mm 0;
             vertical-align: middle;
-            line-height: 1.25;
+            line-height: 1.2;
         }
 
         .verification-box {
@@ -243,7 +260,7 @@
             word-wrap: break-word;
             overflow-wrap: break-word;
             word-break: break-all;
-            line-height: 1.25;
+            line-height: 1.2;
         }
 
         .qr-cell {
