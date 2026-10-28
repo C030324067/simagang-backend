@@ -199,7 +199,7 @@
 
         .signature-table {
             width: 100%;
-            margin: 12mm 0 0;
+            margin: 14mm 0 0;
             page-break-inside: avoid;
         }
 
@@ -218,7 +218,7 @@
         }
 
         .signature-space {
-            height: 22px;
+            height: 40px;
         }
 
         .signer-name {
@@ -229,7 +229,7 @@
         }
 
         .signer-id {
-            margin-top: 1mm;
+            margin-top: 2mm;
             color: #536579;
             font-size: 7.5pt;
         }
@@ -237,7 +237,7 @@
         .footer-table {
             position: absolute;
             right: 0;
-            bottom: 14mm;
+            bottom: 19mm;
             left: 0;
             width: 100%;
             margin: 0;
