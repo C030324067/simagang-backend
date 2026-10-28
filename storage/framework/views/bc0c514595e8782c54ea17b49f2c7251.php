@@ -19,7 +19,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 0;
+            margin: 8mm;
         }
 
         html,
@@ -38,10 +38,10 @@
         .certificate-container {
             position: relative;
             /* Sisakan ruang untuk padding/border yang dihitung di luar ukuran oleh DomPDF. */
-            width: 287mm;
-            height: 190mm;
+            width: 100%;
+            height: 180mm;
             margin: 0 auto;
-            padding: 7mm 13mm;
+            padding: 7mm 12mm;
             overflow: hidden;
             border: 1.2mm solid #1d5b83;
             page-break-inside: avoid;
@@ -49,18 +49,22 @@
         }
 
         .transcript-page {
-            width: 287mm;
-            height: 190mm;
+            width: 100%;
+            height: 180mm;
             margin: 0 auto;
-            padding: 8mm 13mm;
+            padding: 8mm 10mm;
             border: 1.2mm solid #1d5b83;
             page-break-after: avoid;
         }
 
-        .transcript-page h1 { color: #1d5b83; text-align: center; font-size: 22pt; }
-        .transcript-page p { text-align: center; }
-        .transcript-table { width: 100%; margin-top: 12mm; border-collapse: collapse; font-size: 11pt; }
-        .transcript-table th, .transcript-table td { border: 1px solid #64748b; padding: 3mm; }
+        .transcript-page h1 { color: #1d5b83; text-align: center; font-size: 17pt; }
+        .transcript-page p { text-align: center; font-size: 9pt; }
+        .transcript-table { width: 100%; margin-top: 8mm; border-collapse: collapse; table-layout: fixed; font-size: 9pt; }
+        .transcript-table th, .transcript-table td { border: 0.35mm solid #64748b; padding: 2mm; overflow-wrap: break-word; }
+        .transcript-table th:nth-child(1), .transcript-table td:nth-child(1) { width: 8%; text-align: center; }
+        .transcript-table th:nth-child(2), .transcript-table td:nth-child(2) { width: 38%; }
+        .transcript-table th:nth-child(3), .transcript-table td:nth-child(3) { width: 12%; text-align: center; }
+        .transcript-table th:nth-child(4), .transcript-table td:nth-child(4) { width: 42%; }
 
         .certificate-container:before {
             position: absolute;
@@ -107,7 +111,7 @@
         .agency-name {
             margin: 0;
             color: #173f63;
-            font-size: 15pt;
+            font-size: 12pt;
             font-weight: bold;
             letter-spacing: 0.4pt;
             text-transform: uppercase;
@@ -116,7 +120,7 @@
         .agency-region {
             margin-top: 1.2mm;
             color: #315d7d;
-            font-size: 10pt;
+            font-size: 8.5pt;
             font-weight: bold;
             letter-spacing: 1.4pt;
             text-transform: uppercase;
@@ -125,7 +129,7 @@
         .certificate-title {
             margin: 0.5mm 0 1mm;
             color: #1d5b83;
-            font-size: 30pt;
+            font-size: 25pt;
             font-weight: bold;
             letter-spacing: 1.2pt;
             line-height: 1.05;
@@ -135,7 +139,7 @@
         .certificate-number {
             margin: 0 0 2mm;
             color: #536579;
-            font-size: 9pt;
+            font-size: 8pt;
             font-weight: bold;
             letter-spacing: 0.5pt;
         }
@@ -143,7 +147,7 @@
         .recipient-label {
             margin: 1mm 0 0;
             color: #536579;
-            font-size: 12pt;
+            font-size: 10pt;
         }
 
         .intern-name {
@@ -153,7 +157,7 @@
             padding: 0 8mm 1.5mm;
             border-bottom: 0.6mm solid #333;
             color: #172033;
-            font-size: 28pt;
+            font-size: 23pt;
             font-weight: bold;
             line-height: 1.15;
             text-transform: uppercase;
@@ -162,7 +166,7 @@
         .division-name {
             margin: 1mm 0 2mm;
             color: #1d5b83;
-            font-size: 11pt;
+            font-size: 9.5pt;
             font-weight: bold;
             letter-spacing: 0.4pt;
         }
@@ -171,7 +175,7 @@
             width: 92%;
             margin: 0 auto 3mm;
             color: #344256;
-            font-size: 12pt;
+            font-size: 10pt;
             line-height: 1.45;
         }
 
@@ -191,7 +195,7 @@
         .signature-title {
             min-height: 8mm;
             color: #344256;
-            font-size: 10pt;
+            font-size: 8.5pt;
             line-height: 1.35;
         }
 
@@ -201,7 +205,7 @@
 
         .signer-name {
             color: #172033;
-            font-size: 10pt;
+            font-size: 8.5pt;
             font-weight: bold;
             text-decoration: underline;
         }
@@ -209,7 +213,7 @@
         .signer-id {
             margin-top: 1mm;
             color: #536579;
-            font-size: 8.5pt;
+            font-size: 7.5pt;
         }
 
         .footer-table {
@@ -228,21 +232,21 @@
         }
 
         .verification-box {
-            width: 60mm;
+            width: 40%;
             text-align: right;
             word-wrap: break-word;
         }
 
         .qr-cell {
-            width: 22mm;
-            padding-left: 3mm;
+            width: 20mm;
+            padding-left: 2mm;
             text-align: right;
             vertical-align: middle;
         }
 
         .qr-image {
-            width: 19mm;
-            height: 19mm;
+            width: 16mm;
+            height: 16mm;
         }
 
         .verification-hash {
