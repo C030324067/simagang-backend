@@ -16,28 +16,21 @@ class CheckAccountExpiration
             return $next($request);
         }
 
-        $application = $user->applications()
-            ->where('final_status', 'accepted')
-            ->orderByDesc('end_date')
-            ->first();
-
-        if (! $application?->end_date) {
-            return $next($request);
-        }
-
-        $gracePeriodUntil = $application->end_date->copy()->addDays(7);
-
-        if (now(config('app.timezone'))->toDateString() <= $gracePeriodUntil->toDateString()) {
+        if (! $user->isExpired()) {
             return $next($request);
         }
 
         $user->forceFill(['status_akun' => 'expired', 'is_active' => false])->save();
         $user->tokens()->delete();
+        $gracePeriodUntil = $user->gracePeriodEnd();
+        $message = $gracePeriodUntil
+            ? 'Masa aktif akun Anda telah berakhir pada '.$gracePeriodUntil->format('d-m-Y').'. Silakan hubungi admin Diskominfo jika memerlukan akses kembali.'
+            : 'Akun Intern tidak memiliki aplikasi magang aktif yang tertaut. Silakan hubungi admin Diskominfo.';
 
         return response()->json([
             'success' => false,
             'code' => 'ACCOUNT_EXPIRED',
-            'message' => 'Masa aktif akun Anda telah berakhir pada '.$gracePeriodUntil->format('d-m-Y').'. Silakan hubungi admin Diskominfo jika memerlukan akses kembali.',
+            'message' => $message,
         ], Response::HTTP_FORBIDDEN);
     }
 }

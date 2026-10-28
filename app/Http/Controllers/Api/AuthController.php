@@ -8,7 +8,6 @@ use App\Traits\ApiResponse;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Str;
@@ -69,18 +68,18 @@ class AuthController extends Controller
             return $this->errorResponse('Password yang Anda masukkan salah.', 401);
         }
 
-        if ($user->isIntern() && $user->status_akun === 'expired') {
-            $endDate = $user->applications()
-                ->where('final_status', 'accepted')
-                ->whereNotNull('end_date')
-                ->orderByDesc('end_date')
-                ->value('end_date');
-            $gracePeriodUntil = $endDate ? Carbon::parse($endDate)->addDays(7)->format('d-m-Y') : null;
+        if ($user->isIntern() && $user->isExpired()) {
+            $user->forceFill(['status_akun' => 'expired', 'is_active' => false])->save();
+            $user->tokens()->delete();
+            $gracePeriodUntil = $user->gracePeriodEnd();
+            $message = $gracePeriodUntil
+                ? 'Masa aktif akun Anda telah berakhir pada '.$gracePeriodUntil->format('d-m-Y').'. Silakan hubungi admin Diskominfo jika memerlukan akses kembali.'
+                : 'Akun Intern tidak memiliki aplikasi magang aktif yang tertaut. Silakan hubungi admin Diskominfo.';
 
             return response()->json([
                 'success' => false,
                 'code' => 'ACCOUNT_EXPIRED',
-                'message' => 'Masa aktif akun Anda telah berakhir'.($gracePeriodUntil ? ' pada '.$gracePeriodUntil : '').'. Silakan hubungi admin Diskominfo jika memerlukan akses kembali.',
+                'message' => $message,
             ], 403);
         }
 

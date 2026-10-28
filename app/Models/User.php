@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -84,6 +85,35 @@ class User extends Authenticatable
     public function activeApplication(): HasOne
     {
         return $this->hasOne(InternApplication::class, 'user_id')->latestOfMany();
+    }
+
+    public function internApplication(): HasOne
+    {
+        return $this->hasOne(InternApplication::class, 'user_id')
+            ->where('final_status', 'accepted')
+            ->latestOfMany();
+    }
+
+    public function gracePeriodEnd(): ?Carbon
+    {
+        $endDate = $this->getAttribute('end_date') ?? $this->internApplication?->end_date;
+
+        return $endDate ? Carbon::parse($endDate)->addDays(7)->endOfDay() : null;
+    }
+
+    public function isExpired(): bool
+    {
+        if (! $this->isIntern()) {
+            return false;
+        }
+
+        if ($this->status_akun === 'expired') {
+            return true;
+        }
+
+        $gracePeriodEnd = $this->gracePeriodEnd();
+
+        return ! $gracePeriodEnd || now(config('app.timezone'))->greaterThan($gracePeriodEnd);
     }
 
     public function attendances(): HasMany

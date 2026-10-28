@@ -14,29 +14,26 @@ class DeactivateExpiredInterns extends Command
 
     public function handle(): int
     {
-        $expiredUsers = User::query()
+        $deactivatedCount = 0;
+
+        User::query()
             ->where('role', 'intern')
-            ->where('is_active', true)
-            ->whereHas('applications', fn ($query) => $query
-                ->where('final_status', 'accepted')
-                ->whereNotNull('end_date')
-                ->whereDate('end_date', '<', now(config('app.timezone'))->subDays(7)->toDateString()))
-            ->with(['applications' => fn ($query) => $query->where('final_status', 'accepted')->whereNotNull('end_date')->orderByDesc('end_date')])
-            ->get();
+            ->where('status_akun', '!=', 'expired')
+            ->chunkById(100, function ($users) use (&$deactivatedCount): void {
+                foreach ($users as $user) {
+                    if (! $user->isExpired()) {
+                        continue;
+                    }
 
-        foreach ($expiredUsers as $user) {
-            $latestAccepted = $user->applications->first();
-            if (! $latestAccepted || now(config('app.timezone'))->toDateString() <= $latestAccepted->end_date->copy()->addDays(7)->toDateString()) {
-                continue;
-            }
-
-            DB::transaction(function () use ($user): void {
-                $user->forceFill(['status_akun' => 'expired', 'is_active' => false])->save();
-                $user->tokens()->delete();
+                    DB::transaction(function () use ($user): void {
+                        $user->forceFill(['status_akun' => 'expired', 'is_active' => false])->save();
+                        $user->tokens()->delete();
+                    });
+                    $deactivatedCount++;
+                }
             });
-        }
 
-        $this->info("{$expiredUsers->count()} akun diperiksa untuk penonaktifan.");
+        $this->info("{$deactivatedCount} akun dinonaktifkan.");
 
         return self::SUCCESS;
     }
