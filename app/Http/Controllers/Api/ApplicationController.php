@@ -8,9 +8,11 @@ use App\Mail\OfficialAcceptanceLetter;
 use App\Models\Division;
 use App\Models\InternApplication;
 use App\Models\InternApplicationHistory;
+use App\Models\SuratBalasan;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -788,6 +790,12 @@ class ApplicationController extends Controller
             $request->merge(['official_letter_number' => $request->input('letter_number')]);
         }
 
+        if (preg_match('/^SIMAGANG\/(\d{1,6})\/(\d{4})$/', (string) $request->input('official_letter_number'), $matches) === 1) {
+            $request->merge([
+                'official_letter_number' => sprintf('SIMAGANG/%s/%06d', $matches[2], (int) $matches[1]),
+            ]);
+        }
+
         if (! $request->hasFile('official_letter_file') && $request->hasFile('file')) {
             $request->files->set('official_letter_file', $request->file('file'));
         }
@@ -875,23 +883,45 @@ class ApplicationController extends Controller
             $request->merge(['official_letter_number' => $request->input('letter_number')]);
         }
 
+        if (preg_match('/^SIMAGANG\/(\d{1,6})\/(\d{4})$/', (string) $request->input('official_letter_number'), $matches) === 1) {
+            $request->merge([
+                'official_letter_number' => sprintf('SIMAGANG/%s/%06d', $matches[2], (int) $matches[1]),
+            ]);
+        }
+
         $validated = $request->validate([
-            'official_letter_number' => ['required', 'string', 'max:255', Rule::unique('intern_applications', 'official_letter_number')->ignore($id)],
+            'official_letter_number' => ['required', 'string', 'max:255', Rule::unique('surat_balasan', 'nomor_surat')],
+            'application_ids' => ['sometimes', 'array', 'min:1'],
+            'application_ids.*' => ['integer', 'exists:intern_applications,id'],
         ]);
 
-        $application = InternApplication::with(['user', 'division', 'verifierKadis'])->findOrFail($id);
+        $ids = collect($validated['application_ids'] ?? [$id])->push((int) $id)->unique()->values();
+        $applications = InternApplication::with(['user', 'division', 'verifierKadis'])->whereIn('id', $ids)->get();
+        abort_unless($applications->count() === $ids->count(), 422, 'Sebagian peserta tidak ditemukan.');
+        $application = $applications->firstWhere('id', (int) $id);
+
+        abort_unless($applications->every(fn (InternApplication $participant): bool => $participant->institution_name === $application->institution_name
+            && (int) $participant->division_id === (int) $application->division_id
+            && $participant->start_date?->toDateString() === $application->start_date?->toDateString()
+            && $participant->end_date?->toDateString() === $application->end_date?->toDateString()
+        ), 422, 'Peserta dalam satu surat harus berasal dari institusi, bidang, dan periode magang yang sama.');
 
         if (! $application->division_id) {
             return $this->errorResponse('Permohonan belum memiliki divisi penempatan.', 422);
         }
 
-        $application->official_letter_number = $validated['official_letter_number'];
-        $application->acceptance_letter_number = $validated['official_letter_number'];
-        $path = "letters/surat_balasan_{$application->id}.pdf";
+        $letter = SuratBalasan::create([
+            'nomor_surat' => $validated['official_letter_number'],
+            'tanggal_terbit' => now(),
+        ]);
+        $path = "letters/surat_balasan_{$letter->id}.pdf";
         $oldPath = $application->official_letter_path;
 
         $pdf = Pdf::loadView('pdf.surat_balasan', [
             'application' => $application,
+            'applications' => $applications,
+            'durasiBulan' => Carbon::parse($application->start_date)->diffInMonths(Carbon::parse($application->end_date)),
+            'nomorSurat' => $validated['official_letter_number'],
             'pendaftar' => $application,
             'tanggalPenerbitan' => now()->locale('id'),
         ])->setPaper('a4', 'portrait');
@@ -901,22 +931,20 @@ class ApplicationController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($application, $validated, $path): void {
-                $application->update([
-                    'official_letter_number' => $validated['official_letter_number'],
-                    'acceptance_letter_number' => $validated['official_letter_number'],
-                    'official_letter_path' => $path,
-                    'status' => 'accepted',
-                    'final_status' => 'accepted',
-                ]);
-
-                if ($application->user) {
-                    $application->user->update([
-                        'role' => 'intern',
-                        'status_akun' => 'approved',
-                        'is_active' => true,
-                        'tanggal_disetujui' => now(),
-                        'division_id' => $application->division_id,
+            DB::transaction(function () use ($applications, $validated, $path, $letter): void {
+                $letter->update(['file_path' => $path]);
+                foreach ($applications as $participant) {
+                    $participant->update([
+                        'surat_balasan_id' => $letter->id,
+                        'official_letter_number' => $validated['official_letter_number'],
+                        'acceptance_letter_number' => $validated['official_letter_number'],
+                        'official_letter_path' => $path,
+                        'status' => 'accepted',
+                        'final_status' => 'accepted',
+                    ]);
+                    $participant->user?->update([
+                        'role' => 'intern', 'status_akun' => 'approved', 'is_active' => true,
+                        'tanggal_disetujui' => now(), 'division_id' => $participant->division_id,
                     ]);
                 }
             });
@@ -933,7 +961,7 @@ class ApplicationController extends Controller
             'success' => true,
             'message' => 'Surat balasan berhasil diterbitkan dan pemohon resmi diterima!',
             'pdf_url' => "/storage/{$path}",
-            'data' => $application->fresh(['user', 'division']),
+            'data' => ['surat_balasan' => $letter->fresh(), 'peserta' => $applications->load(['user', 'division'])],
         ]);
     }
 
@@ -976,6 +1004,9 @@ class ApplicationController extends Controller
 
         return Pdf::loadView('pdf.surat_balasan', [
             'application' => $application,
+            'applications' => $application->suratBalasan?->pendaftaran()->with(['user', 'division'])->get() ?? collect([$application]),
+            'durasiBulan' => Carbon::parse($application->start_date)->diffInMonths(Carbon::parse($application->end_date)),
+            'nomorSurat' => $application->suratBalasan?->nomor_surat ?? $application->official_letter_number ?? $application->acceptance_letter_number,
             'pendaftar' => $application,
             'tanggalPenerbitan' => now()->locale('id'),
         ])->setPaper('a4', 'portrait')->download($filename);

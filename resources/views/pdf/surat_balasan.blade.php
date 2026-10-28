@@ -202,7 +202,7 @@
         <tr>
             <td class="label-col">Nomor</td>
             <td class="colon-col">:</td>
-            <td>{{ $application->official_letter_number ?? $application->acceptance_letter_number ?? '-' }}</td>
+            <td>{{ $nomorSurat ?? $application->official_letter_number ?? $application->acceptance_letter_number ?? '-' }}</td>
             <td class="date-col">Tanjung, {{ $tanggalPenerbitan?->locale('id')->translatedFormat('j F Y') ?? now()->locale('id')->translatedFormat('j F Y') }}</td>
         </tr>
         <tr>
@@ -245,7 +245,7 @@
         Bersama dengan surat ini kami <strong>Bersedia</strong> memberi kesempatan Magang kepada mahasiswa/i dari 
         {{ $application->institution_name ?? ($application->user?->institution_name ?? '—') }} di Dinas Komunikasi dan Informatika Kabupaten Tabalong
         @if (!empty($application->start_date) && !empty($application->end_date))
-            selama periode <strong>{{ $application->start_date?->locale('id')->translatedFormat('j F Y') }} s/d {{ $application->end_date?->locale('id')->translatedFormat('j F Y') }}</strong>
+            selama <strong>{{ $durasiBulan ?? 0 }} bulan</strong>, periode <strong>{{ $application->start_date?->locale('id')->translatedFormat('j F Y') }} s/d {{ $application->end_date?->locale('id')->translatedFormat('j F Y') }}</strong>
         @endif. 
         Berikut ini adalah Nama-nama Mahasiswa/i yang akan melaksanakan Magang di Dinas Komunikasi dan Informatika Kabupaten Tabalong:
     </p>
@@ -271,19 +271,16 @@
             </tr>
         </thead>
         <tbody>
+            @foreach (($applications ?? collect([$application])) as $participant)
             <tr>
-                <td class="center">1</td>
-                <td class="left">{{ $application->user?->name ?? '—' }}</td>
-                <td class="center">{{ $application->student_number ?? '—' }}</td>
-                <td class="left">{{ $application->major ?? '—' }}</td>
-                <td class="left">
-                    Dinas Komunikasi dan Informatika Kabupaten Tabalong
-                    @if (!empty($application->division?->name))
-                        — {{ $application->division?->name }}
-                    @endif
-                </td>
-                <td class="center">{{ $application->user?->no_hp ?? '—' }}</td>
+                <td class="center">{{ $loop->iteration }}</td>
+                <td class="left">{{ $participant->user?->name ?? '-' }}</td>
+                <td class="center">{{ $participant->student_number ?? '-' }}</td>
+                <td class="left">{{ $participant->major ?? '-' }}</td>
+                <td class="left">Dinas Komunikasi dan Informatika Kabupaten Tabalong @if (!empty($participant->division?->name)) - {{ $participant->division?->name }} @endif</td>
+                <td class="center">{{ $participant->user?->no_hp ?? '-' }}</td>
             </tr>
+            @endforeach
         </tbody>
     </table>
 

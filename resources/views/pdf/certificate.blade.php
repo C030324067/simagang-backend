@@ -47,8 +47,22 @@
             overflow: hidden;
             border: 1.2mm solid #1d5b83;
             page-break-inside: avoid;
+            page-break-after: always;
+        }
+
+        .transcript-page {
+            width: 258mm;
+            min-height: 183mm;
+            margin: 0 auto;
+            padding: 14mm 18mm;
+            border: 1.2mm solid #1d5b83;
             page-break-after: avoid;
         }
+
+        .transcript-page h1 { color: #1d5b83; text-align: center; font-size: 22pt; }
+        .transcript-page p { text-align: center; }
+        .transcript-table { width: 100%; margin-top: 12mm; border-collapse: collapse; font-size: 11pt; }
+        .transcript-table th, .transcript-table td { border: 1px solid #64748b; padding: 3mm; }
 
         .certificate-container:before {
             position: absolute;
@@ -401,5 +415,20 @@
             </table>
         </div>
     </div>
+    <section class="transcript-page">
+        <h1>Transkrip / Daftar Nilai</h1>
+        <p>{{ $intern->name ?? 'Peserta Magang' }} · Jenjang {{ $education_level ?? 'Kuliah' }}</p>
+        <table class="transcript-table">
+            <thead><tr><th>No.</th><th>Aspek Penilaian</th><th>Nilai</th><th>Catatan</th></tr></thead>
+            <tbody>
+                @forelse ($transcript_scores ?? [] as $score)
+                    <tr><td>{{ $loop->iteration }}</td><td>{{ $score->aspek }}</td><td>{{ number_format((float) $score->nilai, 2) }}</td><td>{{ $score->catatan ?: '—' }}</td></tr>
+                @empty
+                    <tr><td colspan="4" style="text-align:center">Belum ada rincian nilai.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+        <p style="margin-top:8mm;text-align:right">Nilai Akhir: <strong>{{ number_format((float) ($evaluation?->final_score ?? 0), 2) }} / 100</strong></p>
+    </section>
 </body>
 </html>

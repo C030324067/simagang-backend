@@ -2,6 +2,7 @@ import React from 'react';
 import useMentorDashboard from '../hooks/useMentorDashboard';
 import MentorAttendanceReview from '../components/MentorAttendanceReview';
 import MentorFinalEvaluation from '../components/MentorFinalEvaluation';
+import SmkAssessmentManager from '../components/SmkAssessmentManager';
 import { 
   Users, 
   BookOpen, 
@@ -483,6 +484,7 @@ export default function MentorDashboard() {
       {/* TAB: PENILAIAN & SERTIFIKAT */}
       {activeTab === 'evaluations' && (
         <div className="space-y-6">
+          <SmkAssessmentManager interns={interns} onSaved={loadData} />
           <MentorFinalEvaluation interns={interns} evaluations={evaluations} onSaved={loadData} onGenerateCertificate={handleGenerateCert} generatingCertificateId={generatingCertificateId} />
           
           <section className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xs p-6 space-y-6">

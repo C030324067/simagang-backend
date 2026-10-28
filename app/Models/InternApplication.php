@@ -36,6 +36,7 @@ class InternApplication extends Model
         'application_type',
         'institution_name',
         'major',
+        'jenjang',
         'student_number',
         'cover_letter_path',
         'transcript_path',
@@ -64,6 +65,7 @@ class InternApplication extends Model
         'mentor_id',
         'acceptance_letter_number',
         'official_letter_number',
+        'surat_balasan_id',
         'tracking_code',
     ];
 
@@ -130,6 +132,21 @@ class InternApplication extends Model
     public function certificate(): HasOne
     {
         return $this->hasOne(Certificate::class);
+    }
+
+    public function suratBalasan(): BelongsTo
+    {
+        return $this->belongsTo(SuratBalasan::class, 'surat_balasan_id');
+    }
+
+    public function penilaianSmk(): HasMany
+    {
+        return $this->hasMany(PenilaianSmk::class);
+    }
+
+    public function penilaianKuliah(): HasMany
+    {
+        return $this->hasMany(PenilaianKuliah::class);
     }
 
     public function scopeForKabidDivision(Builder $query, int $divisionId): Builder

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DivisionController;
 use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\InternshipPeriodController;
 use App\Http\Controllers\Api\LogbookController;
+use App\Http\Controllers\Api\PenilaianSmkController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserApprovalController;
 use App\Http\Controllers\RegisterApplicationController;
@@ -178,6 +179,15 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
             Route::post('/', [EvaluationController::class, 'store']);
             Route::post('/{evaluation}/generate-certificate', [CertificateController::class, 'generateFromEvaluation']);
         });
+    });
+
+    Route::prefix('penilaian-smk')->middleware('role:mentor,admin_kepegawaian')->group(function () {
+        Route::get('/aspects', [PenilaianSmkController::class, 'aspects']);
+        Route::post('/aspects', [PenilaianSmkController::class, 'storeAspect']);
+        Route::put('/aspects/{aspect}', [PenilaianSmkController::class, 'updateAspect']);
+        Route::delete('/aspects/{aspect}', [PenilaianSmkController::class, 'destroyAspect']);
+        Route::get('/{application}', [PenilaianSmkController::class, 'scores']);
+        Route::put('/{application}', [PenilaianSmkController::class, 'saveScores']);
     });
 
     // Certificate Endpoints

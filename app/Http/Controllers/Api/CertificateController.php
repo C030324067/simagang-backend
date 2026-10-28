@@ -8,6 +8,12 @@ use App\Models\Evaluation;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Endroid\QrCode\Color\Color;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -99,7 +105,6 @@ class CertificateController extends Controller
 
         $evaluation = $certificate->intern->evaluations->first();
         $application = $certificate->intern->activeApplication;
-
         $data = [
             'valid' => true,
             'certificate_number' => $certificate->certificate_number,
@@ -153,16 +158,34 @@ class CertificateController extends Controller
             abort(404);
         }
 
+        $application = $certificate->internApplication;
+        $verifyUrl = url('/verify-cert/'.$certificate->qr_hash);
+        $qrCode = new QrCode(
+            data: $verifyUrl,
+            encoding: new Encoding('UTF-8'),
+            errorCorrectionLevel: ErrorCorrectionLevel::Medium,
+            size: 320,
+            margin: 12,
+            roundBlockSizeMode: RoundBlockSizeMode::Margin,
+            foregroundColor: new Color(15, 23, 42),
+            backgroundColor: new Color(255, 255, 255),
+        );
+        $qrCodeDataUri = (new PngWriter)->write($qrCode)->getDataUri();
         $data = [
             'certificate' => $certificate,
             'intern' => $certificate->intern,
-            'evaluation' => $certificate->intern->evaluations->first(),
-            'application' => $certificate->intern->activeApplication,
-            'verify_url' => url('/verify-cert/' . $certificate->qr_hash),
+            'evaluation' => $application?->evaluation,
+            'application' => $application,
+            'verify_url' => $verifyUrl,
+            'qr_code_data_uri' => $qrCodeDataUri,
+            'transcript_scores' => $application?->jenjang === 'SMK'
+                ? $application->penilaianSmk()->orderBy('aspek')->get()
+                : $application?->penilaianKuliah()->orderBy('aspek')->get() ?? collect(),
+            'education_level' => $application?->jenjang ?? 'Kuliah',
         ];
 
         $pdf = Pdf::loadView('pdf.certificate', $data)->setPaper('a4', 'landscape');
 
-        return $pdf->download('Sertifikat-' . Str::slug($certificate->intern->name) . '.pdf');
+        return $pdf->download('Sertifikat-'.Str::slug($certificate->intern->name).'.pdf');
     }
 }

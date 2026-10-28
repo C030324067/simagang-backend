@@ -3,12 +3,12 @@ import useDivisions from '../hooks/useDivisions';
 import useInternshipPeriodStatus from '../hooks/useInternshipPeriodStatus';
 import '../../css/RegisterApplication.css';
 
-const empty = { application_type: 'mandiri', recommendation_letter_number: '', nama: '', email: '', nim_nisn: '', bidang: '', institusi: '', jurusan: '', hp: '', tgl_mulai: '', tgl_selesai: '', pw: '', pw2: '' };
+const empty = { application_type: 'mandiri', recommendation_letter_number: '', nama: '', email: '', nim_nisn: '', bidang: '', institusi: '', jenjang: '', jurusan: '', hp: '', tgl_mulai: '', tgl_selesai: '', pw: '', pw2: '' };
 const docs = [
   { key: 'b1', label: 'Surat pengantar institusi', accept: '.pdf,.jpg,.jpeg,.png' },
-  { key: 'b2', label: 'Curriculum Vitae (CV)', accept: '.pdf,.jpg,.jpeg,.png' },
-  { key: 'b3', label: 'Transkrip nilai / rapor', accept: '.pdf,.jpg,.jpeg,.png' },
-  { key: 'b4', label: 'Foto kartu pelajar / mahasiswa', accept: '.jpg,.jpeg,.png', imageOnly: true },
+  { key: 'b2', label: 'Curriculum Vitae (CV)', accept: '.pdf', required: true, pdfOnly: true },
+  { key: 'b3', label: 'Transkrip nilai / rapor', accept: '.pdf', pdfOnly: true },
+  { key: 'b4', label: 'Kartu Pelajar', accept: '.pdf,.jpg,.png', optional: true },
 ];
 const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
@@ -61,11 +61,14 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
     }
     if (form.tgl_mulai && form.tgl_mulai < today) next.tgl_mulai = 'Tanggal mulai tidak boleh sebelum hari ini.';
     if (form.tgl_selesai && form.tgl_selesai < (form.tgl_mulai || today)) next.tgl_selesai = 'Tanggal selesai harus sama atau setelah tanggal mulai.';
-    docs.forEach(({ key, imageOnly }) => {
+    docs.forEach(({ key, imageOnly, pdfOnly, required }) => {
+      const isOptionalRecommendation = key === 'b3' && form.application_type === 'rekomendasi_kampus';
+      const isRequired = required || (key === 'b3' && !isOptionalRecommendation);
       const file = files[key];
-      if (!file) next[key] = 'Berkas ini wajib diunggah.';
-      else if (file.size > 5 * 1024 * 1024) next[key] = 'Ukuran file maksimal 5 MB.';
-      else if (imageOnly ? !['image/jpeg', 'image/png'].includes(file.type) : !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) next[key] = imageOnly ? 'Gunakan foto JPG atau PNG.' : 'Gunakan PDF, JPG, atau PNG.';
+      if (!file) {
+        if (isRequired) next[key] = 'Berkas ini wajib diunggah.';
+      } else if (file.size > (key === 'b1' ? 5 : 2) * 1024 * 1024) next[key] = `Ukuran file maksimal ${key === 'b1' ? 5 : 2} MB.`;
+      else if (pdfOnly ? file.type !== 'application/pdf' : imageOnly ? !['image/jpeg', 'image/png'].includes(file.type) : !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) next[key] = pdfOnly ? 'Gunakan file PDF.' : imageOnly ? 'Gunakan foto JPG atau PNG.' : 'Gunakan PDF, JPG, atau PNG.';
     });
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -209,6 +212,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           {field('nim_nisn', 'NIM / NISN', 'text', { inputMode: 'text', minLength: 5, maxLength: 20, autoComplete: 'off' })}
           {field('bidang', 'Bidang yang diminati')}
           {field('institusi', 'Nama institusi')}
+          <div className="field"><label htmlFor="jenjang">Jenjang pendidikan<span className="req"> *</span></label><select id="jenjang" className={`input ${errors.jenjang ? 'invalid' : ''}`} value={form.jenjang} onChange={change}><option value="">Pilih jenjang</option><option value="SMK">SMK</option><option value="Kuliah">Kuliah</option></select>{errors.jenjang && <p className="error-msg">{errors.jenjang}</p>}</div>
           {field('jurusan', 'Jurusan / program studi')}
           {field('hp', 'Nomor telepon / WhatsApp', 'tel', { inputMode: 'numeric', minLength: 10, maxLength: 13, autoComplete: 'tel' })}
           {field('tgl_mulai', 'Tanggal mulai magang', 'date', { min: today })}
@@ -228,21 +232,23 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           ))}
           <section className="berkas full">
             <h2>Dokumen pendukung</h2>
-            <p className="hint">PDF, JPG, atau PNG &middot; maksimal 5 MB per berkas. Foto kartu hanya JPG/PNG.</p>
+            <p className="hint">CV dan surat rekomendasi: PDF maksimal 2 MB. Kartu pelajar: PDF, JPG, atau PNG maksimal 2 MB.</p>
             <div className="berkas-grid">
-              {docs.map(({ key, label: defaultLabel, accept }) => {
-                const label = key === 'b3' && form.application_type === 'rekomendasi_kampus' ? 'Surat rekomendasi kampus' : defaultLabel;
+              {docs.map(({ key, label: defaultLabel, accept, optional }) => {
+                const isRecommendation = key === 'b3' && form.application_type === 'rekomendasi_kampus';
+                const label = isRecommendation ? 'Surat Rekomendasi' : defaultLabel;
+                const isOptional = optional || isRecommendation;
                 const file = files[key];
 
                 return (
                   <div className="field" key={key}>
-                    <label htmlFor={key}>{label}<span className="req"> *</span></label>
+                    <label htmlFor={key}>{label}{isOptional ? ' (Opsional)' : <span className="req"> *</span>}</label>
                     <div className={`upload-card ${file ? 'has-file' : ''} ${errors[key] ? 'invalid' : ''}`}>
                       <input id={key} className="upload-native" type="file" accept={accept} onChange={event => { setFiles(prev => ({ ...prev, [key]: event.target.files?.[0] || null })); setErrors(prev => ({ ...prev, [key]: '' })); }} />
                       <label className="upload-label" htmlFor={key}>
                         <span className="upload-copy">
                           <strong>{file?.name || 'Pilih berkas untuk diunggah'}</strong>
-                          <small>{file ? `${formatFileSize(file.size)} &middot; klik untuk mengganti berkas` : 'PDF, JPG, atau PNG &middot; maksimal 5 MB'}</small>
+                          <small>{file ? `${formatFileSize(file.size)} &middot; klik untuk mengganti berkas` : `${accept.toUpperCase().replaceAll(',', ', ')} · maksimal ${key === 'b1' ? '5' : '2'} MB`}</small>
                         </span>
                         <span className="upload-action">{file ? 'Ganti' : 'Pilih file'}</span>
                       </label>

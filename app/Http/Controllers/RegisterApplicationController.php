@@ -29,6 +29,7 @@ class RegisterApplicationController extends Controller
             'bidang' => ['required', Rule::in([...$divisionCodes, ...$legacyDivisionCodes])],
             'institusi' => ['required', 'string', 'max:255'],
             'jurusan' => ['required', 'string', 'max:255'],
+            'jenjang' => ['required', Rule::in(['SMK', 'Kuliah'])],
             'nim_nisn' => ['required', 'string', 'regex:/^[a-zA-Z0-9]+$/', 'min:5', 'max:20'],
             'hp' => ['required', 'string', 'regex:/^(?:08\d{8,11}|628\d{7,10})$/'],
             'tgl_mulai' => ['required', 'date', 'after_or_equal:today'],
@@ -42,9 +43,9 @@ class RegisterApplicationController extends Controller
                 'max:255',
             ],
             'b1' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'b2' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'b3' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'b4' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'b2' => ['required', 'file', 'mimes:pdf', 'max:2048'],
+            'b3' => [Rule::requiredIf($request->input('application_type') === 'mandiri'), 'nullable', 'file', 'mimes:pdf', 'max:2048'],
+            'b4' => ['nullable', 'file', 'mimes:pdf,jpg,png', 'max:2048'],
         ], [
             'nim_nisn.required' => 'NIM / NISN wajib diisi.',
             'nim_nisn.string' => 'NIM / NISN harus berupa teks.',
@@ -130,7 +131,9 @@ class RegisterApplicationController extends Controller
             ]);
 
             foreach (['b1', 'b2', 'b3', 'b4'] as $key) {
-                $stored[$key] = $request->file($key)->store('documents', 'public');
+                $stored[$key] = $request->hasFile($key)
+                    ? $request->file($key)->store('documents', 'public')
+                    : null;
             }
 
             $application = InternApplication::create([
@@ -140,6 +143,7 @@ class RegisterApplicationController extends Controller
                 'student_number' => $validated['nim_nisn'] ?? null,
                 'recommendation_letter_number' => $validated['recommendation_letter_number'] ?? null,
                 'major' => $validated['jurusan'],
+                'jenjang' => $validated['jenjang'],
                 'file_proposal' => $stored['b1'],
                 'cover_letter_path' => $stored['b1'],
                 'file_cv' => $stored['b2'],
