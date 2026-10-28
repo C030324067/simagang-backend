@@ -37,9 +37,8 @@
 
         .certificate-container {
             position: relative;
-            /* Sisakan ruang untuk padding/border yang dihitung di luar ukuran oleh DomPDF. */
-            width: 100%;
-            height: 170mm;
+            width: 257mm;
+            height: 180mm;
             margin: 0 auto;
             padding: 7mm 12mm;
             overflow: hidden;
@@ -49,8 +48,8 @@
         }
 
         .transcript-page {
-            width: 100%;
-            height: 170mm;
+            width: 257mm;
+            height: 180mm;
             margin: 0 auto;
             padding: 8mm 10mm;
             border: 1.2mm solid #1d5b83;
@@ -66,6 +65,7 @@
         .transcript-table th:nth-child(2), .transcript-table td:nth-child(2) { width: 38%; }
         .transcript-table th:nth-child(3), .transcript-table td:nth-child(3) { width: 12%; text-align: center; }
         .transcript-table th:nth-child(4), .transcript-table td:nth-child(4) { width: 42%; }
+        .transcript-final-score { margin: 7mm 0 5mm; text-align: right; font-size: 9pt; line-height: 1.35; }
 
         .certificate-container:before {
             position: absolute;
@@ -220,7 +220,7 @@
         .footer-table {
             position: absolute;
             right: 0;
-            bottom: 2mm;
+            bottom: 8mm;
             left: 0;
             width: 100%;
             margin: 0;
@@ -284,7 +284,7 @@
                             <img src="<?php echo e($logoKomdigi); ?>" class="logo-img" alt="Logo Komdigi">
                         <?php endif; ?>
                     </td>
-                    <td style="width:64%;text-align:center">
+                    <td style="width:66%;text-align:center">
                         <div class="agency-name">Dinas Komunikasi dan Informatika</div>
                         <div class="agency-region">Kabupaten Tabalong</div>
                     </td>
@@ -357,7 +357,7 @@
                 <?php endif; ?>
             </tbody>
         </table>
-        <p style="margin-top:8mm;text-align:right">Nilai Akhir: <strong><?php echo e(number_format((float) ($evaluation?->final_score ?? 0), 2)); ?> / 100</strong></p>
+        <p class="transcript-final-score">Nilai Akhir: <strong><?php echo e(number_format((float) ($evaluation?->final_score ?? 0), 2)); ?> / 100</strong></p>
     </section>
 </body>
 </html>

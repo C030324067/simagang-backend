@@ -37,9 +37,8 @@
 
         .certificate-container {
             position: relative;
-            /* Sisakan ruang untuk padding/border yang dihitung di luar ukuran oleh DomPDF. */
-            width: 100%;
-            height: 170mm;
+            width: 257mm;
+            height: 180mm;
             margin: 0 auto;
             padding: 7mm 12mm;
             overflow: hidden;
@@ -49,8 +48,8 @@
         }
 
         .transcript-page {
-            width: 100%;
-            height: 170mm;
+            width: 257mm;
+            height: 180mm;
             margin: 0 auto;
             padding: 8mm 10mm;
             border: 1.2mm solid #1d5b83;
@@ -221,7 +220,7 @@
         .footer-table {
             position: absolute;
             right: 0;
-            bottom: 2mm;
+            bottom: 8mm;
             left: 0;
             width: 100%;
             margin: 0;
