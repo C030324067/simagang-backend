@@ -43,9 +43,9 @@ class RegisterApplicationController extends Controller
                 'max:255',
             ],
             'b1' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'b2' => ['required', 'file', 'mimes:pdf', 'max:2048'],
+            'b2' => ['nullable', 'file', 'mimes:pdf', 'max:2048'],
             'b3' => [Rule::requiredIf($request->input('application_type') === 'mandiri'), 'nullable', 'file', 'mimes:pdf', 'max:2048'],
-            'b4' => ['nullable', 'file', 'mimes:pdf,jpg,png', 'max:2048'],
+            'b4' => ['required', 'file', 'mimes:pdf,jpg,png', 'max:2048'],
         ], [
             'nim_nisn.required' => 'NIM / NISN wajib diisi.',
             'nim_nisn.string' => 'NIM / NISN harus berupa teks.',

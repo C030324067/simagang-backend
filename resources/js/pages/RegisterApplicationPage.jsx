@@ -6,9 +6,9 @@ import '../../css/RegisterApplication.css';
 const empty = { application_type: 'mandiri', recommendation_letter_number: '', nama: '', email: '', nim_nisn: '', bidang: '', institusi: '', jenjang: '', jurusan: '', hp: '', tgl_mulai: '', tgl_selesai: '', pw: '', pw2: '' };
 const docs = [
   { key: 'b1', label: 'Surat pengantar institusi', accept: '.pdf,.jpg,.jpeg,.png' },
-  { key: 'b2', label: 'Curriculum Vitae (CV)', accept: '.pdf', required: true, pdfOnly: true },
+  { key: 'b2', label: 'Curriculum Vitae (CV)', accept: '.pdf', optional: true, pdfOnly: true },
   { key: 'b3', label: 'Transkrip nilai / rapor', accept: '.pdf', pdfOnly: true },
-  { key: 'b4', label: 'Kartu Pelajar', accept: '.pdf,.jpg,.png', optional: true },
+  { key: 'b4', label: 'Kartu Pelajar', accept: '.pdf,.jpg,.png', required: true },
 ];
 const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
