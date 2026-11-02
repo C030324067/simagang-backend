@@ -222,7 +222,7 @@ export default function MentorDashboard() {
             <h3 className="font-bold text-sm">Intern Aktif dalam Bimbingan</h3>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="w-full overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="text-slate-500 font-bold border-b border-slate-100 pb-3">
@@ -281,7 +281,7 @@ export default function MentorDashboard() {
             <h3 className="font-bold text-sm">Catatan Logbook Kegiatan Magang</h3>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="w-full overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="text-slate-500 font-bold border-b border-slate-100">
@@ -396,7 +396,7 @@ export default function MentorDashboard() {
                     </div>
                     {t.description && <p className="text-sm leading-relaxed text-slate-500">{t.description}</p>}
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                         <span className="block text-xs text-slate-500">Diberikan kepada</span>
                         <span className="mt-1 block truncate text-sm font-bold text-[#0F172A]">{t.assigned_user?.name || '—'}</span>
@@ -456,7 +456,7 @@ export default function MentorDashboard() {
                         <option value="completed">Selesai</option>
                       </select>
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <button
                         type="button"
                         onClick={() => saveTaskStatus(t)}
@@ -504,7 +504,7 @@ export default function MentorDashboard() {
               </button>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
               <table className="w-full min-w-[620px] text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-500 font-bold">
@@ -807,7 +807,7 @@ export default function MentorDashboard() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+            <dl className="grid gap-4 text-sm md:grid-cols-2">
               <div><dt className="text-xs font-semibold text-slate-500">Nama</dt><dd className="mt-1 font-bold text-slate-900">{selectedApplication.user?.name || '—'}</dd></div>
               <div><dt className="text-xs font-semibold text-slate-500">Email</dt><dd className="mt-1 text-slate-800">{selectedApplication.user?.email || '—'}</dd></div>
               <div><dt className="text-xs font-semibold text-slate-500">Institusi</dt><dd className="mt-1 text-slate-800">{selectedApplication.institution_name || selectedApplication.institution || '—'}</dd></div>

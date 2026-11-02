@@ -183,7 +183,7 @@ export default function KabidDashboard() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse min-w-[760px]">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-500 font-bold">
@@ -249,7 +249,7 @@ export default function KabidDashboard() {
           ) : (
             <div className="divide-y divide-slate-100">
               {acceptedApps.map((app) => (
-                <div key={app.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div key={app.id} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div>
                     <p className="font-bold text-sm text-[#0F172A]">{app.user?.name}</p>
                     <p className="text-xs text-slate-500">{app.institution_name} · {app.division?.name || 'Bidang'}</p>
@@ -330,7 +330,7 @@ export default function KabidDashboard() {
                 <span className="block text-[11px] font-bold text-slate-500 tracking-wider uppercase mb-2">
                   KEPUTUSAN KEPALA BIDANG
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setActionForm({ ...actionForm, status: 'approved' })}

@@ -281,7 +281,7 @@ export default function InternDashboard() {
                 </button>
               </div>
 
-              <div className="mt-4 overflow-x-auto">
+              <div className="mt-4 w-full overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[11px]">
@@ -371,7 +371,7 @@ export default function InternDashboard() {
                 </button>
               </div>
 
-              <div className="mt-4 overflow-x-auto">
+              <div className="mt-4 w-full overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[11px]">
@@ -704,7 +704,7 @@ export default function InternDashboard() {
             </header>
 
             <div className="overflow-y-auto p-6">
-              <div className="overflow-x-auto">
+              <div className="w-full overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-100 text-[11px] font-bold uppercase text-slate-400">
@@ -764,8 +764,9 @@ export default function InternDashboard() {
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-y-auto p-6">
+              <div className="w-full overflow-x-auto">
+                <table className="w-full min-w-[560px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[11px]">
                     <th className="pb-3 pr-3 font-bold">Tanggal</th>
@@ -790,7 +791,8 @@ export default function InternDashboard() {
                     ))
                   )}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
 
             <div className="flex justify-end border-t border-slate-100 px-6 py-3">

@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
-import { ChevronDown, Eye, EyeOff, LogOut, UserRound } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { apiRequest } from '../api';
 
 export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const { user, logout } = useAuth();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [passwords, setPasswords] = useState({
     current_password: '',
@@ -163,36 +164,36 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const badge = getRoleBadge(user?.role, user?.division?.name);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 shadow-sm backdrop-blur-md">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-3 sm:px-6 md:px-12">
         
         {/* 1. SISI KIRI (LOGO TABALONG, LOGO DISKOMINFO & JUDUL CENTER-ALIGNED) */}
         <div 
-          className="flex items-center gap-3 cursor-pointer shrink-0" 
+          className="flex min-w-0 items-center gap-2 sm:gap-3 cursor-pointer shrink-0"
           onClick={(e) => handleNavClick(e, 'home')}
         >
           {/* Logo Kabupaten Tabalong */}
           <img 
             src="/images/logo/logo_setda.png" 
             alt="Logo Kab. Tabalong" 
-            className="h-10 w-auto object-contain shrink-0"
+            className="h-8 w-auto object-contain shrink-0 sm:h-10"
           />
           {/* Logo Diskominfo */}
           <img 
             src="/images/logo/logo komdigi.png" 
             alt="Logo Komdigi" 
-            className="h-10 w-auto object-contain shrink-0"
+            className="hidden h-8 w-auto object-contain shrink-0 sm:block sm:h-10"
           />
           
           {/* Teks Brand */}
-          <div className="flex flex-col justify-center leading-none">
-            <span className="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
+          <div className="flex min-w-0 flex-col justify-center leading-none">
+            <span className="text-lg font-extrabold text-slate-900 tracking-tight leading-none sm:text-xl">
               SIMAGANG
             </span>
-            <span className="text-[11px] font-medium text-slate-500 leading-tight mt-1">
+            <span className="hidden text-[11px] font-medium text-slate-500 leading-tight mt-1 sm:block">
               Sistem Informasi Magang
             </span>
-            <span className="text-[10px] font-normal text-slate-400 leading-tight">
+            <span className="hidden text-[10px] font-normal text-slate-400 leading-tight sm:block">
               Dinas Komunikasi dan Informasi Kab.Tabalong
             </span>
           </div>
@@ -200,7 +201,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
 
         {/* 2. SISI KANAN (MENU & LOGIN) */}
         {!user ? (
-          <div className="flex items-center gap-6 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-6 shrink-0">
             
             {/* Menu Navigasi Dinamis */}
             <nav className="hidden md:flex items-center gap-6 font-bold text-sm text-slate-600">
@@ -224,10 +225,20 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
             {/* Tombol Login */}
             <button
               onClick={() => onNavigateLogin ? onNavigateLogin() : setCurrentTab?.('login')}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-sky-600 text-white text-sm font-bold shadow-lg shadow-sky-600/25 hover:bg-sky-700 transition-all hover:-translate-y-0.5 cursor-pointer shrink-0"
+              className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-sky-600/25 transition-all hover:bg-sky-700 sm:px-6 sm:py-2.5 cursor-pointer shrink-0"
             >
               <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
               Login
+            </button>
+
+            <button
+              type="button"
+              aria-label={mobileMenuOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 md:hidden"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
 
           </div>
@@ -260,7 +271,8 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-sm font-semibold text-slate-700">
                 {user.name?.charAt(0) || 'U'}
               </span>
-              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} />
+              <span className="hidden sm:block"><ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} /></span>
+              <span className="rounded-lg p-1 text-slate-500 sm:hidden">{profileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</span>
             </button>
 
             {profileMenuOpen && (
@@ -289,6 +301,22 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
         )}
 
       </div>
+      {!user && mobileMenuOpen && (
+        <nav aria-label="Navigasi utama" className="absolute inset-x-0 top-full border-b border-slate-200 bg-white px-4 py-3 shadow-lg md:hidden">
+          <div className="mx-auto flex max-w-7xl flex-col gap-1">
+            {navItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                onClick={(event) => { handleNavClick(event, item.id); setMobileMenuOpen(false); }}
+                className={`rounded-xl px-4 py-3 text-sm font-bold ${isNavActive(item.id) ? 'bg-sky-50 text-sky-700' : 'text-slate-700 hover:bg-slate-50'}`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        </nav>
+      )}
       {profileModalOpen && user && createPortal(
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm"

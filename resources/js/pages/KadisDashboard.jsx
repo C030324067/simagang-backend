@@ -235,7 +235,7 @@ export default function KadisDashboard() {
               {safePendingApps.map((app, index) => (
                 <div 
                   key={app?.id ?? index}
-                  className="p-4 sm:p-5 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50/50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  className="p-4 md:p-5 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50/50 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                 >
                   <div className="space-y-2 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -309,7 +309,7 @@ export default function KadisDashboard() {
               {safeHistoryApps.map((app, index) => (
                 <div 
                   key={app?.id ?? index}
-                  className="p-4 sm:p-5 rounded-2xl border border-slate-100 bg-slate-50/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  className="p-4 md:p-5 rounded-2xl border border-slate-100 bg-slate-50/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                 >
                   <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -365,7 +365,7 @@ export default function KadisDashboard() {
             </div>
 
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs text-slate-700 space-y-2 leading-relaxed">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Institusi</span>
                   <span className="font-semibold text-slate-800">{selectedApp?.institution_name || '—'}</span>
@@ -489,7 +489,7 @@ export default function KadisDashboard() {
                 {filteredInterns.map((intern, index) => (
                   <div
                     key={intern?.id ?? index}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50/50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                    className="p-4 md:p-5 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50/50 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                   >
                     <div className="space-y-2 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

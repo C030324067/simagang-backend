@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+#root {
+    width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 

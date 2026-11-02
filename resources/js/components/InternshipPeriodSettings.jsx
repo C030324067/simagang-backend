@@ -119,7 +119,7 @@ export default function InternshipPeriodSettings({ divisions }) {
         </div>
       )}
 
-      <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6" onSubmit={save}>
+      <form className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-6" onSubmit={save}>
         <label className="text-xs font-semibold text-slate-600">
           Divisi
           <select required value={form.division_id} onChange={(event) => setForm((previous) => ({ ...previous, division_id: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -171,7 +171,7 @@ export default function InternshipPeriodSettings({ divisions }) {
       {loading ? <p className="text-sm text-slate-500">Memuat pengaturan kuota…</p> : periods.length === 0 ? (
         <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Belum ada pengaturan kuota periode.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="w-full overflow-x-auto">
           <table className="w-full min-w-[700px] text-left text-sm">
             <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>

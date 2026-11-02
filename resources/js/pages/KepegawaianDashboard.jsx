@@ -98,7 +98,7 @@ export default function KepegawaianDashboard() {
               Tidak ada antrean permohonan yang tertunda saat ini.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-500 font-semibold text-xs">
@@ -189,7 +189,7 @@ export default function KepegawaianDashboard() {
 
           <div className="divide-y divide-slate-100">
             {approvedApps.map((app) => (
-              <div key={app.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition px-2 rounded-xl">
+              <div key={app.id} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition px-2 rounded-xl">
                 
                 {/* Info Pemohon */}
                 <div>
@@ -205,7 +205,7 @@ export default function KepegawaianDashboard() {
                 </div>
 
                 {/* Form Input Nomor Surat & Action Button */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 shrink-0">
                   <input
                     type="text"
                     id={`official-letter-number-${app.id}`}
@@ -248,7 +248,7 @@ export default function KepegawaianDashboard() {
           ) : (
             <div className="divide-y divide-slate-100">
               {acceptedApps.map((app) => (
-                <div key={app.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div key={app.id} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div>
                     <p className="font-bold text-sm text-[#0F2942]">{app.user?.name}</p>
                     <p className="text-xs text-slate-500">{app.institution_name} · {app.division?.name || 'Bidang belum tersedia'}</p>
@@ -295,7 +295,7 @@ export default function KepegawaianDashboard() {
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                   Keputusan Verifikasi
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setActionForm({ ...actionForm, status: 'review_kabid' })}
