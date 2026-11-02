@@ -252,7 +252,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
                       <label className="upload-label" htmlFor={key}>
                         <span className="upload-copy">
                           <strong>{file?.name || 'Pilih berkas untuk diunggah'}</strong>
-                          <small>{file ? `${formatFileSize(file.size)} &middot; klik untuk mengganti berkas` : `${accept.toUpperCase().replaceAll(',', ', ')} Â· maksimal ${key === 'b1' ? '5' : '2'} MB`}</small>
+                          <small>{file ? `${formatFileSize(file.size)} \u00B7 klik untuk mengganti berkas` : `${accept.toUpperCase().replaceAll(',', ', ')} \u00B7 maksimal ${key === 'b1' ? '5' : '2'} MB`}</small>
                         </span>
                         <span className="upload-action">{file ? 'Ganti' : 'Pilih file'}</span>
                       </label>

@@ -37,15 +37,15 @@ class RegisterApplicationController extends Controller
             'pw' => ['required', 'string', 'min:8', 'same:pw2'],
             'pw2' => ['required', 'string'],
             'recommendation_letter_number' => [
-                Rule::requiredIf($request->input('application_type') === 'rekomendasi_kampus'),
                 'nullable',
+                Rule::requiredIf($request->input('application_type') === 'rekomendasi_kampus'),
                 'string',
                 'max:255',
             ],
             'b1' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'b2' => [Rule::requiredIf($request->input('application_type') === 'mandiri'), 'nullable', 'file', 'mimes:pdf', 'max:2048'],
-            'b3' => [Rule::requiredIf($request->input('application_type') === 'mandiri'), 'nullable', 'file', 'mimes:pdf', 'max:2048'],
-            'b4' => [Rule::requiredIf($request->input('application_type') === 'rekomendasi_kampus'), 'nullable', 'file', 'mimes:pdf,jpg,png', 'max:2048'],
+            'b2' => ['nullable', Rule::requiredIf($request->input('application_type') === 'mandiri'), 'file', 'mimes:pdf', 'max:2048'],
+            'b3' => ['nullable', Rule::requiredIf($request->input('application_type') === 'mandiri'), 'file', 'mimes:pdf', 'max:2048'],
+            'b4' => ['nullable', Rule::requiredIf($request->input('application_type') === 'rekomendasi_kampus'), 'file', 'mimes:pdf,jpg,png', 'max:2048'],
         ], [
             'nim_nisn.required' => 'NIM / NISN wajib diisi.',
             'nim_nisn.string' => 'NIM / NISN harus berupa teks.',
@@ -55,6 +55,12 @@ class RegisterApplicationController extends Controller
             'hp.required' => 'Nomor HP / WhatsApp wajib diisi.',
             'hp.string' => 'Nomor HP / WhatsApp harus berupa teks angka.',
             'hp.regex' => 'Nomor HP / WhatsApp harus terdiri dari 10–13 digit dan diawali 08 atau 628.',
+        ], [
+            'b2' => 'Curriculum Vitae (CV)',
+            'b3' => $request->input('application_type') === 'rekomendasi_kampus'
+                ? 'Surat Rekomendasi'
+                : 'Transkrip nilai / rapor',
+            'b4' => 'Kartu Pelajar',
         ]);
 
         $divisionCode = match (Str::lower($validated['bidang'])) {
