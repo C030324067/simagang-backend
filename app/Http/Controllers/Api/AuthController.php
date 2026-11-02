@@ -194,16 +194,25 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'current_password' => ['nullable', 'required_with:new_password', 'string'],
+            'new_password' => ['nullable', 'string', Password::min(8), 'confirmed'],
         ]);
 
-        $newPhotoPath = $request->file('avatar')?->store('profile-photos', 'public');
+        if ($request->filled('new_password') && ! Hash::check($validated['current_password'], $user->password)) {
+            return $this->errorResponse('Password saat ini tidak sesuai.', 422);
+        }
+
+        $newPhotoPath = $request->file('profile_photo')?->store('profile-photos', 'public');
         $oldPhotoPath = $user->profile_photo_path;
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         if ($newPhotoPath) {
             $user->profile_photo_path = $newPhotoPath;
+        }
+        if ($request->filled('new_password')) {
+            $user->password = Hash::make($validated['new_password']);
         }
         $user->save();
 
@@ -215,7 +224,9 @@ class AuthController extends Controller
 
         return $this->successResponse(
             ['user' => $user],
-            $newPhotoPath ? 'Profil dan foto berhasil diperbarui.' : 'Profil berhasil diperbarui.'
+            $request->filled('new_password')
+                ? 'Profil berhasil diperbarui.'
+                : ($newPhotoPath ? 'Profil dan foto berhasil diperbarui.' : 'Profil berhasil diperbarui.')
         );
     }
 

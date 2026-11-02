@@ -20,8 +20,6 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
     new_password_confirmation: '',
   });
   const [visiblePasswords, setVisiblePasswords] = useState({});
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState(null);
   const profileMenuRef = useRef(null);
   const profilePhotoInputRef = useRef(null);
 
@@ -53,20 +51,14 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
     setProfilePhotoFile(null);
     setProfilePhotoPreview(user?.profile_photo_url || '');
     setProfileMessage(null);
-    setPasswordMessage(null);
-    setPasswords({
-      current_password: '',
-      new_password: '',
-      new_password_confirmation: '',
-    });
+    setPasswords({ current_password: '', new_password: '', new_password_confirmation: '' });
     setVisiblePasswords({});
     setProfileModalOpen(true);
   };
 
   const closeProfileModal = () => {
-    if (passwordLoading || profileSaving) return;
+    if (profileSaving) return;
     setProfileModalOpen(false);
-    setPasswordMessage(null);
     setProfileMessage(null);
   };
 
@@ -91,7 +83,12 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
     const payload = new FormData();
     payload.append('name', profileForm.name);
     payload.append('email', profileForm.email);
-    if (profilePhotoFile instanceof File) payload.append('avatar', profilePhotoFile);
+    if (profilePhotoFile instanceof File) payload.append('profile_photo', profilePhotoFile);
+    if (passwords.new_password) {
+      payload.append('current_password', passwords.current_password);
+      payload.append('new_password', passwords.new_password);
+      payload.append('new_password_confirmation', passwords.new_password_confirmation);
+    }
 
     const result = await apiRequest('/auth/profile', { method: 'POST', body: payload });
     setProfileSaving(false);
@@ -99,44 +96,17 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
       const errors = result.errors || {};
       setProfileMessage({
         type: 'error',
-        text: errors.avatar?.[0] || errors.email?.[0] || errors.name?.[0] || result.message || 'Profil tidak dapat diperbarui.',
+        text: errors.profile_photo?.[0] || errors.current_password?.[0] || errors.new_password?.[0] || errors.email?.[0] || errors.name?.[0] || result.message || 'Profil tidak dapat diperbarui.',
       });
       return;
     }
 
     setProfilePhotoFile(null);
     setProfilePhotoPreview('');
+    setPasswords({ current_password: '', new_password: '', new_password_confirmation: '' });
     await fetchProfile();
-    setProfileMessage({ type: 'success', text: result.message || 'Profil dan foto berhasil diperbarui.' });
-  };
-
-  const handlePasswordChange = async (event) => {
-    event.preventDefault();
-    setPasswordLoading(true);
-    setPasswordMessage(null);
-
-    const result = await apiRequest('/change-password', {
-      method: 'POST',
-      body: JSON.stringify(passwords),
-    });
-
-    setPasswordLoading(false);
-
-    if (!result.success) {
-      setPasswordMessage({
-        type: 'error',
-        text: result.errors?.current_password?.[0] || result.errors?.new_password?.[0] || result.message || 'Password tidak dapat diperbarui. Silakan coba lagi.',
-      });
-      return;
-    }
-
-    setPasswordMessage({ type: 'success', text: result.message || 'Password berhasil diperbarui.' });
-    setPasswords({
-      current_password: '',
-      new_password: '',
-      new_password_confirmation: '',
-    });
     setVisiblePasswords({});
+    setProfileMessage({ type: 'success', text: result.message || 'Perubahan profil berhasil disimpan.' });
   };
 
   // Daftar menu navigasi
@@ -391,12 +361,12 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
             <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>
                 <h2 id="profile-modal-title" className="text-xl font-bold text-slate-900">Profil Saya</h2>
-                <p className="mt-1 text-sm text-slate-500">Informasi akun dan pengaturan password.</p>
+                <p className="mt-1 text-sm text-slate-500">Perbarui profil, foto, atau password akun.</p>
               </div>
               <button
                 type="button"
                 onClick={closeProfileModal}
-                disabled={passwordLoading || profileSaving}
+                disabled={profileSaving}
                 aria-label="Tutup profil"
                 className="rounded-lg px-2 py-1 text-xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
               >
@@ -405,7 +375,9 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
             </div>
 
             <div className="flex-1 space-y-6 overflow-y-auto p-6">
-              <form onSubmit={handleProfileUpdate} className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <form onSubmit={handleProfileUpdate} className="space-y-5">
+                <section className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-base font-bold text-slate-900">Informasi Profil</h3>
                 <div className="flex flex-col items-center gap-3 pb-2">
                   <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow ring-1 ring-slate-200">
                     {profilePhotoPreview || user.profile_photo_url
@@ -458,6 +430,45 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                   <span className={`inline-flex rounded-md border px-2 py-1 font-semibold ${badge.bg}`}>{badge.text}</span>
                   {user.division?.name && <span className="ml-2">{user.division.name}</span>}
                 </div>
+                </section>
+
+                <section className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Ubah Password</h3>
+                    <p className="mt-1 text-xs text-slate-500">Kosongkan jika tidak ingin mengganti password.</p>
+                  </div>
+                  {[
+                    { name: 'current_password', label: 'Password Saat Ini', autoComplete: 'current-password' },
+                    { name: 'new_password', label: 'Password Baru', autoComplete: 'new-password', minLength: 8 },
+                    { name: 'new_password_confirmation', label: 'Konfirmasi Password Baru', autoComplete: 'new-password', minLength: 8 },
+                  ].map((field) => (
+                    <div key={field.name}>
+                      <label htmlFor={field.name} className="mb-1.5 block text-xs font-semibold text-slate-700">{field.label}</label>
+                      <div className="relative">
+                        <input
+                          id={field.name}
+                          name={field.name}
+                          type={visiblePasswords[field.name] ? 'text' : 'password'}
+                          autoComplete={field.autoComplete}
+                          minLength={field.minLength}
+                          value={passwords[field.name]}
+                          onChange={(event) => setPasswords((previous) => ({ ...previous, [field.name]: event.target.value }))}
+                          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-sky-600"
+                        />
+                        <button
+                          type="button"
+                          aria-label={`${visiblePasswords[field.name] ? 'Sembunyikan' : 'Tampilkan'} ${field.label.toLowerCase()}`}
+                          aria-pressed={Boolean(visiblePasswords[field.name])}
+                          onClick={() => setVisiblePasswords((previous) => ({ ...previous, [field.name]: !previous[field.name] }))}
+                          className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-800"
+                        >
+                          {visiblePasswords[field.name] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </section>
+
                 {profileMessage && (
                   <p role={profileMessage.type === 'error' ? 'alert' : 'status'} className={`rounded-xl border p-3 text-sm ${profileMessage.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
                     {profileMessage.text}
@@ -468,65 +479,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                   disabled={profileSaving}
                   className="w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {profileSaving ? 'Menyimpan profil...' : 'Simpan Profil'}
-                </button>
-              </form>
-
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <h3 className="text-base font-bold text-slate-900">Ubah Password</h3>
-                {[
-                  { name: 'current_password', label: 'Password Saat Ini', autoComplete: 'current-password' },
-                  { name: 'new_password', label: 'Password Baru', autoComplete: 'new-password', minLength: 8 },
-                  { name: 'new_password_confirmation', label: 'Konfirmasi Password Baru', autoComplete: 'new-password', minLength: 8 },
-                ].map((field) => (
-                  <div key={field.name}>
-                    <label htmlFor={field.name} className="mb-1.5 block text-xs font-semibold text-slate-700">
-                      {field.label}
-                    </label>
-                    <div className="relative">
-                      <input
-                        id={field.name}
-                        name={field.name}
-                        type={visiblePasswords[field.name] ? 'text' : 'password'}
-                        autoComplete={field.autoComplete}
-                        required
-                        minLength={field.minLength}
-                        value={passwords[field.name]}
-                        onChange={(event) => setPasswords((previous) => ({ ...previous, [field.name]: event.target.value }))}
-                        className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-12 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-sky-600"
-                      />
-                      <button
-                        type="button"
-                        aria-label={`${visiblePasswords[field.name] ? 'Sembunyikan' : 'Tampilkan'} ${field.label.toLowerCase()}`}
-                        aria-pressed={Boolean(visiblePasswords[field.name])}
-                        onClick={() => setVisiblePasswords((previous) => ({ ...previous, [field.name]: !previous[field.name] }))}
-                        className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-800"
-                      >
-                        {visiblePasswords[field.name] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {passwordMessage && (
-                  <p
-                    role={passwordMessage.type === 'error' ? 'alert' : 'status'}
-                    className={`rounded-xl border p-3 text-sm ${
-                      passwordMessage.type === 'error'
-                        ? 'border-red-200 bg-red-50 text-red-700'
-                        : 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    }`}
-                  >
-                    {passwordMessage.text}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  className="w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {passwordLoading ? 'Memperbarui...' : 'Simpan Password Baru'}
+                  {profileSaving ? 'Menyimpan perubahan...' : 'Simpan Perubahan'}
                 </button>
               </form>
             </div>
