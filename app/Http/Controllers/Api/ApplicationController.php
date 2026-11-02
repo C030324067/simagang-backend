@@ -8,6 +8,7 @@ use App\Mail\OfficialAcceptanceLetter;
 use App\Models\Division;
 use App\Models\InternApplication;
 use App\Models\InternApplicationHistory;
+use App\Models\InternshipPeriod;
 use App\Models\SuratBalasan;
 use App\Models\User;
 use App\Traits\ApiResponse;
@@ -813,7 +814,15 @@ class ApplicationController extends Controller
         try {
             $quotaAvailable = DB::transaction(function () use ($application, $newPath, $validated): bool {
                 $division = Division::query()->lockForUpdate()->findOrFail($application->division_id);
-                if ($division->remainingQuota() <= 0) {
+                $registrationDate = now(config('app.timezone'));
+                $hasOpenPeriod = InternshipPeriod::query()
+                    ->where('division_id', $division->id)
+                    ->where('is_active', true)
+                    ->whereDate('start_date', '<=', $registrationDate->toDateString())
+                    ->whereDate('end_date', '>=', $registrationDate->toDateString())
+                    ->exists();
+
+                if (! $hasOpenPeriod && $division->remainingQuota() <= 0) {
                     return false;
                 }
 

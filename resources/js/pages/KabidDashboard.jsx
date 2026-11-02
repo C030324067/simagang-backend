@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest, downloadAcceptanceLetter } from '../api';
 import useApplicationReviewDashboard from '../hooks/useApplicationReviewDashboard';
-import useDivisions from '../hooks/useDivisions';
+import useInternshipPeriodStatus from '../hooks/useInternshipPeriodStatus';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -32,8 +32,8 @@ export default function KabidDashboard() {
   const [mentorsLoading, setMentorsLoading] = useState(false);
   const [acceptedApps, setAcceptedApps] = useState([]);
   const [downloadingId, setDownloadingId] = useState(null);
-  const { divisions, error: quotaError } = useDivisions();
-  const quota = divisions.find((division) => Number(division.id) === Number(user?.division_id));
+  const { period, error: quotaError } = useInternshipPeriodStatus();
+  const quota = period?.divisions?.find((division) => Number(division.id) === Number(user?.division_id));
 
   useEffect(() => {
     let active = true;
@@ -120,7 +120,7 @@ export default function KabidDashboard() {
             </p>
             {quota && (
               <p className="text-xs font-semibold text-[#4F46E5] pt-1">
-                Sisa Kuota {user?.division?.name || 'Bidang'}: <span className="font-bold">{Math.max(0, quota.remaining_quota)}/{quota.quota}</span>
+                Sisa Kuota Periode {user?.division?.name || 'Bidang'}: <span className="font-bold">{Math.max(0, quota.remaining_quota)}/{quota.monthly_quota}</span>
               </p>
             )}
             {quotaError && <p role="status" className="text-xs text-rose-600">{quotaError}</p>}

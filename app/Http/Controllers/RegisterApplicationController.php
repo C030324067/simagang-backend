@@ -73,7 +73,15 @@ class RegisterApplicationController extends Controller
             ], 422);
         }
 
-        if ($division->remainingQuota() <= 0) {
+        $registrationDate = now(config('app.timezone'));
+        $hasOpenPeriod = InternshipPeriod::query()
+            ->where('division_id', $division->id)
+            ->where('is_active', true)
+            ->whereDate('start_date', '<=', $registrationDate->toDateString())
+            ->whereDate('end_date', '>=', $registrationDate->toDateString())
+            ->exists();
+
+        if (! $hasOpenPeriod && $division->remainingQuota() <= 0) {
             return response()->json([
                 'message' => 'Kuota bidang yang dipilih sudah penuh.',
                 'errors' => ['bidang' => ['Kuota bidang ini sudah penuh. Silakan pilih bidang lain.']],
@@ -83,11 +91,12 @@ class RegisterApplicationController extends Controller
         $stored = [];
         DB::beginTransaction();
         try {
-            $registrationDate = now(config('app.timezone'));
             $period = InternshipPeriod::query()
                 ->where('division_id', $division->id)
-                ->where('year', $registrationDate->year)
-                ->where('month', $registrationDate->month)
+                ->where('is_active', true)
+                ->whereDate('start_date', '<=', $registrationDate->toDateString())
+                ->whereDate('end_date', '>=', $registrationDate->toDateString())
+                ->orderByDesc('start_date')
                 ->lockForUpdate()
                 ->first();
 

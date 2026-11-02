@@ -56,12 +56,6 @@ class InternshipPeriodController extends Controller
                     $status = 'not_configured';
                 }
 
-                $divisionRemainingQuota = $division->remainingQuota();
-
-                if ($status === 'open' && $divisionRemainingQuota <= 0) {
-                    $status = 'division_full';
-                }
-
                 return [
                     'id' => $division->id,
                     'name' => $division->name,
@@ -74,7 +68,6 @@ class InternshipPeriodController extends Controller
                     'registered_count' => $applicationsCount,
                     'remaining_quota' => $period ? max(0, $period->monthly_quota - $applicationsCount) : null,
                     'is_closed' => $period?->isClosed($applicationsCount) ?? false,
-                    'division_remaining_quota' => $divisionRemainingQuota,
                     'availability_status' => $status,
                     'can_register' => $status === 'open',
                 ];
