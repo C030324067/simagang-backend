@@ -10,7 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password as PasswordBroker;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -181,6 +183,40 @@ class AuthController extends Controller
         $user->save();
 
         return $this->successResponse(null, 'Password berhasil diperbarui.');
+    }
+
+    /**
+     * Update the authenticated user's profile and optional profile photo.
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+        ]);
+
+        $newPhotoPath = $request->file('avatar')?->store('profile-photos', 'public');
+        $oldPhotoPath = $user->profile_photo_path;
+
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        if ($newPhotoPath) {
+            $user->profile_photo_path = $newPhotoPath;
+        }
+        $user->save();
+
+        if ($newPhotoPath && $oldPhotoPath) {
+            Storage::disk('public')->delete($oldPhotoPath);
+        }
+
+        $user->load(['division:id,name,code', 'activeApplication.division']);
+
+        return $this->successResponse(
+            ['user' => $user],
+            $newPhotoPath ? 'Profil dan foto berhasil diperbarui.' : 'Profil berhasil diperbarui.'
+        );
     }
 
     /**

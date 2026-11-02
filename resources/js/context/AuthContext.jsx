@@ -24,6 +24,7 @@ function cacheUser(user) {
     id: user.id,
     name: user.name,
     email: user.email,
+    profile_photo_url: user.profile_photo_url || null,
     role: user.role,
     division: user.division ? {
       id: user.division.id,

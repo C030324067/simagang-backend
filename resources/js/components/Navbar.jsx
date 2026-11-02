@@ -1,14 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
-import { ChevronDown, Eye, EyeOff, LogOut, Menu, UserRound, X } from 'lucide-react';
+import { Camera, ChevronDown, Eye, EyeOff, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { apiRequest } from '../api';
 
 export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
-  const { user, logout } = useAuth();
+  const { user, logout, fetchProfile } = useAuth();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', email: '' });
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState(null);
   const [passwords, setPasswords] = useState({
     current_password: '',
     new_password: '',
@@ -18,6 +23,12 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState(null);
   const profileMenuRef = useRef(null);
+  const profilePhotoInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!profilePhotoPreview.startsWith('blob:')) return undefined;
+    return () => URL.revokeObjectURL(profilePhotoPreview);
+  }, [profilePhotoPreview]);
 
   useEffect(() => {
     if (!profileMenuOpen) return undefined;
@@ -38,6 +49,10 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
 
   const openProfileModal = () => {
     setProfileMenuOpen(false);
+    setProfileForm({ name: user?.name || '', email: user?.email || '' });
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview(user?.profile_photo_url || '');
+    setProfileMessage(null);
     setPasswordMessage(null);
     setPasswords({
       current_password: '',
@@ -49,9 +64,50 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   };
 
   const closeProfileModal = () => {
-    if (passwordLoading) return;
+    if (passwordLoading || profileSaving) return;
     setProfileModalOpen(false);
     setPasswordMessage(null);
+    setProfileMessage(null);
+  };
+
+  const handleProfilePhotoSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      setProfileMessage({ type: 'error', text: 'Pilih foto JPG, PNG, atau WebP maksimal 2 MB.' });
+      event.target.value = '';
+      return;
+    }
+    setProfilePhotoFile(file);
+    setProfilePhotoPreview(URL.createObjectURL(file));
+    setProfileMessage(null);
+    event.target.value = '';
+  };
+
+  const handleProfileUpdate = async (event) => {
+    event.preventDefault();
+    setProfileSaving(true);
+    setProfileMessage(null);
+    const payload = new FormData();
+    payload.append('name', profileForm.name);
+    payload.append('email', profileForm.email);
+    if (profilePhotoFile instanceof File) payload.append('avatar', profilePhotoFile);
+
+    const result = await apiRequest('/auth/profile', { method: 'POST', body: payload });
+    setProfileSaving(false);
+    if (!result.success) {
+      const errors = result.errors || {};
+      setProfileMessage({
+        type: 'error',
+        text: errors.avatar?.[0] || errors.email?.[0] || errors.name?.[0] || result.message || 'Profil tidak dapat diperbarui.',
+      });
+      return;
+    }
+
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview('');
+    await fetchProfile();
+    setProfileMessage({ type: 'success', text: result.message || 'Profil dan foto berhasil diperbarui.' });
   };
 
   const handlePasswordChange = async (event) => {
@@ -268,8 +324,10 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                 </div>
               </div>
 
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-sm font-semibold text-slate-700">
-                {user.name?.charAt(0) || 'U'}
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-sm font-semibold text-slate-700">
+                {user.profile_photo_url
+                  ? <img src={user.profile_photo_url} alt="Foto profil" className="h-full w-full object-cover" />
+                  : user.name?.charAt(0) || 'U'}
               </span>
               <span className="hidden sm:block"><ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} /></span>
               <span className="rounded-lg p-1 text-slate-500 sm:hidden">{profileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</span>
@@ -338,7 +396,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
               <button
                 type="button"
                 onClick={closeProfileModal}
-                disabled={passwordLoading}
+                disabled={passwordLoading || profileSaving}
                 aria-label="Tutup profil"
                 className="rounded-lg px-2 py-1 text-xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
               >
@@ -347,27 +405,72 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
             </div>
 
             <div className="flex-1 space-y-6 overflow-y-auto p-6">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <dl className="grid gap-3 text-sm">
-                  <div>
-                    <dt className="text-xs font-medium text-slate-500">Nama</dt>
-                    <dd className="mt-1 font-semibold text-slate-900">{user.name}</dd>
+              <form onSubmit={handleProfileUpdate} className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col items-center gap-3 pb-2">
+                  <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow ring-1 ring-slate-200">
+                    {profilePhotoPreview || user.profile_photo_url
+                      ? <img src={profilePhotoPreview || user.profile_photo_url} alt="Pratinjau foto profil" className="h-full w-full object-cover" />
+                      : <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-slate-500">{user.name?.charAt(0) || 'U'}</span>}
+                    <input
+                      ref={profilePhotoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleProfilePhotoSelect}
+                    />
+                    <button
+                      type="button"
+                      aria-label="Ganti foto profil"
+                      onClick={() => profilePhotoInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-sky-600 text-white shadow hover:bg-sky-700"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div>
-                    <dt className="text-xs font-medium text-slate-500">Email</dt>
-                    <dd className="mt-1 break-all font-semibold text-slate-900">{user.email}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-medium text-slate-500">Peran / Jabatan</dt>
-                    <dd className="mt-1">
-                      <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${badge.bg}`}>
-                        {badge.text}
-                      </span>
-                      {user.division?.name && <span className="ml-2 text-xs text-slate-600">{user.division.name}</span>}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
+                  <span className="text-xs font-medium text-slate-500">Ganti Foto - JPG, PNG, WebP maksimal 2 MB</span>
+                </div>
+
+                <div>
+                  <label htmlFor="profile-name" className="mb-1.5 block text-xs font-semibold text-slate-700">Nama</label>
+                  <input
+                    id="profile-name"
+                    required
+                    maxLength={255}
+                    value={profileForm.name}
+                    onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-sky-600"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="profile-email" className="mb-1.5 block text-xs font-semibold text-slate-700">Email</label>
+                  <input
+                    id="profile-email"
+                    type="email"
+                    required
+                    maxLength={255}
+                    value={profileForm.email}
+                    onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-sky-600"
+                  />
+                </div>
+                <div className="text-xs text-slate-600">
+                  <span className="font-semibold">Peran / Jabatan:</span>{' '}
+                  <span className={`inline-flex rounded-md border px-2 py-1 font-semibold ${badge.bg}`}>{badge.text}</span>
+                  {user.division?.name && <span className="ml-2">{user.division.name}</span>}
+                </div>
+                {profileMessage && (
+                  <p role={profileMessage.type === 'error' ? 'alert' : 'status'} className={`rounded-xl border p-3 text-sm ${profileMessage.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                    {profileMessage.text}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  className="w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {profileSaving ? 'Menyimpan profil...' : 'Simpan Profil'}
+                </button>
+              </form>
 
               <form onSubmit={handlePasswordChange} className="space-y-4">
                 <h3 className="text-base font-bold text-slate-900">Ubah Password</h3>

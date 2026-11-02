@@ -64,6 +64,7 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/profile', [AuthController::class, 'updateProfile']);
     });
 
     // Application Workflow Endpoints
