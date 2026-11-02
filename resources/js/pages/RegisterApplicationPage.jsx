@@ -63,8 +63,9 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
     if (form.tgl_selesai && form.tgl_selesai < (form.tgl_mulai || today)) next.tgl_selesai = 'Tanggal selesai harus sama atau setelah tanggal mulai.';
     docs.forEach(({ key, imageOnly, pdfOnly, required }) => {
       const isOptionalRecommendation = key === 'b3' && form.application_type === 'rekomendasi_kampus';
+      const isOptionalCv = key === 'b2' && form.application_type === 'rekomendasi_kampus';
       const isOptionalStudentCard = key === 'b4' && form.application_type === 'mandiri';
-      const isRequired = (required && !isOptionalStudentCard) || (key === 'b3' && !isOptionalRecommendation);
+      const isRequired = (required && !isOptionalStudentCard) || (key === 'b2' && !isOptionalCv) || (key === 'b3' && !isOptionalRecommendation);
       const file = files[key];
       if (!file) {
         if (isRequired) next[key] = 'Berkas ini wajib diunggah.';
@@ -238,7 +239,9 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
               {docs.map(({ key, label: defaultLabel, accept, optional }) => {
                 const isRecommendation = key === 'b3' && form.application_type === 'rekomendasi_kampus';
                 const label = isRecommendation ? 'Surat Rekomendasi' : defaultLabel;
-                const isOptional = optional || isRecommendation || (key === 'b4' && form.application_type === 'mandiri');
+                const isOptional = isRecommendation
+                  || (key === 'b2' && form.application_type === 'rekomendasi_kampus')
+                  || (key === 'b4' && form.application_type === 'mandiri');
                 const file = files[key];
 
                 return (
