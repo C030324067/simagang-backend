@@ -84,7 +84,11 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
     setLoading(true);
     const payload = new FormData();
     Object.entries(form).forEach(([key, value]) => payload.append(key, value));
-    Object.entries(files).forEach(([key, file]) => payload.append(key, file));
+    Object.entries(files).forEach(([key, file]) => {
+      if (file instanceof File) {
+        payload.append(key, file);
+      }
+    });
     try {
       const response = await fetch('/api/applications/register', {
         method: 'POST', body: payload, headers: { Accept: 'application/json' },
