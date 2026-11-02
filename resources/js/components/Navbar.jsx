@@ -414,13 +414,13 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                       <Camera className="h-4 w-4" />
                     </button>
                     {profilePhotoOptionsOpen && (
-                      <div className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                      <div className="absolute left-1/2 top-full z-20 mt-2 w-52 -translate-x-1/2 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                         <button
                           type="button"
                           onClick={() => profileCameraInputRef.current?.click()}
-                          className="w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                          className="w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
                         >
-                          Ambil Foto (Kamera)
+                          Kamera
                         </button>
                         <button
                           type="button"
