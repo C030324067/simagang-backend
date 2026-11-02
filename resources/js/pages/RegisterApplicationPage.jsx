@@ -119,7 +119,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           const isUnconfigured = !periodDivision?.configured;
           const isFull = isMonthlyFull || isUnconfigured || !periodDivision?.can_register;
           const isNotStarted = periodDivision?.availability_status === 'before_start';
-          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isMonthlyFull ? ' â€” Kuota penuh' : isNotStarted ? ` â€” Dibuka ${periodDivision.start_date}` : isUnconfigured || !periodDivision?.can_register ? ' â€” Periode belum dibuka' : ` â€” Sisa kuota: ${periodDivision.remaining_quota}/${periodDivision.monthly_quota}`}</option>;
+          return <option key={division.id} value={division.code} disabled={isFull}>{division.name}{isMonthlyFull ? ' - Kuota penuh' : isNotStarted ? ` - Dibuka ${periodDivision.start_date}` : isUnconfigured || !periodDivision?.can_register ? ' - Periode belum dibuka' : ` - Sisa kuota: ${periodDivision.remaining_quota}/${periodDivision.monthly_quota}`}</option>;
         })}
       </select> : <input id={key} className={`input ${errors[key] ? 'invalid' : ''}`} type={type} value={form[key]} onChange={change} {...props} />}
       {key === 'bidang' && form[key] && (() => {

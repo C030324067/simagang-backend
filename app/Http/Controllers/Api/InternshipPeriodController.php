@@ -20,8 +20,17 @@ class InternshipPeriodController extends Controller
         $month = (int) $now->month;
         $quarter = (int) ceil($month / 3);
         $periods = InternshipPeriod::query()
-            ->where('year', $year)
-            ->where('month', $month)
+            ->where(function ($query) use ($year, $month, $now): void {
+                $query->where(function ($currentMonth) use ($year, $month): void {
+                    $currentMonth->where('year', $year)->where('month', $month);
+                })->orWhere(function ($activePeriod) use ($now): void {
+                    $activePeriod->where('is_active', true)
+                        ->whereDate('start_date', '<=', $now->toDateString())
+                        ->whereDate('end_date', '>=', $now->toDateString());
+                });
+            })
+            ->orderByRaw('CASE WHEN is_active = true AND start_date <= ? AND end_date >= ? THEN 1 ELSE 0 END DESC', [$now->toDateString(), $now->toDateString()])
+            ->orderByDesc('start_date')
             ->get()
             ->keyBy('division_id');
 
@@ -38,6 +47,15 @@ class InternshipPeriodController extends Controller
                     ->where('created_at', '<', $now->copy()->startOfMonth()->addMonth())
                     ->count();
                 $status = $period?->registrationStatus($now, $applicationsCount) ?? 'not_configured';
+                $isWithinRegistrationDates = $period?->start_date !== null
+                    && $period?->end_date !== null
+                    && $now->toDateString() >= $period->start_date->format('Y-m-d')
+                    && $now->toDateString() <= $period->end_date->format('Y-m-d');
+
+                if ($status === 'open' && ! $isWithinRegistrationDates) {
+                    $status = 'not_configured';
+                }
+
                 $divisionRemainingQuota = $division->remainingQuota();
 
                 if ($status === 'open' && $divisionRemainingQuota <= 0) {
