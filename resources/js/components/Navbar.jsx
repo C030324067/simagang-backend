@@ -12,6 +12,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const [profileForm, setProfileForm] = useState({ name: '', email: '' });
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState('');
+  const [profilePhotoOptionsOpen, setProfilePhotoOptionsOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
   const [passwords, setPasswords] = useState({
@@ -22,6 +23,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const [visiblePasswords, setVisiblePasswords] = useState({});
   const profileMenuRef = useRef(null);
   const profilePhotoInputRef = useRef(null);
+  const profileCameraInputRef = useRef(null);
 
   useEffect(() => {
     if (!profilePhotoPreview.startsWith('blob:')) return undefined;
@@ -50,6 +52,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
     setProfileForm({ name: user?.name || '', email: user?.email || '' });
     setProfilePhotoFile(null);
     setProfilePhotoPreview(user?.profile_photo_url || '');
+    setProfilePhotoOptionsOpen(false);
     setProfileMessage(null);
     setPasswords({ current_password: '', new_password: '', new_password_confirmation: '' });
     setVisiblePasswords({});
@@ -64,6 +67,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
 
   const handleProfilePhotoSelect = (event) => {
     const file = event.target.files?.[0];
+    setProfilePhotoOptionsOpen(false);
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
       setProfileMessage({ type: 'error', text: 'Pilih foto JPG, PNG, atau WebP maksimal 2 MB.' });
@@ -379,25 +383,54 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                 <section className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <h3 className="text-base font-bold text-slate-900">Informasi Profil</h3>
                 <div className="flex flex-col items-center gap-3 pb-2">
-                  <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow ring-1 ring-slate-200">
-                    {profilePhotoPreview || user.profile_photo_url
-                      ? <img src={profilePhotoPreview || user.profile_photo_url} alt="Pratinjau foto profil" className="h-full w-full object-cover" />
-                      : <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-slate-500">{user.name?.charAt(0) || 'U'}</span>}
+                  <div className="relative inline-block">
+                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 text-3xl font-bold text-slate-500 shadow ring-1 ring-slate-200">
+                      {profilePhotoPreview || user.profile_photo_url
+                        ? <img src={profilePhotoPreview || user.profile_photo_url} alt="Pratinjau foto profil" className="h-full w-full rounded-full object-cover" />
+                        : user.name?.charAt(0) || 'U'}
+                    </div>
+                    <input
+                      ref={profileCameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="user"
+                      className="hidden"
+                      onChange={handleProfilePhotoSelect}
+                    />
                     <input
                       ref={profilePhotoInputRef}
                       type="file"
-                      accept="image/jpeg,image/png,image/webp"
+                      accept="image/*"
                       className="hidden"
                       onChange={handleProfilePhotoSelect}
                     />
                     <button
                       type="button"
-                      aria-label="Ganti foto profil"
-                      onClick={() => profilePhotoInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-sky-600 text-white shadow hover:bg-sky-700"
+                      aria-label="Pilih sumber foto profil"
+                      aria-expanded={profilePhotoOptionsOpen}
+                      onClick={() => setProfilePhotoOptionsOpen((open) => !open)}
+                      className="absolute -bottom-1 -right-1 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-sky-600 text-white shadow hover:bg-sky-700"
                     >
                       <Camera className="h-4 w-4" />
                     </button>
+                    {profilePhotoOptionsOpen && (
+                      <div className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                        <button
+                          type="button"
+                          onClick={() => profileCameraInputRef.current?.click()}
+                          className="w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          Ambil Foto (Kamera)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => profilePhotoInputRef.current?.click()}
+                          className="w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          Pilih dari Galeri
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <span className="text-xs font-medium text-slate-500">Ganti Foto - JPG, PNG, WebP maksimal 2 MB</span>
                 </div>
