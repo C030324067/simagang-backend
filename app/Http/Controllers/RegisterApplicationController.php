@@ -38,7 +38,6 @@ class RegisterApplicationController extends Controller
             'pw2' => ['required', 'string'],
             'recommendation_letter_number' => [
                 'nullable',
-                Rule::requiredIf($request->input('application_type') === 'rekomendasi_kampus'),
                 'string',
                 'max:255',
             ],

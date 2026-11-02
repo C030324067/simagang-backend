@@ -42,7 +42,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
   const validate = () => {
     const next = {};
     for (const [key, value] of Object.entries(form)) {
-      if (key === 'application_type' || (key === 'recommendation_letter_number' && form.application_type !== 'rekomendasi_kampus')) continue;
+      if (key === 'application_type' || key === 'recommendation_letter_number') continue;
       if (!String(value).trim()) next[key] = 'Kolom ini wajib diisi.';
     }
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) next.email = 'Masukkan alamat email yang valid.';
@@ -56,9 +56,6 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
     }
     if (form.pw && form.pw.length < 8) next.pw = 'Password minimal 8 karakter.';
     if (form.pw && form.pw2 && form.pw !== form.pw2) next.pw2 = 'Konfirmasi password tidak sama.';
-    if (form.application_type === 'rekomendasi_kampus' && !form.recommendation_letter_number.trim()) {
-      next.recommendation_letter_number = 'Nomor surat rekomendasi kampus wajib diisi.';
-    }
     if (form.tgl_mulai && form.tgl_mulai < today) next.tgl_mulai = 'Tanggal mulai tidak boleh sebelum hari ini.';
     if (form.tgl_selesai && form.tgl_selesai < (form.tgl_mulai || today)) next.tgl_selesai = 'Tanggal selesai harus sama atau setelah tanggal mulai.';
     docs.forEach(({ key, imageOnly, pdfOnly, required }) => {
@@ -113,7 +110,7 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
 
   const field = (key, label, type = 'text', props = {}) => (
     <div className="field" key={key}>
-      <label htmlFor={key}>{label}<span className="req"> *</span></label>
+      <label htmlFor={key}>{label}{key === 'recommendation_letter_number' ? ' (Opsional)' : <span className="req"> *</span>}</label>
       {key === 'bidang' ? <select id={key} className={`input ${errors[key] ? 'invalid' : ''}`} value={form[key]} onChange={change}>
         <option value="">Pilih bidang</option>{divisions.map((division) => {
           const periodDivision = periodDivisions.find((item) => item.code === division.code);
