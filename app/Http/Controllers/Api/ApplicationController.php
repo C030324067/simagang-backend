@@ -352,8 +352,12 @@ class ApplicationController extends Controller
             ->where('division_id', $kabid->division_id)
             ->where('role', 'mentor')
             ->where('is_active', true)
+            ->whereRaw("LOWER(name) NOT LIKE 'mentor %'")
             ->orderBy('name')
-            ->get(['id', 'name', 'role']);
+            ->get(['id', 'name', 'email', 'role'])
+            ->reject(fn (User $mentor): bool => preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentor->email) === 1)
+            ->values()
+            ->map(fn (User $mentor): array => $mentor->only(['id', 'name', 'role']));
 
         return $this->successResponse($mentors, 'Daftar pembimbing bidang berhasil dimuat.');
     }
@@ -634,8 +638,11 @@ class ApplicationController extends Controller
                     ->where('role', 'mentor')
                     ->where('is_active', true)
                     ->where('division_id', $kabid->division_id)
+                    ->whereRaw("LOWER(name) NOT LIKE 'mentor %'")
                     ->lockForUpdate()
-                    ->exists();
+                    ->first(['id', 'email']);
+                $mentorIsActiveInDivision = $mentorIsActiveInDivision !== null
+                    && preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentorIsActiveInDivision->email) !== 1;
                 abort_unless($mentorIsActiveInDivision, 422, 'Mentor tidak lagi aktif pada divisi ini.');
             }
 

@@ -1,6 +1,6 @@
 ﻿# Kamus Data Database SIMAGANG
 
-Struktur tabel berikut disusun berdasarkan file migration proyek hingga 28 Oktober 2026. Tipe data ditulis secara ringkas; `Timestamp` mencakup kolom waktu standar `created_at` dan `updated_at`.
+Struktur tabel berikut disusun berdasarkan file migration proyek hingga 2 November 2026. Tipe data ditulis secara ringkas; `Timestamp` mencakup kolom waktu standar `created_at` dan `updated_at`.
 
 ### Tabel 3.1 Tabel Users
 
@@ -9,19 +9,20 @@ Struktur tabel berikut disusun berdasarkan file migration proyek hingga 28 Oktob
 | 1 | id | Bigint |
 | 2 | name | Varchar |
 | 3 | email | Varchar |
-| 4 | email_verified_at | Timestamp |
-| 5 | password | Varchar |
-| 6 | role | ENUM |
-| 7 | no_hp | Varchar |
-| 8 | division_id | Bigint |
-| 9 | remember_token | Varchar |
-| 10 | created_at | Timestamp |
-| 11 | updated_at | Timestamp |
-| 12 | status_akun | Varchar |
-| 13 | tanggal_disetujui | Timestamp |
-| 14 | nip | Varchar |
-| 15 | position | Varchar |
-| 16 | is_active | Boolean |
+| 4 | profile_photo_path | Varchar, nullable |
+| 5 | email_verified_at | Timestamp |
+| 6 | password | Varchar |
+| 7 | role | ENUM |
+| 8 | no_hp | Varchar |
+| 9 | division_id | Bigint |
+| 10 | remember_token | Varchar |
+| 11 | created_at | Timestamp |
+| 12 | updated_at | Timestamp |
+| 13 | status_akun | Varchar |
+| 14 | tanggal_disetujui | Timestamp |
+| 15 | nip | Varchar |
+| 16 | position | Varchar |
+| 17 | is_active | Boolean |
 
 ### Tabel 3.2 Tabel Divisions
 
