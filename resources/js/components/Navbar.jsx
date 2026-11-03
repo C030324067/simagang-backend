@@ -13,6 +13,8 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState('');
   const [profilePhotoOptionsOpen, setProfilePhotoOptionsOpen] = useState(false);
+  const [profileCameraOpen, setProfileCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
   const [passwords, setPasswords] = useState({
@@ -24,11 +26,15 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const profileMenuRef = useRef(null);
   const profilePhotoInputRef = useRef(null);
   const profileCameraInputRef = useRef(null);
+  const profileVideoRef = useRef(null);
+  const profileCameraStreamRef = useRef(null);
 
   useEffect(() => {
     if (!profilePhotoPreview.startsWith('blob:')) return undefined;
     return () => URL.revokeObjectURL(profilePhotoPreview);
   }, [profilePhotoPreview]);
+
+  useEffect(() => () => profileCameraStreamRef.current?.getTracks().forEach((track) => track.stop()), []);
 
   useEffect(() => {
     if (!profileMenuOpen) return undefined;
@@ -61,8 +67,68 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
 
   const closeProfileModal = () => {
     if (profileSaving) return;
+    stopProfileCamera();
     setProfileModalOpen(false);
     setProfileMessage(null);
+  };
+
+  const stopProfileCamera = () => {
+    profileCameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    profileCameraStreamRef.current = null;
+    if (profileVideoRef.current) profileVideoRef.current.srcObject = null;
+    setProfileCameraOpen(false);
+  };
+
+  const openProfileCamera = async () => {
+    setProfilePhotoOptionsOpen(false);
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+      || window.matchMedia('(pointer: coarse)').matches;
+    if (isMobile) {
+      profileCameraInputRef.current?.click();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Browser ini tidak mendukung akses kamera.');
+      setProfileCameraOpen(true);
+      return;
+    }
+
+    setCameraError('');
+    setProfileCameraOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      profileCameraStreamRef.current = stream;
+      if (profileVideoRef.current) {
+        profileVideoRef.current.srcObject = stream;
+        await profileVideoRef.current.play();
+      }
+    } catch {
+      setCameraError('Akses kamera ditolak atau kamera sedang digunakan aplikasi lain.');
+    }
+  };
+
+  const captureProfilePhoto = () => {
+    const video = profileVideoRef.current;
+    if (!video || video.readyState < 2) {
+      setCameraError('Tunggu sampai pratinjau kamera siap.');
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setCameraError('Foto tidak dapat diambil. Coba lagi.');
+        return;
+      }
+      const photo = new File([blob], `profile-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      setProfilePhotoFile(photo);
+      setProfilePhotoPreview(URL.createObjectURL(photo));
+      setProfileMessage(null);
+      stopProfileCamera();
+    }, 'image/jpeg', 0.9);
   };
 
   const handleProfilePhotoSelect = (event) => {
@@ -417,7 +483,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                       <div className="absolute left-1/2 top-full z-20 mt-2 w-52 -translate-x-1/2 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                         <button
                           type="button"
-                          onClick={() => profileCameraInputRef.current?.click()}
+                          onClick={openProfileCamera}
                           className="w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
                         >
                           Kamera
@@ -517,6 +583,22 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
               </form>
             </div>
           </section>
+          {profileCameraOpen && (
+            <div
+              className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/80 p-4"
+              onMouseDown={(event) => { if (event.target === event.currentTarget) stopProfileCamera(); }}
+            >
+              <section role="dialog" aria-modal="true" aria-labelledby="profile-camera-title" className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 id="profile-camera-title" className="text-lg font-bold text-slate-900">Ambil Foto Profil</h2>
+                  <button type="button" aria-label="Tutup kamera" onClick={stopProfileCamera} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+                </div>
+                <video ref={profileVideoRef} autoPlay playsInline muted className="aspect-video w-full rounded-xl bg-slate-950 object-cover" />
+                {cameraError && <p role="alert" className="mt-3 text-sm text-rose-700">{cameraError}</p>}
+                <button type="button" onClick={captureProfilePhoto} disabled={Boolean(cameraError)} className="mt-4 w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50">Ambil Foto</button>
+              </section>
+            </div>
+          )}
         </div>,
         document.body
       )}
