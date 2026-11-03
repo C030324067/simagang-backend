@@ -350,12 +350,18 @@ class ApplicationController extends Controller
 
         $mentors = User::query()
             ->where('division_id', $kabid->division_id)
-            ->where('role', 'mentor')
+            ->whereIn('role', ['mentor', 'kabid'])
             ->where('is_active', true)
-            ->whereRaw("LOWER(name) NOT LIKE 'mentor %'")
+            ->where(function ($query): void {
+                $query->where('role', 'kabid')
+                    ->orWhere(function ($mentorQuery): void {
+                        $mentorQuery->whereRaw("LOWER(name) NOT LIKE 'mentor %'");
+                    });
+            })
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'role'])
-            ->reject(fn (User $mentor): bool => preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentor->email) === 1)
+            ->reject(fn (User $mentor): bool => $mentor->role === 'mentor'
+                && preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentor->email) === 1)
             ->values()
             ->map(fn (User $mentor): array => $mentor->only(['id', 'name', 'role']));
 
@@ -378,9 +384,7 @@ class ApplicationController extends Controller
         $mentorRule = Rule::exists('users', 'id')->where(function ($query) use ($user): void {
             $query->where('division_id', $user->division_id)
                 ->where('status_akun', 'approved')
-                ->where(function ($query) use ($user): void {
-                    $query->where('role', 'mentor')->orWhere('id', $user->id);
-                });
+                ->whereIn('role', ['mentor', 'kabid']);
         });
 
         $validated = $request->validate([
@@ -635,14 +639,15 @@ class ApplicationController extends Controller
             if ($approved) {
                 $mentorIsActiveInDivision = User::query()
                     ->whereKey($validated['mentor_id'])
-                    ->where('role', 'mentor')
+                    ->whereIn('role', ['mentor', 'kabid'])
                     ->where('is_active', true)
                     ->where('division_id', $kabid->division_id)
-                    ->whereRaw("LOWER(name) NOT LIKE 'mentor %'")
                     ->lockForUpdate()
-                    ->first(['id', 'email']);
+                    ->first(['id', 'email', 'name', 'role']);
                 $mentorIsActiveInDivision = $mentorIsActiveInDivision !== null
-                    && preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentorIsActiveInDivision->email) !== 1;
+                    && ($mentorIsActiveInDivision->role === 'kabid'
+                        || (! str_starts_with(mb_strtolower(trim($mentorIsActiveInDivision->name)), 'mentor ')
+                            && preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentorIsActiveInDivision->email) !== 1));
                 abort_unless($mentorIsActiveInDivision, 422, 'Mentor tidak lagi aktif pada divisi ini.');
             }
 
