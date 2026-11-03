@@ -358,7 +358,12 @@ class ApplicationController extends Controller
                         $mentorQuery->whereRaw("LOWER(name) NOT LIKE 'mentor %'");
                     });
             })
-            ->orderBy('name')
+            ->where(function ($query): void {
+                $query->where('role', 'mentor')
+                    ->orWhereRaw("LOWER(name) NOT LIKE 'kabid %'");
+            })
+            ->orderByRaw("CASE WHEN role = 'kabid' THEN 1 ELSE 2 END")
+            ->orderBy('name', 'asc')
             ->get(['id', 'name', 'email', 'role'])
             ->reject(fn (User $mentor): bool => $mentor->role === 'mentor'
                 && preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentor->email) === 1)
@@ -642,11 +647,16 @@ class ApplicationController extends Controller
                     ->whereIn('role', ['mentor', 'kabid'])
                     ->where('is_active', true)
                     ->where('division_id', $kabid->division_id)
+                    ->where(function ($query): void {
+                        $query->where('role', 'mentor')
+                            ->orWhereRaw("LOWER(name) NOT LIKE 'kabid %'");
+                    })
                     ->lockForUpdate()
                     ->first(['id', 'email', 'name', 'role']);
                 $mentorIsActiveInDivision = $mentorIsActiveInDivision !== null
                     && ($mentorIsActiveInDivision->role === 'kabid'
-                        || (! str_starts_with(mb_strtolower(trim($mentorIsActiveInDivision->name)), 'mentor ')
+                        ? ! str_starts_with(mb_strtolower(trim($mentorIsActiveInDivision->name)), 'kabid ')
+                        : (! str_starts_with(mb_strtolower(trim($mentorIsActiveInDivision->name)), 'mentor ')
                             && preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentorIsActiveInDivision->email) !== 1));
                 abort_unless($mentorIsActiveInDivision, 422, 'Mentor tidak lagi aktif pada divisi ini.');
             }
