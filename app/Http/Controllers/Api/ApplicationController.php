@@ -367,6 +367,7 @@ class ApplicationController extends Controller
             ->get(['id', 'name', 'email', 'role'])
             ->reject(fn (User $mentor): bool => $mentor->role === 'mentor'
                 && preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentor->email) === 1)
+            ->unique('id')
             ->values()
             ->map(fn (User $mentor): array => $mentor->only(['id', 'name', 'role']));
 
