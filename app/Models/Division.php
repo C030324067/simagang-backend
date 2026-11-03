@@ -77,6 +77,7 @@ class Division extends Model
     {
         return $this->applications()
             ->where('final_status', 'accepted')
+            ->whereDate('end_date', '>=', now(config('app.timezone'))->toDateString())
             ->whereHas('user', fn ($query) => $query->where('is_active', true));
     }
 }

@@ -126,6 +126,14 @@ class User extends Authenticatable
         return ! $gracePeriodEnd || now(config('app.timezone'))->greaterThan($gracePeriodEnd);
     }
 
+    public function isInternshipActive(): bool
+    {
+        $application = $this->internApplication;
+
+        return $application?->end_date !== null
+            && $application->end_date->toDateString() >= now(config('app.timezone'))->toDateString();
+    }
+
     public function attendances(): HasMany
     {
         return $this->hasManyThrough(Attendance::class, InternApplication::class, 'user_id', 'intern_application_id');

@@ -46,6 +46,10 @@ class InternshipPeriodController extends Controller
                     ->where('created_at', '>=', $now->copy()->startOfMonth())
                     ->where('created_at', '<', $now->copy()->startOfMonth()->addMonth())
                     ->count();
+                $activeInternsCount = InternApplication::query()
+                    ->where('division_id', $division->id)
+                    ->countsTowardsQuota()
+                    ->count();
                 $status = $period?->registrationStatus($now, $applicationsCount) ?? 'not_configured';
                 $isWithinRegistrationDates = $period?->start_date !== null
                     && $period?->end_date !== null
@@ -66,7 +70,9 @@ class InternshipPeriodController extends Controller
                     'end_date' => $period?->end_date?->format('Y-m-d'),
                     'is_active' => $period?->is_active ?? false,
                     'registered_count' => $applicationsCount,
-                    'remaining_quota' => $period ? max(0, $period->monthly_quota - $applicationsCount) : null,
+                    'active_interns_count' => $activeInternsCount,
+                    'max_quota' => $period?->monthly_quota ?? $division->quota,
+                    'remaining_quota' => max(0, ($period?->monthly_quota ?? $division->quota) - $activeInternsCount),
                     'is_closed' => $period?->isClosed($applicationsCount) ?? false,
                     'availability_status' => $status,
                     'can_register' => $status === 'open',

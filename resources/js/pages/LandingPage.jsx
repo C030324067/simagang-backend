@@ -493,7 +493,7 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#e0f2fe] text-[#0284c7] border border-[#bae6fd]">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#0284c7] inline-block"></span>
-                        {periodDivision.remaining_quota} dari {periodDivision.monthly_quota} kuota bulanan tersedia
+                        {periodDivision.remaining_quota} dari {periodDivision.max_quota ?? periodDivision.monthly_quota} kuota tersedia
                       </span>
                     )}
                   </div>

@@ -120,7 +120,7 @@ export default function KabidDashboard() {
             </p>
             {quota && (
               <p className="text-xs font-semibold text-[#4F46E5] pt-1">
-                Sisa Kuota Periode {user?.division?.name || 'Bidang'}: <span className="font-bold">{Math.max(0, quota.remaining_quota)}/{quota.monthly_quota}</span>
+                Sisa Kuota Periode {user?.division?.name || 'Bidang'}: <span className="font-bold">{Math.max(0, quota.remaining_quota)}/{quota.max_quota ?? quota.monthly_quota}</span>
               </p>
             )}
             {quotaError && <p role="status" className="text-xs text-rose-600">{quotaError}</p>}
