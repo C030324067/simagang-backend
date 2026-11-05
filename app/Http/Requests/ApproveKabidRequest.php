@@ -25,7 +25,7 @@ class ApproveKabidRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('users', 'id')->where(fn ($query) => $query
-                    ->where('role', 'mentor')
+                    ->whereIn('role', ['mentor', 'kabid'])
                     ->where('is_active', true)
                     ->where('division_id', $divisionId)),
             ],
