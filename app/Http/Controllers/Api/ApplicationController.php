@@ -343,7 +343,6 @@ class ApplicationController extends Controller
         if ($application->status !== 'pending_kabid'
             || ! $application->user()
                 ->where('role', 'applicant')
-                ->where('division_id', $kabid->division_id)
                 ->exists()) {
             return $this->errorResponse('Pengajuan tidak tersedia untuk penunjukan pembimbing.', 404);
         }
@@ -352,22 +351,9 @@ class ApplicationController extends Controller
             ->where('division_id', $kabid->division_id)
             ->whereIn('role', ['mentor', 'kabid'])
             ->where('is_active', true)
-            ->where(function ($query): void {
-                $query->where('role', 'kabid')
-                    ->orWhere(function ($mentorQuery): void {
-                        $mentorQuery->whereRaw("LOWER(name) NOT LIKE 'mentor %'");
-                    });
-            })
-            ->where(function ($query): void {
-                $query->where('role', 'mentor')
-                    ->orWhereRaw("LOWER(name) NOT LIKE 'kabid %'");
-            })
             ->orderByRaw("CASE WHEN role = 'kabid' THEN 1 ELSE 2 END")
             ->orderBy('name', 'asc')
             ->get(['id', 'name', 'email', 'role'])
-            ->reject(fn (User $mentor): bool => $mentor->role === 'mentor'
-                && preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentor->email) === 1)
-            ->unique('id')
             ->values()
             ->map(fn (User $mentor): array => $mentor->only(['id', 'name', 'role']));
 
@@ -600,7 +586,6 @@ class ApplicationController extends Controller
         $validated = $request->validated();
         if (! $application->user()
             ->where('role', 'applicant')
-            ->where('division_id', $kabid->division_id)
             ->exists()) {
             return $this->errorResponse('Pengajuan pemohon tidak ditemukan.', 404);
         }
@@ -637,7 +622,6 @@ class ApplicationController extends Controller
             abort_unless(
                 $lockedApplication->user()
                     ->where('role', 'applicant')
-                    ->where('division_id', $kabid->division_id)
                     ->exists(),
                 422,
                 'Status pemohon telah berubah dan pengajuan tidak dapat diproses.',
@@ -648,10 +632,6 @@ class ApplicationController extends Controller
                     ->whereIn('role', ['mentor', 'kabid'])
                     ->where('is_active', true)
                     ->where('division_id', $kabid->division_id)
-                    ->where(function ($query): void {
-                        $query->where('role', 'mentor')
-                            ->orWhereRaw("LOWER(name) NOT LIKE 'kabid %'");
-                    })
                     ->lockForUpdate()
                     ->first(['id', 'email', 'name', 'role']);
                 $mentorIsActiveInDivision = $mentorIsActiveInDivision !== null
