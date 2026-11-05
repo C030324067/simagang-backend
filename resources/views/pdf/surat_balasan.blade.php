@@ -208,7 +208,7 @@
         <tr>
             <td class="label-col">Lampiran</td>
             <td class="colon-col">:</td>
-            <td>-</td>
+            <td>1</td>
             <td></td>
         </tr>
         <tr>
