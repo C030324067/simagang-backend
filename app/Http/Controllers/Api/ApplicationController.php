@@ -582,10 +582,10 @@ class ApplicationController extends Controller
         $applications = InternApplication::query()
             ->with(['user:id,name,email,no_hp', 'division:id,name', 'mentor:id,name'])
             ->where('status', 'pending_kabid')
+            ->where('status_kepegawaian', 'approved')
             ->forKabidDivision((int) $request->user()->division_id)
             ->whereHas('user', fn ($query) => $query
-                ->where('role', 'applicant')
-                ->where('users.division_id', $request->user()->division_id))
+                ->where('role', 'applicant'))
             ->latest()
             ->paginate($this->perPage($request));
 

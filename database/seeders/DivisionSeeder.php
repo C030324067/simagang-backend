@@ -11,19 +11,19 @@ class DivisionSeeder extends Seeder
     {
         $divisions = [
             [
+                'code' => 'aptika',
+                'name' => 'Bidang Aplikasi Informatika',
+                'description' => 'Bidang Aplikasi Informatika.',
+            ],
+            [
                 'code' => 'ikp',
-                'name' => 'Bidang Informasi dan Komunikasi Publik (IKP)',
-                'description' => 'Mengelola kehumasan, media massa, pengaduan masyarakat, dan keterbukaan informasi publik.',
+                'name' => 'Bidang Informasi dan Komunikasi Publik',
+                'description' => 'Bidang Informasi dan Komunikasi Publik.',
             ],
             [
                 'code' => 'statistik',
-                'name' => 'Bidang Statistik',
-                'description' => 'Mengelola pengumpulan, validasi, dan integrasi data statistik sektoral daerah.',
-            ],
-            [
-                'code' => 'aptika',
-                'name' => 'Bidang Aplikasi Informatika',
-                'description' => 'Mengelola aplikasi, jaringan, dan sistem informasi untuk mendukung layanan digital pemerintahan.',
+                'name' => 'Bidang Statistik dan Persandian',
+                'description' => 'Bidang Statistik dan Persandian.',
             ],
             [
                 'code' => 'tki',
@@ -33,11 +33,10 @@ class DivisionSeeder extends Seeder
         ];
 
         foreach ($divisions as $attributes) {
-            $division = Division::query()
-                ->whereRaw('LOWER(code) = ?', [$attributes['code']])
-                ->first() ?? new Division;
-
-            $division->fill($attributes)->save();
+            Division::query()->firstOrCreate(
+                ['code' => $attributes['code']],
+                $attributes,
+            );
         }
     }
 }
