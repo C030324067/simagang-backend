@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             HolidaySeeder::class,
         ]);
 
-        $defaultPassword = Hash::make('password123');
+        $defaultPassword = Hash::make('Diskominfo2026!');
 
         User::updateOrCreate(
             ['email' => 'kadis@diskominfo.go.id'],

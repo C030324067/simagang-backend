@@ -100,6 +100,10 @@ class AuthController extends Controller
             }
         }
 
+        if (! $user->is_active) {
+            return $this->errorResponse('Akun Anda sedang dinonaktifkan. Silakan hubungi admin Diskominfo.', 403);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $user->load(['division', 'activeApplication.division']);

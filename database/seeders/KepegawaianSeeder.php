@@ -17,7 +17,7 @@ class KepegawaianSeeder extends Seeder
                 'role' => 'admin_kepegawaian',
                 'status_akun' => 'approved',
                 'is_active' => true,
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('Diskominfo2026!'),
             ],
         );
     }

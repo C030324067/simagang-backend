@@ -52,6 +52,7 @@ Pengecualian: pendaftaran publik `/applications/register` memakai field `status`
 | POST | `/auth/reset-password` | Publik | Mengatur password menggunakan token reset |
 | POST | `/auth/logout` | Login | Mencabut token aktif |
 | GET | `/auth/me` | Login | Profil pengguna; menyertakan `division_id` dan `division` resmi dari database |
+| POST | `/auth/profile` | Login | Memperbarui profil akun sendiri (nama, email, foto, dan opsional password) |
 | POST | `/change-password` | Login | Mengganti password sendiri |
 | POST | `/users/{user}/approve` | Admin Kepegawaian, Kadis | Menyetujui applicant dan mengaktifkan akun intern |
 
@@ -79,13 +80,14 @@ Body JSON:
 }
 ```
 
-Respons sukses memuat `data.user` dan `data.token`. Gunakan token tersebut pada endpoint terproteksi.
+Respons sukses memuat `data.user` dan `data.token`. Gunakan token tersebut pada endpoint terproteksi. Akun yang `is_active: false` tidak dapat login; untuk akun applicant yang masih pending, API mengembalikan pesan verifikasi akun.
 
 ### Reset dan ganti password
 
 - `POST /auth/forgot-password` menerima JSON `{ "email": "peserta@example.com" }`. Respons tidak mengungkap apakah email terdaftar. Dibatasi 5 permintaan per menit.
 - `POST /auth/reset-password` menerima `token`, `email`, `password`, dan `password_confirmation`. Password minimal 8 karakter dan kedua field password harus cocok. Token akses lama pengguna dicabut setelah reset. Dibatasi 5 permintaan per menit.
 - `POST /change-password` memerlukan autentikasi dan menerima `current_password`, `new_password`, serta `new_password_confirmation`. Password baru minimal 8 karakter. Endpoint ini dibatasi 5 permintaan per menit.
+- `POST /auth/profile` menerima `name` dan `email` (keduanya wajib), serta `profile_photo` opsional (JPEG/PNG/JPG/WEBP, maksimal 2 MB). Password dapat diganti bersamaan dengan mengirim `current_password`, `new_password`, dan `new_password_confirmation`; password baru minimal 8 karakter. Perubahan profil dan password hanya diterapkan pada akun yang terautentikasi, tanpa parameter ID pengguna.
 
 ### Persetujuan akun applicant
 
@@ -93,35 +95,73 @@ Respons sukses memuat `data.user` dan `data.token`. Gunakan token tersebut pada 
 
 `GET /auth/me` mengembalikan `data.division_id` dan relasi `data.division` (`id`, `name`, `code`). Penetapan bidang untuk Kabid bersumber dari foreign key `users.division_id`; email tidak digunakan untuk menentukan bidang.
 
-### Akun uji dari seeder (lokal saja)
+### Data Kredensial Testing
 
-Akun berikut dibuat oleh `php artisan db:seed` untuk pengembangan lokal. Semua akun yang dibuat seeder memakai password `password123`. **Jangan gunakan atau deploy password ini di staging/production**; seeder akan membuat akun dengan email tetap dan password bersama tersebut.
+> Password default akun pengujian: `Diskominfo2026!`. Akun lama yang bukan roster resmi dan tidak memiliki NIP dinonaktifkan. Role Kepegawaian di API bernama `admin_kepegawaian`.
 
-Password untuk semua akun di daftar ini: `password123`.
-Email Kabid dan Mentor memakai format berbasis role dan divisi.
+Email Kabid dan Mentor dibentuk dari NIP sebagai `{nip}@diskominfo.go.id`. Kadis dan Kepegawaian tidak memiliki NIP, sehingga email resmi/jabatan mereka dipertahankan. ID dan Division ID berikut adalah nilai aktual database lokal saat dokumentasi diperbarui; ID dapat berbeda di environment lain.
 
-**Kadis**
-- Divisi: tidak berlaku
-- Email: `kadis@diskominfo.go.id`
+| ID | Nama Lengkap | Email Login (NIP) | Role | Division ID / Bidang |
+|---:|---|---|---|---|
+| 1 | Eka Rismawina, SP., MP | `198410022011012010@diskominfo.go.id` | `kabid` | 1 / IKP |
+| 28 | Hj. Wahidah, S.Sos, M.Si | `196909091993032006@diskominfo.go.id` | `mentor` | 1 / IKP |
+| 29 | Eva Ariyani, S.S | `197801212011012002@diskominfo.go.id` | `mentor` | 1 / IKP |
+| 30 | Muhammad Nor Ilhaq, SE | `198706192011011011@diskominfo.go.id` | `mentor` | 1 / IKP |
+| 31 | Syarifah Nada Fauzana, S.I.Kom | `199710302025042003@diskominfo.go.id` | `mentor` | 1 / IKP |
+| 6 | Muhammad Tabrani, S.Si, M.M | `198503202009041002@diskominfo.go.id` | `kabid` | 2 / Statistik |
+| 32 | Aulia Rahman, S.Tr.Stat | `200301282024121001@diskominfo.go.id` | `mentor` | 2 / Statistik |
+| 33 | Firdatul Maulaya, S.Tr.Stat | `200110252024122001@diskominfo.go.id` | `mentor` | 2 / Statistik |
+| 34 | Noor Fajrina Azkiya, S.Stat | `200210162025042001@diskominfo.go.id` | `mentor` | 2 / Statistik |
+| 10 | M. Zainaini, S.Kom, M.T | `197812302011011003@diskominfo.go.id` | `kabid` | 3 / APTIKA |
+| 35 | Resky Riswanidar Safitri, S.Kom | `198805282011012010@diskominfo.go.id` | `mentor` | 3 / APTIKA |
+| 36 | Eka Novita Shandra, S.Kom | `199510222020122015@diskominfo.go.id` | `mentor` | 3 / APTIKA |
+| 37 | Muhammad Ramadhani, S.Kom | `199801142022031003@diskominfo.go.id` | `mentor` | 3 / APTIKA |
+| 38 | Rahmat Ridhatullah, S.Kom | `198803032020121020@diskominfo.go.id` | `mentor` | 3 / APTIKA |
+| 39 | Muhammad Riza Rafsanjani, S.Kom | `199401042025041004@diskominfo.go.id` | `mentor` | 3 / APTIKA |
+| 16 | Mahdiani Fauzi, S.Sos | `197701121997031005@diskominfo.go.id` | `kabid` | 4 / TKI |
+| 40 | Yuliana Putri, S.Sos | `198802102015052001@diskominfo.go.id` | `mentor` | 4 / TKI |
+| 41 | Rizki Pratama, S.Kom | `199006152020122002@diskominfo.go.id` | `mentor` | 4 / TKI |
+| 19 | Eddy Suriyani, S.Sos., MA | `kadis@diskominfo.go.id` | `kadis` | — / Tidak ada divisi |
+| 21 | Admin Kepegawaian | `kepegawaian@diskominfo.go.id` | `admin_kepegawaian` | — / Tidak ada divisi |
 
-**Admin Kepegawaian**
-- Email: `kepegawaian@diskominfo.go.id`
-- Password: ditentukan saat akun dibuat di environment; tidak diatur oleh seeder default.
+`php artisan db:seed` menyelaraskan email NIP, roster Kabid/Mentor, serta password testing di atas. Akun applicant dibuat melalui pendaftaran; akun intern terbentuk dari alur penerimaan. Gunakan kredensial hanya pada environment testing lokal.
 
-**Kabid**
-- IKP — `kabid.ikp@diskominfo.go.id`
-- Statistik — `kabid.statistik@diskominfo.go.id`
-- Aptika — `kabid.aptika@diskominfo.go.id`
-- TKI — `kabid.tki@diskominfo.go.id`
+## Contoh Payload Request API
 
-**Mentor**
-- IKP — `mentor1.ikp@diskominfo.go.id`, `mentor2.ikp@diskominfo.go.id`, `mentor3.ikp@diskominfo.go.id`, `mentor4.ikp@diskominfo.go.id`
-- Statistik — `mentor1.statistik@diskominfo.go.id`, `mentor2.statistik@diskominfo.go.id`, `mentor3.statistik@diskominfo.go.id`
-- Aptika — `mentor1.aptika@diskominfo.go.id`, `mentor2.aptika@diskominfo.go.id`, `mentor3.aptika@diskominfo.go.id`, `mentor4.aptika@diskominfo.go.id`, `mentor5.aptika@diskominfo.go.id`
-- TKI — `mentor1.tki@diskominfo.go.id`, `mentor2.tki@diskominfo.go.id`
-- Catatan: akun `kabid.tki@diskominfo.go.id` tetap ber-role `kabid` dan tetap tersedia sebagai pembimbing utama divisi TKI, tetapi akun mentor TKI khusus juga dibuat untuk login sebagai role `mentor`.
+Semua path di bawah adalah path relatif terhadap prefiks `/api`.
 
-Seeder default tidak membuat akun `admin_kepegawaian`, `applicant`, atau `intern`. Email `kepegawaian@diskominfo.go.id` adalah alamat akun Admin Kepegawaian yang digunakan oleh environment, tetapi akun harus sudah dibuat/provisioned di database agar dapat login; passwordnya tidak ditentukan seeder ini. Akun applicant dibuat melalui pendaftaran dan berstatus pending sehingga belum bisa login. Akun menjadi intern setelah alur pengajuan diterima dan surat resmi diterbitkan, atau setelah disetujui melalui endpoint akun di atas; gunakan email dan password yang dipilih saat pendaftaran. Jangan mengirim akun/password lokal di atas kepada frontend untuk koneksi ke server bersama; buat akun uji tersendiri di environment frontend.
+### Login — `POST /api/auth/login`
+
+```json
+{
+  "email": "198410022011012010@diskominfo.go.id",
+  "password": "Diskominfo2026!"
+}
+```
+
+### Ubah password sendiri — `POST /api/change-password`
+
+Kirim dengan token Sanctum pengguna yang akan mengganti password.
+
+```json
+{
+  "current_password": "Diskominfo2026!",
+  "new_password": "PasswordBaru123!",
+  "new_password_confirmation": "PasswordBaru123!"
+}
+```
+
+### Persetujuan Kabid dan penunjukan mentor — `PUT /api/applications/{application}/approve-kabid`
+
+`mentor_id` harus merupakan ID akun aktif ber-role `mentor` atau `kabid` pada divisi Kabid yang login. Catatan persetujuan dikirim sebagai `notes`.
+
+```json
+{
+  "status": "approved",
+  "mentor_id": 28,
+  "notes": "Kandidat memiliki kualifikasi teknis yang sesuai."
+}
+```
 
 ## Bidang/divisi
 
@@ -181,6 +221,8 @@ Respons `data` berupa array divisi. Setiap item memiliki `id`, `name`, `code`, `
 Dashboard Admin Kepegawaian dan Kabid menyediakan unduhan PDF surat balasan pada daftar peserta yang sudah diterima. Endpoint `GET /pendaftaran/{id}/cetak-surat` menggunakan token Sanctum dan hanya dapat diakses Admin Kepegawaian atau Kabid (Kabid dibatasi ke divisinya). NIM/NISN dicatat pada field `nim_nisn` saat pendaftaran dan ditampilkan pada surat; data pendaftar lama yang belum memilikinya ditampilkan sebagai `-`.
 
 `GET /applications` menerima filter opsional `final_status`, `division_id`, `application_type`, dan `per_page` (default 15, maksimal 100). Untuk role Kabid, backend mengabaikan filter divisi sebagai sumber otorisasi: data selalu dibatasi ke `division_id` pada akun Kabid dan status workflow `pending_kadis`, `approved_by_kadis`, `accepted`, atau `rejected_by_kabid`. Hasil Kabid memuat `status_kabid`, `notes_kabid`, `verified_by_kabid`, `kabid_decided_at`, `kabid_rejected_at`, `rejection_stage`, dan `histories`. Pagination memakai metadata Laravel (`current_page`, `data`, `first_page_url`, `from`, `last_page`, `last_page_url`, `links`, `next_page_url`, `path`, `per_page`, `prev_page_url`, `to`, `total`).
+
+`GET /applications/{application}/mentors` mengembalikan pilihan pembimbing untuk Kabid yang sedang login. Daftar diambil dari `users` dengan `division_id` sama dengan Kabid, `is_active: true`, dan role `mentor` atau `kabid`. Setiap pilihan memuat `id`, `name`, dan `role`; dropdown menampilkan `name`. Pemohon harus ber-role `applicant`, sedangkan penempatan divisi divalidasi dari pengajuan itu sendiri.
 
 `GET /kabid/interns` menerima `page` dan `per_page` (default 15, maksimal 100); semua klausa otorisasi berdasarkan divisi Kabid yang login. `data.data[]` berisi `id`, `status`, `final_status`, `division_id`, `division` (`id`, `name`), `user` (`id`, `name`, `email`, `no_hp`, `phone`), `institution_name`, `major`, `department` (alias `major`), `start_date`, dan `end_date`. Hanya pengajuan berstatus akhir diterima dengan akun `role: intern` dan `is_active: true` yang dikembalikan.
 
@@ -244,7 +286,7 @@ Simpan `tracking_code`. Gunakan `GET /applications/track/{trackingCode}` tanpa l
 
 Untuk membuka dokumen yang diunggah, Admin Kepegawaian atau Kabid dapat menggunakan `GET /applications/{application}/documents/{document}` dengan `{document}` salah satu dari `proposal`, `cv`, `transcript`, atau `student-card`. Kabid hanya dapat membuka pengajuan yang `division_id`-nya cocok dengan relasi divisi akun login; akses silang divisi menghasilkan `403`. Role lain ditolak `403`; dokumen tidak tersedia atau jenis dokumen tidak dikenal menghasilkan `404`. Respons sukses berupa file inline.
 
-Kabid dapat mengambil pilihan pembimbing melalui `GET /applications/{application}/mentors`. Respons `data` adalah array `{id, name, role}` yang hanya berisi akun `role: mentor`, `is_active: true`, dan `division_id` sama dengan Kabid/pengajuan. Tidak menyertakan akun Kabid. Pengajuan di divisi lain menghasilkan `403`; pengajuan yang tidak lagi `pending_kabid` menghasilkan `404`.
+Kabid dapat mengambil pilihan pembimbing melalui `GET /applications/{application}/mentors`. Respons `data` adalah array `{id, name, role}` berisi semua akun aktif ber-role `mentor` atau `kabid` yang `division_id`-nya sama dengan Kabid/pengajuan. Frontend menampilkan nama pegawai (`name`) dan mengirim ID akun yang dipilih sebagai `mentor_id` saat persetujuan. Pengajuan di divisi lain menghasilkan `403`; pengajuan yang tidak lagi `pending_kabid` menghasilkan `404`.
 
 ### Mengirim pengajuan (endpoint kompatibilitas)
 
@@ -276,7 +318,7 @@ Endpoint `PUT /applications/{application}/approve-kepegawaian` menerima JSON `st
 }
 ```
 
-`status` wajib `approved` atau `rejected`; `notes` opsional dengan panjang maksimal 1000 karakter; `mentor_id` wajib saat `approved` dan harus menunjuk mentor aktif (`role: mentor`, `is_active: true`) di divisi yang sama. Saat `rejected`, `mentor_id` tidak diperlukan. Backend memeriksa `status: pending_kabid`, `status_kabid: pending`, kepemilikan divisi, dan validitas mentor; status bukan lagi pending atau kapasitas divisi penuh menghasilkan `422`, akses lintas divisi atau role bukan Kabid menghasilkan `403`, mentor tidak valid menghasilkan `422`, dan ID pengajuan yang tidak ditemukan menghasilkan `404`. Role Kabid tidak dapat memakai endpoint legacy `/applications/{application}/status`; gunakan endpoint keputusan khusus ini.
+`status` wajib `approved` atau `rejected`; `notes` opsional dengan panjang maksimal 1000 karakter; `mentor_id` wajib saat `approved` dan harus menunjuk ID akun aktif ber-role `mentor` atau `kabid` pada divisi yang sama. Saat `rejected`, `mentor_id` tidak diperlukan. Backend menyimpan ID akun yang dipilih pada `intern_applications.mentor_id` dan memvalidasi kembali role, status aktif, serta divisinya saat transaksi persetujuan. Backend juga memeriksa `status: pending_kabid`, `status_kabid: pending`, kepemilikan divisi, dan kuota; status bukan lagi pending atau kapasitas divisi penuh menghasilkan `422`, akses lintas divisi atau role bukan Kabid menghasilkan `403`, pembimbing tidak valid menghasilkan `422`, dan ID pengajuan yang tidak ditemukan menghasilkan `404`. Role Kabid tidak dapat memakai endpoint legacy `/applications/{application}/status`; gunakan endpoint keputusan khusus ini.
 
 Persetujuan menghasilkan `status: pending_kadis`, `status_kabid: approved`, `mentor_id`, `notes_kabid`, `verified_by_kabid`, dan `kabid_decided_at`. Penolakan menghasilkan `status: rejected_by_kabid`, `status_kabid: rejected`, `final_status: rejected`, `rejection_stage: kabid`, `rejection_note`, `kabid_rejected_at`, serta catatan dan ID Kabid. Setiap keputusan dan baris `intern_application_histories` (`from_status`, `to_status`, `decision`, `notes`, `actor_id`, `decided_at`) disimpan dalam satu transaksi bersama pembaruan mentor/status.
 
