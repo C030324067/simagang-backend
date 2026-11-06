@@ -12,6 +12,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const [profileForm, setProfileForm] = useState({ name: '', email: '' });
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState('');
+  const [profilePhotoLightboxOpen, setProfilePhotoLightboxOpen] = useState(false);
   const [profilePhotoOptionsOpen, setProfilePhotoOptionsOpen] = useState(false);
   const [profileCameraOpen, setProfileCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState('');
@@ -37,6 +38,17 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   useEffect(() => () => profileCameraStreamRef.current?.getTracks().forEach((track) => track.stop()), []);
 
   useEffect(() => {
+    if (!profilePhotoLightboxOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setProfilePhotoLightboxOpen(false);
+    };
+
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [profilePhotoLightboxOpen]);
+
+  useEffect(() => {
     if (!profileMenuOpen) return undefined;
 
     const handleClickOutside = (event) => {
@@ -58,6 +70,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
     setProfileForm({ name: user?.name || '', email: user?.email || '' });
     setProfilePhotoFile(null);
     setProfilePhotoPreview(user?.profile_photo_url || '');
+    setProfilePhotoLightboxOpen(false);
     setProfilePhotoOptionsOpen(false);
     setProfileMessage(null);
     setPasswords({ current_password: '', new_password: '', new_password_confirmation: '' });
@@ -68,6 +81,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const closeProfileModal = () => {
     if (profileSaving) return;
     stopProfileCamera();
+    setProfilePhotoLightboxOpen(false);
     setProfileModalOpen(false);
     setProfileMessage(null);
   };
@@ -450,11 +464,20 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                   <h3 className="text-base font-bold text-slate-900">Informasi Profil</h3>
                 <div className="flex flex-col items-center gap-3 pb-2">
                   <div className="relative inline-block">
-                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 text-3xl font-bold text-slate-500 shadow ring-1 ring-slate-200">
-                      {profilePhotoPreview || user.profile_photo_url
-                        ? <img src={profilePhotoPreview || user.profile_photo_url} alt="Pratinjau foto profil" className="h-full w-full rounded-full object-cover" />
-                        : user.name?.charAt(0) || 'U'}
-                    </div>
+                    {profilePhotoPreview || user.profile_photo_url ? (
+                      <button
+                        type="button"
+                        onClick={() => setProfilePhotoLightboxOpen(true)}
+                        aria-label="Lihat foto profil ukuran penuh"
+                        className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow ring-1 ring-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-600"
+                      >
+                        <img src={profilePhotoPreview || user.profile_photo_url} alt="Pratinjau foto profil" className="h-full w-full rounded-full object-cover" />
+                      </button>
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 text-3xl font-bold text-slate-500 shadow ring-1 ring-slate-200">
+                        {user.name?.charAt(0) || 'U'}
+                      </div>
+                    )}
                     <input
                       ref={profileCameraInputRef}
                       type="file"
@@ -583,6 +606,29 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
               </form>
             </div>
           </section>
+          {profilePhotoLightboxOpen && (profilePhotoPreview || user.profile_photo_url) && (
+            <div
+              className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/90 p-5 backdrop-blur-sm"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setProfilePhotoLightboxOpen(false);
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setProfilePhotoLightboxOpen(false)}
+                aria-label="Tutup foto"
+                className="absolute right-5 top-5 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
+              >
+                <X className="h-6 w-6" />
+              </button>
+              <img
+                src={profilePhotoPreview || user.profile_photo_url}
+                alt={`Foto profil ${user.name || ''}`}
+                className="max-h-[85vh] max-w-[min(90vw,900px)] rounded-lg object-contain shadow-2xl"
+              />
+            </div>
+          )}
           {profileCameraOpen && (
             <div
               className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/80 p-4"
