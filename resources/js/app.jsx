@@ -230,10 +230,10 @@ function MainApp() {
 
   useEffect(() => {
     const noticeKey = user?.id ? `simagang_expiration_notice_seen_${user.id}` : null;
-    if (user?.role === 'intern' && currentTab === 'dashboard' && noticeKey && !localStorage.getItem(noticeKey)) {
+    if (user?.role === 'intern' && noticeKey && !localStorage.getItem(noticeKey)) {
       setExpirationNotice({ expired: false, message: '' });
     }
-  }, [user, currentTab]);
+  }, [user]);
 
   useEffect(() => {
     const path = window.location.pathname;
