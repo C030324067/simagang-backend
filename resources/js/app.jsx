@@ -229,7 +229,8 @@ function MainApp() {
   }, [logout]);
 
   useEffect(() => {
-    if (user?.role === 'intern' && currentTab === 'dashboard' && !localStorage.getItem('simagang_expiration_notice_seen')) {
+    const noticeKey = user?.id ? `simagang_expiration_notice_seen_${user.id}` : null;
+    if (user?.role === 'intern' && currentTab === 'dashboard' && noticeKey && !localStorage.getItem(noticeKey)) {
       setExpirationNotice({ expired: false, message: '' });
     }
   }, [user, currentTab]);
@@ -386,7 +387,9 @@ function MainApp() {
             logout();
             setCurrentTab('login');
           } else {
-            localStorage.setItem('simagang_expiration_notice_seen', '1');
+            if (user?.id) {
+              localStorage.setItem(`simagang_expiration_notice_seen_${user.id}`, '1');
+            }
           }
           setExpirationNotice(null);
         }}
