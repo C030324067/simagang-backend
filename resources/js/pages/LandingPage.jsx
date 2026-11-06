@@ -17,6 +17,22 @@ function ProfilePhoto({ src, alt, initials, className }) {
   return <img src={src} alt={alt} onError={() => setFailed(true)} className={className} />;
 }
 
+function SocialIcon({ name }) {
+  if (name === 'Facebook') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-[18px] w-[18px] fill-current"><path d="M13.5 21v-7h2.4l.4-2.8h-2.8V9.4c0-.8.3-1.4 1.4-1.4h1.5V5.6c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v1.8H8v2.8h2.3v7h3.2Z" /></svg>;
+  }
+
+  if (name === 'Instagram') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-[18px] w-[18px] fill-none stroke-current" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.7" r="1" className="fill-current stroke-none" /></svg>;
+  }
+
+  if (name === 'YouTube') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-[19px] w-[19px]"><path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8Z" /><path fill="white" d="m9.6 15.8 6.3-3.8-6.3-3.8v7.6Z" /></svg>;
+  }
+
+  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-7.4L5.5 22H2.4l7.3-8.4L1.9 2h6.5l4.4 6.9L18.9 2Zm-1.1 18h1.7L7.4 3.9H5.6L17.8 20Z" /></svg>;
+}
+
 // Foto untuk masing-masing bidang (4 Bidang Utama)
 const divisionPortraits = {
   ikp: '/images/pimpinan/kabid-ikp.png',
@@ -547,10 +563,10 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
 
             <div className="flex items-center gap-2 pt-1">
               {[
-                { label: 'Facebook', href: 'https://www.facebook.com/mctabalong', icon: 'f' },
+                { label: 'Facebook', href: 'https://www.facebook.com/mctabalong', color: '#1877F2' },
                 { label: 'X / Twitter', href: 'https://x.com/mc_tabalong', icon: '𝕏' },
-                { label: 'Instagram', href: 'https://www.instagram.com/mc_tabalong', icon: '◎' },
-                { label: 'YouTube', href: 'https://www.youtube.com/@diskominfo_tabalong/videos', icon: '▶' },
+                { label: 'Instagram', href: 'https://www.instagram.com/mc_tabalong', color: '#A12AC5' },
+                { label: 'YouTube', href: 'https://www.youtube.com/@diskominfo_tabalong/videos', color: '#FF0000' },
               ].map((social) => (
                 <a
                   key={social.label}
@@ -559,9 +575,10 @@ export default function LandingPage({ onNavigateLogin, onNavigateRegister, onNav
                   rel="noopener noreferrer"
                   aria-label={social.label}
                   title={social.label}
-                  className="w-8 h-8 cursor-pointer rounded-lg bg-white hover:bg-[#0284c7] hover:text-white text-[#0f172a] flex items-center justify-center transition-all text-xs border border-[#bae6fd]/60"
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-[#bae6fd]/60 bg-white transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+                  style={{ color: social.color || '#111827' }}
                 >
-                  {social.icon}
+                  <SocialIcon name={social.label} />
                 </a>
               ))}
             </div>
