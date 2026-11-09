@@ -214,7 +214,7 @@ function ApplyPage({ onBack, onSuccess }) {
 
 // --- MAIN APP ---
 function MainApp() {
-  const { user, loading, logout } = useAuth();
+  const { user, activeRole, loading, logout } = useAuth();
   const [currentTab, setCurrentTab] = useState('landing');
   const [urlHash, setUrlHash] = useState('');
   const [passwordReset, setPasswordReset] = useState({ token: '', email: '' });
@@ -351,7 +351,9 @@ function MainApp() {
   }
 
   const renderDashboard = () => {
-    switch (user.role) {
+    const dashboardRole = user.available_roles?.includes(activeRole) ? activeRole : user.role;
+
+    switch (dashboardRole) {
       case 'intern':
         return <InternDashboard />;
       case 'admin_kepegawaian':

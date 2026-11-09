@@ -218,7 +218,7 @@ class User extends Authenticatable
      */
     public function activeRole(): string
     {
-        $activeRole = session('active_role');
+        $activeRole = request()->header('X-Active-Role') ?? session('active_role');
 
         return is_string($activeRole) && $this->hasRole($activeRole)
             ? $activeRole

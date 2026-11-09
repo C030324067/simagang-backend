@@ -25,7 +25,12 @@ class RoleMiddleware
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        if (! in_array($user->role, $roles, true)) {
+        $hasDatabaseRole = in_array($user->role, $roles, true);
+        $activeRole = $user->activeRole();
+        $hasActiveContextRole = in_array($activeRole, $roles, true)
+            && $user->hasRole($activeRole);
+
+        if (! $hasDatabaseRole && ! $hasActiveContextRole) {
             return response()->json([
                 'success' => false,
                 'message' => 'Akses ditolak. Anda tidak memiliki izin untuk mengakses resource ini.',

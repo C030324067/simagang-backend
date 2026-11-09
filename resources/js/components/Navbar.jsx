@@ -2,12 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { Camera, ChevronDown, Eye, EyeOff, LogOut, Menu, UserRound, X } from 'lucide-react';
-import { apiRequest, getToken } from '../api';
+import { apiRequest } from '../api';
 
 export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
-  const { user, logout, fetchProfile } = useAuth();
+  const { user, logout, fetchProfile, activeRole, switchRole } = useAuth();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [activeRole, setActiveRole] = useState(() => localStorage.getItem('simagang_active_role') || '');
   const [roleSwitchMessage, setRoleSwitchMessage] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -38,22 +37,6 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   }, [profilePhotoPreview]);
 
   useEffect(() => () => profileCameraStreamRef.current?.getTracks().forEach((track) => track.stop()), []);
-
-  useEffect(() => {
-    if (!user) {
-      setActiveRole('');
-      return;
-    }
-
-    const roles = Array.isArray(user.available_roles) ? user.available_roles : [user.role];
-    const storedRole = localStorage.getItem('simagang_active_role');
-    const nextRole = roles.includes(storedRole) ? storedRole : user.role;
-    setActiveRole(nextRole || '');
-
-    if (nextRole) {
-      localStorage.setItem('simagang_active_role', nextRole);
-    }
-  }, [user?.id, user?.role]);
 
   useEffect(() => {
     if (!profilePhotoLightboxOpen) return undefined;
@@ -303,25 +286,13 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const handleRoleSwitch = async (role) => {
     setRoleSwitchMessage('');
     try {
-      const response = await fetch('/switch-role', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-        },
-        body: JSON.stringify({ role }),
-      });
-      const result = await response.json().catch(() => ({}));
+      const result = await switchRole(role);
 
-      if (!response.ok || !result.success) {
-        setRoleSwitchMessage(result.message || 'Konteks peran tidak dapat diganti.');
+      if (!result.success) {
+        setRoleSwitchMessage(result.message);
         return;
       }
 
-      localStorage.setItem('simagang_active_role', result.data.active_role);
-      setActiveRole(result.data.active_role);
       setRoleSwitchMessage(result.message || 'Konteks berhasil diganti.');
       setProfileMenuOpen(false);
     } catch {

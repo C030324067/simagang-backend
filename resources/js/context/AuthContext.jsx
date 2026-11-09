@@ -72,6 +72,7 @@ export const DEMO_ACCOUNTS = {
 export function AuthProvider({ children }) {
   const [token, setTokenState] = useState(getToken());
   const [user, setUser] = useState(() => (getToken() ? getCachedUser() : null));
+  const [activeRole, setActiveRole] = useState(() => localStorage.getItem('simagang_active_role') || getCachedUser()?.role || '');
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
@@ -85,6 +86,11 @@ export function AuthProvider({ children }) {
     if (res.success && res.data) {
       setUser(res.data);
       cacheUser(res.data);
+      const roles = Array.isArray(res.data.available_roles) ? res.data.available_roles : [res.data.role];
+      const storedRole = localStorage.getItem('simagang_active_role');
+      const nextRole = roles.includes(storedRole) ? storedRole : res.data.role;
+      setActiveRole(nextRole || '');
+      if (nextRole) localStorage.setItem('simagang_active_role', nextRole);
     } else if (res.status === 401) {
       setUser(null);
       setToken(null);
@@ -108,6 +114,7 @@ export function AuthProvider({ children }) {
       setToken(res.data.token);
       setTokenState(res.data.token);
       setUser(res.data.user);
+      setActiveRole(res.data.user.role || '');
       cacheUser(res.data.user);
       return { success: true };
     }
@@ -121,6 +128,37 @@ export function AuthProvider({ children }) {
     setToken(null);
     setTokenState('');
     setUser(null);
+    setActiveRole('');
+  };
+
+  const switchRole = async (role) => {
+    const availableRoles = Array.isArray(user?.available_roles) ? user.available_roles : [user?.role];
+    if (!availableRoles.includes(role)) {
+      return { success: false, message: 'Anda tidak memiliki akses ke konteks tersebut.' };
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const response = await fetch('/switch-role', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: JSON.stringify({ role }),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      return { success: false, message: result.message || 'Konteks peran tidak dapat diganti.' };
+    }
+
+    const nextRole = result.data.active_role;
+    localStorage.setItem('simagang_active_role', nextRole);
+    setActiveRole(nextRole);
+
+    return { success: true, message: result.message };
   };
 
   const quickSwitchRole = async (roleKey) => {
@@ -136,11 +174,13 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
+        activeRole,
         token,
         loading,
         login,
         logout,
         fetchProfile,
+        switchRole,
         quickSwitchRole,
       }}
     >

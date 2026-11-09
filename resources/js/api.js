@@ -59,6 +59,11 @@ export async function apiRequest(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const activeRole = localStorage.getItem('simagang_active_role');
+  if (activeRole) {
+    headers['X-Active-Role'] = activeRole;
+  }
+
   if (options.body instanceof FormData) {
     // Let fetch add the multipart boundary; setting this header manually breaks PHP parsing.
     Object.keys(headers)

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\LogbookController;
 use App\Http\Controllers\Api\PenilaianSmkController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserApprovalController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RegisterApplicationController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +46,8 @@ Route::get('/applications/track/{trackingCode}/letter', [ApplicationController::
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
     Route::middleware('role:admin_kepegawaian')->group(function () {
         Route::get('/internship-periods', [InternshipPeriodController::class, 'index']);
         Route::put('/internship-periods', [InternshipPeriodController::class, 'upsert']);
