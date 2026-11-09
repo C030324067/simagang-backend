@@ -188,4 +188,24 @@ class User extends Authenticatable
     {
         return $this->role === 'mentor';
     }
+
+    /**
+     * Determine whether the user may use the requested application context.
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Return the active role only when it is still assigned to this user.
+     */
+    public function activeRole(): ?string
+    {
+        $activeRole = session('active_role');
+
+        return is_string($activeRole) && $this->hasRole($activeRole)
+            ? $activeRole
+            : null;
+    }
 }

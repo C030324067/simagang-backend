@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckAccountExpiration;
+use App\Http\Middleware\EnsureActiveRoleSet;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'account.expiration' => CheckAccountExpiration::class,
+            'active.role' => EnsureActiveRoleSet::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
