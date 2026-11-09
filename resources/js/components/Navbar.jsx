@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { Camera, ChevronDown, Eye, EyeOff, LogOut, Menu, UserRound, X } from 'lucide-react';
-import { apiRequest } from '../api';
+import { apiRequest, getToken } from '../api';
 
 export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const { user, logout, fetchProfile } = useAuth();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [activeRole, setActiveRole] = useState(() => localStorage.getItem('simagang_active_role') || '');
+  const [roleSwitchMessage, setRoleSwitchMessage] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', email: '' });
@@ -36,6 +38,22 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   }, [profilePhotoPreview]);
 
   useEffect(() => () => profileCameraStreamRef.current?.getTracks().forEach((track) => track.stop()), []);
+
+  useEffect(() => {
+    if (!user) {
+      setActiveRole('');
+      return;
+    }
+
+    const roles = Array.isArray(user.available_roles) ? user.available_roles : [user.role];
+    const storedRole = localStorage.getItem('simagang_active_role');
+    const nextRole = roles.includes(storedRole) ? storedRole : user.role;
+    setActiveRole(nextRole || '');
+
+    if (nextRole) {
+      localStorage.setItem('simagang_active_role', nextRole);
+    }
+  }, [user?.id, user?.role]);
 
   useEffect(() => {
     if (!profilePhotoLightboxOpen) return undefined;
@@ -271,7 +289,45 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
     }
   };
 
-  const badge = getRoleBadge(user?.role, user?.division?.name);
+  const roleBadge = getRoleBadge(user?.role, user?.division?.name);
+  const badge = {
+    ...roleBadge,
+    text: user?.position?.trim() || user?.division?.name || roleBadge.text,
+  };
+  const availableRoles = Array.isArray(user?.available_roles)
+    ? user.available_roles
+    : [user?.role].filter(Boolean);
+  const selectedRole = availableRoles.includes(activeRole) ? activeRole : user?.role;
+  const roleLabels = { kabid: 'Kepala Bidang', mentor: 'Mentor' };
+
+  const handleRoleSwitch = async (role) => {
+    setRoleSwitchMessage('');
+    try {
+      const response = await fetch('/switch-role', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        },
+        body: JSON.stringify({ role }),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        setRoleSwitchMessage(result.message || 'Konteks peran tidak dapat diganti.');
+        return;
+      }
+
+      localStorage.setItem('simagang_active_role', result.data.active_role);
+      setActiveRole(result.data.active_role);
+      setRoleSwitchMessage(result.message || 'Konteks berhasil diganti.');
+      setProfileMenuOpen(false);
+    } catch {
+      setRoleSwitchMessage('Konteks peran tidak dapat diganti. Periksa koneksi lalu coba lagi.');
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 shadow-sm backdrop-blur-md">
@@ -388,7 +444,31 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
             </button>
 
             {profileMenuOpen && (
-              <div role="menu" className="absolute right-0 top-full z-[60] mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+              <div role="menu" className="absolute right-0 top-full z-[60] mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <p className="truncate text-sm font-semibold text-slate-900">{user.name}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">Jabatan: {user.position || user.division?.name || 'Belum diatur'}</p>
+                  <p className="mt-1 text-xs font-medium text-indigo-700">Konteks aktif: {roleLabels[selectedRole] || selectedRole}</p>
+                </div>
+                {availableRoles.length > 1 && (
+                  <div className="border-b border-slate-100 px-2 py-2">
+                    <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Ganti peran</p>
+                    {availableRoles.map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        role="menuitem"
+                        disabled={role === selectedRole}
+                        onClick={() => handleRoleSwitch(role)}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${role === selectedRole ? 'bg-indigo-50 font-semibold text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                      >
+                        <span>{roleLabels[role] || role}</span>
+                        {role === selectedRole && <span aria-label="Aktif">✓</span>}
+                      </button>
+                    ))}
+                    {roleSwitchMessage && <p role="status" className="px-3 pt-2 text-xs text-slate-600">{roleSwitchMessage}</p>}
+                  </div>
+                )}
                 <button
                   type="button"
                   role="menuitem"
@@ -548,7 +628,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                   />
                 </div>
                 <div className="text-xs text-slate-600">
-                  <span className="font-semibold">Peran / Jabatan:</span>{' '}
+                  <span className="font-semibold">Jabatan:</span>{' '}
                   <span className={`inline-flex rounded-md border px-2 py-1 font-semibold ${badge.bg}`}>{badge.text}</span>
                   {user.division?.name && <span className="ml-2">{user.division.name}</span>}
                 </div>

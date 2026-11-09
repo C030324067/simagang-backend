@@ -48,7 +48,7 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected $appends = ['profile_photo_url'];
+    protected $appends = ['profile_photo_url', 'available_roles'];
 
     /**
      * Get the attributes that should be cast.
@@ -190,22 +190,38 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the roles available to this account, including mentor assignments.
+     *
+     * @return list<string>
+     */
+    public function getAvailableRolesAttribute(): array
+    {
+        $roles = array_filter([$this->role], fn (?string $role): bool => filled($role));
+
+        if ($this->role === 'kabid' && InternApplication::query()->where('mentor_id', $this->getKey())->exists()) {
+            $roles[] = 'mentor';
+        }
+
+        return array_values(array_unique($roles));
+    }
+
+    /**
      * Determine whether the user may use the requested application context.
      */
     public function hasRole(string $role): bool
     {
-        return $this->role === $role;
+        return in_array($role, $this->available_roles, true);
     }
 
     /**
      * Return the active role only when it is still assigned to this user.
      */
-    public function activeRole(): ?string
+    public function activeRole(): string
     {
         $activeRole = session('active_role');
 
         return is_string($activeRole) && $this->hasRole($activeRole)
             ? $activeRole
-            : null;
+            : (string) $this->role;
     }
 }

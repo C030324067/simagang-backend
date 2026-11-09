@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register-application', [RegisterApplicationController::class, 'store'])->name('register-application.store');
 
-Route::middleware(['auth', 'active.role'])->group(function () {
+Route::middleware(['auth:sanctum', 'active.role'])->group(function () {
     Route::post('/switch-role', SwitchRoleController::class)->name('role.switch');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });

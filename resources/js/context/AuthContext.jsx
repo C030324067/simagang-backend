@@ -25,7 +25,9 @@ function cacheUser(user) {
     name: user.name,
     email: user.email,
     profile_photo_url: user.profile_photo_url || null,
+    position: user.position || null,
     role: user.role,
+    available_roles: Array.isArray(user.available_roles) ? user.available_roles : [user.role].filter(Boolean),
     division: user.division ? {
       id: user.division.id,
       name: user.division.name,
@@ -102,6 +104,7 @@ export function AuthProvider({ children }) {
     });
 
     if (res.success && res.data) {
+      localStorage.removeItem('simagang_active_role');
       setToken(res.data.token);
       setTokenState(res.data.token);
       setUser(res.data.user);
@@ -114,6 +117,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await apiRequest('/auth/logout', { method: 'POST' });
+    localStorage.removeItem('simagang_active_role');
     setToken(null);
     setTokenState('');
     setUser(null);
