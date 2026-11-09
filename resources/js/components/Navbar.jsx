@@ -281,7 +281,12 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
     ? user.available_roles
     : [user?.role].filter(Boolean);
   const selectedRole = availableRoles.includes(activeRole) ? activeRole : user?.role;
+  const currentActiveRole = activeRole || user?.active_role || user?.role || 'kabid';
   const roleLabels = { kabid: 'Kepala Bidang', mentor: 'Mentor' };
+  const activeRoleBadgeLabel = currentActiveRole === 'kabid' ? 'Kabid' : (roleLabels[currentActiveRole] || currentActiveRole);
+  const activeRoleBadgeClass = currentActiveRole === 'mentor'
+    ? 'border-emerald-200 bg-emerald-100 text-emerald-800'
+    : 'border-blue-200 bg-blue-100 text-blue-800';
 
   const handleRoleSwitch = async (role) => {
     setRoleSwitchMessage('');
@@ -394,8 +399,11 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
               <div className="hidden min-w-0 text-right sm:block">
                 <p className="truncate text-sm font-semibold leading-tight text-slate-800">{user.name}</p>
                 <div className="mt-0.5 flex items-center justify-end gap-1.5">
-                  <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${badge.bg}`}>
-                    {badge.text}
+                  <span className="max-w-36 truncate rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-medium text-indigo-700">
+                    {user.position?.trim() || user.division?.name || 'Pegawai'}
+                  </span>
+                  <span className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${activeRoleBadgeClass}`}>
+                    Mode: {activeRoleBadgeLabel}
                   </span>
                   {user.division && (
                     <span className="text-[11px] font-medium text-slate-500">
