@@ -202,13 +202,13 @@
         <tr>
             <td class="label-col">Nomor</td>
             <td class="colon-col">:</td>
-            <td><?php echo e($application->official_letter_number ?? $application->acceptance_letter_number ?? '-'); ?></td>
+            <td><?php echo e($nomorSurat ?? $application->official_letter_number ?? $application->acceptance_letter_number ?? '-'); ?></td>
             <td class="date-col">Tanjung, <?php echo e($tanggalPenerbitan?->locale('id')->translatedFormat('j F Y') ?? now()->locale('id')->translatedFormat('j F Y')); ?></td>
         </tr>
         <tr>
             <td class="label-col">Lampiran</td>
             <td class="colon-col">:</td>
-            <td>-</td>
+            <td>1</td>
             <td></td>
         </tr>
         <tr>
@@ -246,7 +246,7 @@
         Bersama dengan surat ini kami <strong>Bersedia</strong> memberi kesempatan Magang kepada mahasiswa/i dari 
         <?php echo e($application->institution_name ?? ($application->user?->institution_name ?? '—')); ?> di Dinas Komunikasi dan Informatika Kabupaten Tabalong
         <?php if(!empty($application->start_date) && !empty($application->end_date)): ?>
-            selama periode <strong><?php echo e($application->start_date?->locale('id')->translatedFormat('j F Y')); ?> s/d <?php echo e($application->end_date?->locale('id')->translatedFormat('j F Y')); ?></strong>
+            selama <strong><?php echo e($durasiBulan ?? 0); ?> bulan</strong>, periode <strong><?php echo e($application->start_date?->locale('id')->translatedFormat('j F Y')); ?> s/d <?php echo e($application->end_date?->locale('id')->translatedFormat('j F Y')); ?></strong>
         <?php endif; ?>. 
         Berikut ini adalah Nama-nama Mahasiswa/i yang akan melaksanakan Magang di Dinas Komunikasi dan Informatika Kabupaten Tabalong:
     </p>
@@ -272,20 +272,16 @@
             </tr>
         </thead>
         <tbody>
+            <?php $__currentLoopData = ($applications ?? collect([$application])); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $participant): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <tr>
-                <td class="center">1</td>
-                <td class="left"><?php echo e($application->user?->name ?? '—'); ?></td>
-                <td class="center"><?php echo e($application->student_number ?? '—'); ?></td>
-                <td class="left"><?php echo e($application->major ?? '—'); ?></td>
-                <td class="left">
-                    Dinas Komunikasi dan Informatika Kabupaten Tabalong
-                    <?php if(!empty($application->division?->name)): ?>
-                        — <?php echo e($application->division?->name); ?>
-
-                    <?php endif; ?>
-                </td>
-                <td class="center"><?php echo e($application->user?->no_hp ?? '—'); ?></td>
+                <td class="center"><?php echo e($loop->iteration); ?></td>
+                <td class="left"><?php echo e($participant->user?->name ?? '-'); ?></td>
+                <td class="center"><?php echo e($participant->student_number ?? '-'); ?></td>
+                <td class="left"><?php echo e($participant->major ?? '-'); ?></td>
+                <td class="left">Dinas Komunikasi dan Informatika Kabupaten Tabalong <?php if(!empty($participant->division?->name)): ?> - <?php echo e($participant->division?->name); ?> <?php endif; ?></td>
+                <td class="center"><?php echo e($participant->user?->no_hp ?? '-'); ?></td>
             </tr>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
     </table>
 

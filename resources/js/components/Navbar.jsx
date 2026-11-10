@@ -280,6 +280,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const availableRoles = Array.isArray(user?.available_roles)
     ? user.available_roles
     : [user?.role].filter(Boolean);
+  const isMultiRole = availableRoles.length > 1;
   const selectedRole = availableRoles.includes(activeRole) ? activeRole : user?.role;
   const currentActiveRole = activeRole || user?.active_role || user?.role || 'kabid';
   const roleLabels = { kabid: 'Kepala Bidang', mentor: 'Mentor' };
@@ -399,15 +400,12 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
               <div className="hidden min-w-0 text-right sm:block">
                 <p className="truncate text-sm font-semibold leading-tight text-slate-800">{user.name}</p>
                 <div className="mt-0.5 flex items-center justify-end gap-1.5">
-                  <span className="max-w-36 truncate rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-medium text-indigo-700">
+                  <span className="w-auto whitespace-nowrap rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-medium text-indigo-700">
                     {user.position?.trim() || user.division?.name || 'Pegawai'}
                   </span>
-                  <span className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${activeRoleBadgeClass}`}>
-                    Mode: {activeRoleBadgeLabel}
-                  </span>
-                  {user.division && (
-                    <span className="text-[11px] font-medium text-slate-500">
-                      • {user.division.code}
+                  {isMultiRole && (
+                    <span className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${activeRoleBadgeClass}`}>
+                      Mode: {activeRoleBadgeLabel}
                     </span>
                   )}
                 </div>
