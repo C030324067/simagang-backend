@@ -18,11 +18,8 @@ export default function useMentorDashboard() {
   const [evaluations, setEvaluations] = useState([]);
   const [interns, setInterns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [generatingCertificateId, setGeneratingCertificateId] = useState(null);
   const [msg, setMsg] = useState({ type: '', text: '' });
-  const [selectedLogbook, setSelectedLogbook] = useState(null);
   const [selectedApplication, setSelectedApplication] = useState(null);
-  const [logbookVerifyForm, setLogbookVerifyForm] = useState({ verification_status: 'approved', mentor_notes: '' });
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState(initialTaskForm);
 
@@ -83,23 +80,6 @@ export default function useMentorDashboard() {
     setSelectedApplication(response.data);
   };
 
-  const handleVerifyLogbook = async (event) => {
-    event.preventDefault();
-    if (!selectedLogbook) return;
-    const response = await apiRequest(`/logbooks/${selectedLogbook.id}/verify`, {
-      method: 'PUT',
-      body: JSON.stringify(logbookVerifyForm),
-    });
-    setMsg({
-      type: response.success ? 'success' : 'error',
-      text: response.success ? response.message || 'Logbook berhasil diverifikasi.' : apiErrorMessage(response, 'Verifikasi logbook gagal.'),
-    });
-    if (response.success) {
-      setSelectedLogbook(null);
-      await loadData();
-    }
-  };
-
   const handleCreateTask = async (event) => {
     event.preventDefault();
     if (taskForm.task_file && taskForm.task_file.size > 30 * 1024 * 1024) {
@@ -129,7 +109,6 @@ export default function useMentorDashboard() {
     let response;
     if (status === 'revision_needed' || revisionFile) {
       const payload = new FormData();
-      payload.append('_method', 'PUT');
       payload.append('status', status);
       if (status === 'revision_needed') payload.append('catatan_revisi', catatanRevisi);
       if (revisionFile) payload.append('revision_file', revisionFile);
@@ -148,33 +127,15 @@ export default function useMentorDashboard() {
     return response;
   };
 
-  const handleGenerateCert = async (evaluation) => {
-    setGeneratingCertificateId(evaluation.id);
-    try {
-      const response = await apiRequest(`/evaluations/${evaluation.id}/generate-certificate`, { method: 'POST' });
-      setMsg({
-        type: response.success ? 'success' : 'error',
-        text: response.success
-          ? `${response.message || 'Sertifikat diterbitkan.'}${response.data?.certificate_number ? ` Nomor: ${response.data.certificate_number}` : ''}`
-          : apiErrorMessage(response, 'Penerbitan sertifikat gagal.'),
-      });
-      if (response.success) await loadData();
-      return response;
-    } finally {
-      setGeneratingCertificateId(null);
-    }
-  };
-
   const handleDownloadTaskFile = async (task, kind) => {
     const result = await downloadTaskFile(task, kind);
     setMsg({ type: result.success ? 'success' : 'error', text: result.success ? 'Berkas berhasil diunduh.' : result.message });
   };
 
   return {
-    activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg, generatingCertificateId,
-    selectedLogbook, setSelectedLogbook, selectedApplication, setSelectedApplication,
-    logbookVerifyForm, setLogbookVerifyForm, showTaskModal, setShowTaskModal,
-    taskForm, setTaskForm, loadData, handleLoadApplication, handleVerifyLogbook, handleCreateTask,
-    handleUpdateTaskStatus, handleGenerateCert, handleDownloadTaskFile,
+    activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg,
+    selectedApplication, setSelectedApplication, showTaskModal, setShowTaskModal,
+    taskForm, setTaskForm, loadData, handleLoadApplication, handleCreateTask,
+    handleUpdateTaskStatus, handleDownloadTaskFile,
   };
 }

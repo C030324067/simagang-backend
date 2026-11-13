@@ -221,7 +221,7 @@ class AttendanceController extends Controller
                 'is_within_radius' => $withinRadius,
                 'attachment_path' => $attachmentPath,
                 'status' => $recordStatus,
-                'approval_status' => 'pending_approval',
+                'approval_status' => 'approved',
                 'notes' => $validated['notes'] ?? null,
             ]);
         } catch (Throwable $exception) {
@@ -234,7 +234,7 @@ class AttendanceController extends Controller
             throw $exception;
         }
 
-        return $this->successResponse($attendance, 'Presensi terkirim dan menunggu persetujuan mentor.', 201);
+        return $this->successResponse($attendance, 'Presensi berhasil dicatat otomatis.', 201);
     }
 
     /**

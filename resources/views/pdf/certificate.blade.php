@@ -15,6 +15,10 @@
         $issuedDate = ! empty($certificate?->issued_at)
             ? \Carbon\Carbon::parse($certificate->issued_at)->locale('id')->translatedFormat('d F Y')
             : \Carbon\Carbon::now()->locale('id')->translatedFormat('d F Y');
+        $photoPath = $intern?->profile_photo_path ? storage_path('app/public/'.$intern->profile_photo_path) : null;
+        $photoData = $photoPath && is_file($photoPath)
+            ? 'data:'.(mime_content_type($photoPath) ?: 'image/jpeg').';base64,'.base64_encode(file_get_contents($photoPath))
+            : null;
     @endphp
     <style>
         @page {
@@ -47,37 +51,9 @@
             page-break-after: avoid;
         }
 
-        .transcript-page {
-            position: relative;
-            width: 267mm;
-            height: 188mm;
-            margin: 0 auto;
-            padding: 8mm 10mm;
-            overflow: hidden;
-            border: 1.2mm solid #1d5b83;
-            page-break-before: always;
-            page-break-after: avoid;
-        }
-
-        .transcript-page:before {
-            position: absolute;
-            top: 2.5mm;
-            right: 2.5mm;
-            bottom: 2.5mm;
-            left: 2.5mm;
-            border: 0.45mm solid #b58b43;
-            content: "";
-        }
-
-        .transcript-page h1 { color: #1d5b83; text-align: center; font-size: 17pt; }
-        .transcript-page p { text-align: center; font-size: 9pt; }
-        .transcript-table { width: 100%; margin-top: 8mm; border-collapse: collapse; table-layout: fixed; font-size: 9pt; }
-        .transcript-table th, .transcript-table td { border: 0.35mm solid #64748b; padding: 2.5mm; overflow-wrap: break-word; }
-        .transcript-table th:nth-child(1), .transcript-table td:nth-child(1) { width: 8%; text-align: center; }
-        .transcript-table th:nth-child(2), .transcript-table td:nth-child(2) { width: 38%; }
-        .transcript-table th:nth-child(3), .transcript-table td:nth-child(3) { width: 12%; text-align: center; }
-        .transcript-table th:nth-child(4), .transcript-table td:nth-child(4) { width: 42%; }
-        .transcript-final-score { margin: 7mm 0 5mm; text-align: right; font-size: 9pt; line-height: 1.35; }
+        .recipient-photo { position: absolute; top: 0; left: 0; width: 25mm; height: 32mm; border: 0.4mm solid #1d5b83; object-fit: cover; }
+        .photo-fallback { position: absolute; top: 0; left: 0; width: 25mm; height: 32mm; border: 0.4mm solid #1d5b83; background: #f1f5f9; color: #64748b; font-size: 7pt; line-height: 32mm; text-align: center; }
+        .header-table td.logo-cell:first-child { padding-left: 29mm; }
 
         .certificate-container:before {
             position: absolute;
@@ -89,10 +65,6 @@
             content: "";
         }
 
-        .transcript-page > * {
-            position: relative;
-            z-index: 1;
-        }
 
         .content {
             position: relative;
@@ -294,6 +266,11 @@
 <body>
     <div class="certificate-container">
         <div class="content">
+            @if ($photoData)
+                <img src="{{ $photoData }}" class="recipient-photo" alt="Foto peserta">
+            @else
+                <div class="photo-fallback">FOTO PESERTA</div>
+            @endif
             <table class="header-table">
                 <tr>
                     <td class="logo-cell" style="text-align:left">
@@ -361,20 +338,5 @@
             </table>
         </div>
     </div>
-    <section class="transcript-page">
-        <h1>Transkrip / Daftar Nilai</h1>
-        <p>{{ $intern->name ?? 'Peserta Magang' }} · Jenjang {{ $education_level ?? 'Kuliah' }}</p>
-        <table class="transcript-table">
-            <thead><tr><th>No.</th><th>Aspek Penilaian</th><th>Nilai</th><th>Catatan</th></tr></thead>
-            <tbody>
-                @forelse ($transcript_scores ?? [] as $score)
-                    <tr><td>{{ $loop->iteration }}</td><td>{{ $score->aspek }}</td><td>{{ number_format((float) $score->nilai, 2) }}</td><td>{{ $score->catatan ?: '—' }}</td></tr>
-                @empty
-                    <tr><td colspan="4" style="text-align:center">Belum ada rincian nilai.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-        <p class="transcript-final-score">Nilai Akhir: <strong>{{ number_format((float) ($evaluation?->final_score ?? 0), 2) }} / 100</strong></p>
-    </section>
 </body>
 </html>

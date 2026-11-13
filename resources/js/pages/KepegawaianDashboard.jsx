@@ -1,6 +1,6 @@
 import React from 'react';
 import useKepegawaianDashboard from '../hooks/useKepegawaianDashboard';
-import { downloadAcceptanceLetter } from '../api';
+import { apiRequest, downloadAcceptanceLetter } from '../api';
 import InternshipPeriodSettings from '../components/InternshipPeriodSettings';
 import { 
   Clock, 
@@ -17,6 +17,21 @@ export default function KepegawaianDashboard() {
     actionForm, setActionForm, loading, submitting, msg, setMsg, uploadLetter, openDocument, handleActionSubmit
   } = useKepegawaianDashboard();
   const [downloadingId, setDownloadingId] = React.useState(null);
+  const [evaluations, setEvaluations] = React.useState([]);
+  const [issuingId, setIssuingId] = React.useState(null);
+
+  React.useEffect(() => {
+    apiRequest('/evaluations?per_page=1000').then((response) => {
+      if (response.success) setEvaluations(response.data?.data || response.data || []);
+    });
+  }, []);
+
+  const issueCertificate = async (internId) => {
+    setIssuingId(internId);
+    const response = await apiRequest('/certificates/generate', { method: 'POST', body: JSON.stringify({ intern_id: internId }) });
+    setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Penerbitan sertifikat gagal.' });
+    setIssuingId(null);
+  };
 
   const printAcceptanceLetter = async (applicationId) => {
     setDownloadingId(applicationId);
@@ -233,6 +248,20 @@ export default function KepegawaianDashboard() {
                 Belum ada permohonan yang menunggu surat resmi.
               </div>
             )}
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100"><FileText className="w-5 h-5 text-[#0F2942]" /><h3 className="font-bold text-[#0F2942] text-base sm:text-lg">Penerbitan Sertifikat</h3></div>
+          <p className="text-sm text-slate-500">Peserta yang telah menyelesaikan magang dan memiliki evaluasi akhir mentor.</p>
+          <div className="divide-y divide-slate-100">
+            {evaluations.filter((evaluation) => acceptedApps.some((app) => app.internship_status === 'completed' && Number(app.user?.id) === Number(evaluation.intern?.id))).map((evaluation) => (
+              <div key={evaluation.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 py-4">
+                <div><p className="font-bold text-sm text-[#0F2942]">{evaluation.intern?.name}</p><p className="text-xs text-slate-500">Nilai akhir: {evaluation.final_score ?? '—'}</p></div>
+                <button type="button" disabled={issuingId === evaluation.intern?.id} onClick={() => issueCertificate(evaluation.intern?.id)} className="rounded-xl bg-[#4F46E5] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{issuingId === evaluation.intern?.id ? 'Menerbitkan…' : 'Terbitkan Sertifikat'}</button>
+              </div>
+            ))}
+            {!evaluations.some((evaluation) => acceptedApps.some((app) => app.internship_status === 'completed' && Number(app.user?.id) === Number(evaluation.intern?.id))) && <p className="py-6 text-center text-sm text-slate-400">Belum ada peserta selesai dengan evaluasi akhir.</p>}
           </div>
         </section>
 

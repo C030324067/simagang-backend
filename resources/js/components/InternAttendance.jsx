@@ -304,7 +304,7 @@ export default function InternAttendance({ open, onClose, attendance, attendance
               disabled={submitting || (attendanceMode === 'present' && !selfie)}
               className="w-full rounded-2xl bg-[#4F46E5] py-3 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? 'Mengirim presensi…' : attendanceMode === 'present' ? 'Kirim Presensi Hadir' : 'Kirim untuk Persetujuan Mentor'}
+              {submitting ? 'Mencatat presensi…' : attendanceMode === 'present' ? 'Kirim Presensi Hadir' : 'Catat Presensi'}
             </button>
           </form>
         )}

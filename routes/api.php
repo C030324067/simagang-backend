@@ -134,9 +134,7 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
         });
 
         Route::middleware('role:mentor')->group(function () {
-            Route::get('/pending-approval', [AttendanceController::class, 'pendingApprovals']);
             Route::get('/{attendance}/files/{kind}', [AttendanceController::class, 'file']);
-            Route::put('/{attendance}/review', [AttendanceController::class, 'review']);
         });
     });
 
@@ -148,9 +146,6 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
             Route::post('/', [LogbookController::class, 'store']);
         });
 
-        Route::middleware('role:mentor,admin_kepegawaian')->group(function () {
-            Route::put('/{logbook}/verify', [LogbookController::class, 'verify']);
-        });
     });
 
     // Task Management Endpoints
@@ -181,7 +176,6 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
 
         Route::middleware('role:mentor')->group(function () {
             Route::post('/', [EvaluationController::class, 'store']);
-            Route::post('/{evaluation}/generate-certificate', [CertificateController::class, 'generateFromEvaluation']);
         });
     });
 
@@ -204,7 +198,7 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
             Route::get('/my-certificate', [CertificateController::class, 'myCertificate']);
         });
 
-        Route::middleware('role:mentor,admin_kepegawaian')->group(function () {
+        Route::middleware('role:admin_kepegawaian')->group(function () {
             Route::post('/generate', [CertificateController::class, 'generate']);
         });
     });

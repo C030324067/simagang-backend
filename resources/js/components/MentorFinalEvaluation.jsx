@@ -9,7 +9,7 @@ const rubric = [
   ['score_teamwork', 'Kerja Sama & Komunikasi'],
 ];
 
-export default function MentorFinalEvaluation({ interns, evaluations, onSaved, onGenerateCertificate, generatingCertificateId }) {
+export default function MentorFinalEvaluation({ interns, evaluations, onSaved }) {
   const [internId, setInternId] = useState('');
   const [metrics, setMetrics] = useState(null);
   const [scores, setScores] = useState({ score_discipline: 85, score_quality: 85, score_initiative: 85, score_teamwork: 85, notes: '' });
@@ -57,7 +57,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved, o
         <label className="block"><span className="mb-1 block text-xs font-bold text-slate-700">Catatan mentor</span><textarea rows={3} maxLength={2000} value={scores.notes} onChange={(event) => setScores((previous) => ({ ...previous, notes: event.target.value }))} className="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="Ringkasan kinerja dan rekomendasi" /></label>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-50 p-4"><p className="text-sm font-semibold text-emerald-900">Perkiraan nilai akhir: {estimatedScore}</p><button disabled={saving || loading || !metrics} type="submit" className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{saving ? 'Menyimpan…' : selectedEvaluation ? 'Perbarui Evaluasi' : 'Simpan Evaluasi Akhir'}</button></div>
       </form>
-      {selectedEvaluation && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 p-4"><p className="text-sm text-slate-700">Tersimpan: <strong>{selectedEvaluation.final_score} · {selectedEvaluation.grade_letter || '—'}</strong></p><button type="button" disabled={generatingCertificateId === selectedEvaluation.id} onClick={() => onGenerateCertificate?.(selectedEvaluation)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white disabled:cursor-wait disabled:opacity-60">{generatingCertificateId === selectedEvaluation.id ? 'Menerbitkan…' : 'Terbitkan Sertifikat'}</button></div>}
+      {selectedEvaluation && <div className="rounded-2xl border border-emerald-200 p-4"><p className="text-sm text-slate-700">Tersimpan: <strong>{selectedEvaluation.final_score} · {selectedEvaluation.grade_letter || '—'}</strong></p></div>}
     </>}
   </section>;
 }

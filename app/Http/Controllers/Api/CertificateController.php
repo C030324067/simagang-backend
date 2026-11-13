@@ -27,6 +27,8 @@ class CertificateController extends Controller
      */
     public function generate(Request $request): JsonResponse
     {
+        abort_unless($request->user()?->role === 'admin_kepegawaian', 403, 'Hanya Admin Kepegawaian yang dapat menerbitkan sertifikat.');
+
         $validated = $request->validate([
             'intern_id' => ['required', 'exists:users,id'],
         ]);

@@ -72,7 +72,9 @@ class LogbookController extends Controller
             ->with(['division', 'mentor:id,name,role'])
             ->latest('id')
             ->first();
-        if (! $application) return $this->errorResponse('Peserta belum memiliki aplikasi magang aktif.', 422);
+        if (! $application) {
+            return $this->errorResponse('Peserta belum memiliki aplikasi magang aktif.', 422);
+        }
 
         $logbook = Logbook::create([
             'intern_application_id' => $application->id,
@@ -80,12 +82,12 @@ class LogbookController extends Controller
             'activity_description' => $validated['activity_description'],
             'category' => $validated['category'] ?? null,
             'attachment' => $attachmentPath,
-            'verification_status' => 'pending',
+            'verification_status' => 'approved',
         ]);
 
         $logbook->load('user');
 
-        return $this->successResponse($logbook, 'Logbook kegiatan berhasil disimpan', 201);
+        return $this->successResponse($logbook, 'Logbook kegiatan berhasil dicatat otomatis', 201);
     }
 
     /**

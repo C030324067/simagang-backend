@@ -29,11 +29,10 @@ export default function MentorDashboard() {
   const [taskStatusSelections, setTaskStatusSelections] = React.useState({});
   const {
     activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg, generatingCertificateId,
-    selectedLogbook, setSelectedLogbook, selectedApplication, setSelectedApplication,
-    logbookVerifyForm, setLogbookVerifyForm, showTaskModal, setShowTaskModal,
+    selectedApplication, setSelectedApplication,
+    showTaskModal, setShowTaskModal,
     taskForm, setTaskForm, loadData, handleLoadApplication, handleUpdateTaskStatus,
-    handleVerifyLogbook, handleCreateTask,
-    handleGenerateCert, handleDownloadTaskFile,
+    handleCreateTask, handleDownloadTaskFile,
   } = useMentorDashboard();
 
   const today = new Date();
@@ -43,7 +42,6 @@ export default function MentorDashboard() {
     String(today.getDate()).padStart(2, '0'),
   ].join('-');
 
-  const pendingLogbooksCount = logbooks.filter(l => l.verification_status === 'pending').length;
 
   const updateTaskStatus = async (task, status) => {
     if (status === 'revision_needed') {
@@ -90,7 +88,7 @@ export default function MentorDashboard() {
             Dashboard Pembimbing Lapangan Staff (Mentor)
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-            Bimbing anak magang, validasi aktivitas logbook harian, berikan penugasan berkala, evaluasi nilai akhir, dan terbitkan sertifikat digital ber-QR.
+            Bimbing anak magang, pantau presensi dan logbook harian, berikan penugasan berkala, dan simpan evaluasi akhir.
           </p>
         </div>
 
@@ -166,7 +164,7 @@ export default function MentorDashboard() {
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          Verifikasi Logbook ( {pendingLogbooksCount} Tertunda )
+          Monitoring Logbook ({logbooks.length})
         </button>
 
         <button
@@ -195,7 +193,7 @@ export default function MentorDashboard() {
           }`}
         >
           <Calendar className="w-4 h-4" />
-          Persetujuan Presensi
+          Monitoring Presensi
         </button>
 
         <button
@@ -207,7 +205,7 @@ export default function MentorDashboard() {
           }`}
         >
           <Award className="w-4 h-4" />
-          Penilaian & Terbit Sertifikat ( {evaluations.length} )
+          Penilaian Akhir ({evaluations.length})
         </button>
       </div>
 
@@ -320,24 +318,7 @@ export default function MentorDashboard() {
                         </span>
                       </td>
                       <td className="py-4 px-2 text-slate-500 max-w-xs truncate font-medium">{lb.mentor_notes || '—'}</td>
-                      <td className="py-4 px-2 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => {
-                            setSelectedLogbook(lb);
-                            setLogbookVerifyForm({
-                              verification_status: 'approved',
-                              mentor_notes: 'Aktivitas pekerjaan magang disetujui sesuai standar.',
-                            });
-                          }}
-                          className={`px-4 py-2 rounded-xl font-bold text-xs transition cursor-pointer ${
-                            lb.verification_status === 'pending'
-                              ? 'bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-xs'
-                              : 'bg-[#818CF8]/40 hover:bg-[#6366F1] text-white'
-                          }`}
-                        >
-                          Verifikasi
-                        </button>
-                      </td>
+                      <td className="py-4 px-2 text-right whitespace-nowrap text-slate-500">Monitoring saja</td>
                     </tr>
                   ))
                 )}
@@ -485,13 +466,13 @@ export default function MentorDashboard() {
       {activeTab === 'evaluations' && (
         <div className="space-y-6">
           <SmkAssessmentManager interns={interns} onSaved={loadData} />
-          <MentorFinalEvaluation interns={interns} evaluations={evaluations} onSaved={loadData} onGenerateCertificate={handleGenerateCert} generatingCertificateId={generatingCertificateId} />
+          <MentorFinalEvaluation interns={interns} evaluations={evaluations} onSaved={loadData} />
           
           <section className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xs p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#0F172A]">
                 <Award className="w-4 h-4 text-slate-700" />
-                <h3 className="text-sm font-bold">Daftar Evaluasi Kinerja & Penerbitan Sertifikat QR</h3>
+                <h3 className="text-sm font-bold">Daftar Evaluasi Kinerja</h3>
               </div>
               <button 
                 onClick={() => {
@@ -513,7 +494,7 @@ export default function MentorDashboard() {
                     <th className="py-3 px-2">Skor Kedisiplinan</th>
                     <th className="py-3 px-2">Skor Tugas</th>
                     <th className="py-3 px-2">Nilai Akhir</th>
-                    <th className="py-3 px-2 text-right">Sertifikat QR</th>
+                    <th className="py-3 px-2 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -532,16 +513,7 @@ export default function MentorDashboard() {
                             {evaluation.final_score ?? '—'}
                           </span>
                         </td>
-                        <td className="py-4 px-2 text-right">
-                          <button 
-                            type="button" 
-                            onClick={() => handleGenerateCert(evaluation)} 
-                            disabled={generatingCertificateId === evaluation.id}
-                            className="rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] px-4 py-2 font-bold text-white transition cursor-pointer disabled:cursor-wait disabled:opacity-60"
-                          >
-                            {generatingCertificateId === evaluation.id ? 'Menerbitkan…' : 'Terbitkan Sertifikat QR'}
-                          </button>
-                        </td>
+                        <td className="py-4 px-2 text-right text-slate-500">Nilai tersimpan</td>
                       </tr>
                     ))
                   ) : (
@@ -553,78 +525,6 @@ export default function MentorDashboard() {
               </table>
             </div>
           </section>
-        </div>
-      )}
-
-      {/* Modal Validasi Logbook */}
-      {selectedLogbook && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-slate-100 space-y-5">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-bold text-base text-slate-900">Validasi Catatan Logbook</h3>
-                <p className="text-xs text-slate-500">
-                  Pemohon: <span className="font-semibold text-slate-700">{selectedLogbook.user?.name}</span> ({selectedLogbook.date})
-                </p>
-              </div>
-              <button 
-                onClick={() => setSelectedLogbook(null)}
-                className="p-1 rounded-full text-slate-400 hover:bg-slate-100 transition cursor-pointer"
-                aria-label="Tutup modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-3.5 bg-indigo-50/50 rounded-2xl border border-indigo-100 text-xs text-slate-700 leading-relaxed">
-              <span className="font-bold text-[10px] uppercase text-[#4F46E5] block mb-1">Rincian Kegiatan:</span>
-              {selectedLogbook.activity_description}
-            </div>
-
-            <form onSubmit={handleVerifyLogbook} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Status Validasi
-                </label>
-                <select
-                  value={logbookVerifyForm.verification_status}
-                  onChange={(e) => setLogbookVerifyForm({ ...logbookVerifyForm, verification_status: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="approved">Disetujui (Approved)</option>
-                  <option value="rejected">Ditolak (Rejected)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Catatan Pembimbing
-                </label>
-                <textarea
-                  rows="3"
-                  value={logbookVerifyForm.mentor_notes}
-                  onChange={(e) => setLogbookVerifyForm({ ...logbookVerifyForm, mentor_notes: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedLogbook(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-semibold transition shadow-2xs cursor-pointer"
-                >
-                  Simpan Validasi
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
 
