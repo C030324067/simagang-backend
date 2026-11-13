@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TaskStatusRequest;
 use App\Models\Task;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -96,7 +97,7 @@ class TaskController extends Controller
     /**
      * Update task status & submission (Intern role).
      */
-    public function updateStatus(Request $request, Task $task): JsonResponse
+    public function updateStatus(TaskStatusRequest $request, Task $task): JsonResponse
     {
         $user = $request->user();
 
@@ -110,23 +111,7 @@ class TaskController extends Controller
             return $this->errorResponse('Anda tidak berhak memperbarui tugas ini.', 403);
         }
 
-        if ($user->role === 'intern' && blank($request->input('status'))) {
-            $request->merge(['status' => 'completed']);
-        }
-
-        $statuses = $user->role === 'mentor'
-            ? ['pending', 'in_progress', 'revision_needed', 'completed']
-            : ['pending', 'in_progress', 'completed'];
-        $revisionNoteRules = $user->role === 'mentor' && $request->input('status') === 'revision_needed'
-            ? ['required', 'string', 'max:1000']
-            : ['nullable', 'string', 'max:1000'];
-        $validated = $request->validate([
-            'status' => ['required', Rule::in($statuses)],
-            'submission_notes' => ['nullable', 'string', 'max:1000'],
-            'submission_file' => ['nullable', 'file', 'max:30720'],
-            'catatan_revisi' => $revisionNoteRules,
-            'revision_file' => ['nullable', 'file', 'max:30720'],
-        ]);
+        $validated = $request->validated();
 
         if ($validated['status'] === 'completed'
             && blank($validated['submission_notes'] ?? null)
