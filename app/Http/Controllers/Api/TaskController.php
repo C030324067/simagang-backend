@@ -22,12 +22,13 @@ class TaskController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->activeRole();
         $query = Task::with(['assignedUser', 'creator:id,name'])->latest();
 
-        if ($user->role === 'intern') {
+        if ($role === 'intern') {
             $query->where('division_id', $user->division_id)
                 ->where('assigned_to', $user->id);
-        } elseif ($user->role === 'mentor') {
+        } elseif ($role === 'mentor') {
             $query->where('division_id', $user->division_id)
                 ->where('created_by', $user->id);
         }
@@ -47,6 +48,11 @@ class TaskController extends Controller
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->activeRole();
+
+        if ($role !== 'mentor') {
+            return $this->errorResponse('Hanya mentor aktif yang dapat membuat tugas.', 403);
+        }
 
         if (! $user->division_id) {
             return $this->errorResponse('Akun mentor belum terhubung dengan divisi', 403);
@@ -100,13 +106,14 @@ class TaskController extends Controller
     public function updateStatus(TaskStatusRequest $request, Task $task): JsonResponse
     {
         $user = $request->user();
+        $role = $user->activeRole();
 
-        if ($user->role === 'intern'
+        if ($role === 'intern'
             && ((int) $task->assigned_to !== (int) $user->id || (int) $task->division_id !== (int) $user->division_id)) {
             return $this->errorResponse('Anda tidak berhak memperbarui tugas ini', 403);
         }
 
-        if ($user->role === 'mentor'
+        if ($role === 'mentor'
             && ((int) $task->created_by !== (int) $user->id || (int) $task->division_id !== (int) $user->division_id)) {
             return $this->errorResponse('Anda tidak berhak memperbarui tugas ini.', 403);
         }
@@ -135,7 +142,7 @@ class TaskController extends Controller
             'submission_file_name' => $submissionFileName,
         ];
 
-        if ($user->role === 'mentor' && $validated['status'] === 'revision_needed') {
+        if ($role === 'mentor' && $validated['status'] === 'revision_needed') {
             $taskUpdates['catatan_revisi'] = $validated['catatan_revisi'];
             if ($request->hasFile('revision_file')) {
                 $revisionFile = $request->file('revision_file');
@@ -170,7 +177,8 @@ class TaskController extends Controller
     private function downloadTaskFile(Request $request, Task $task, string $kind): StreamedResponse|JsonResponse
     {
         $user = $request->user();
-        $canDownloadTask = match ($user->role) {
+        $role = $user->activeRole();
+        $canDownloadTask = match ($role) {
             'intern' => (int) $task->assigned_to === (int) $user->id
                 && (int) $task->division_id === (int) $user->division_id,
             'mentor' => (int) $task->created_by === (int) $user->id
