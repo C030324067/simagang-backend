@@ -12,7 +12,7 @@ const collection = (response) => {
 const initialTaskForm = { title: '', description: '', assigned_to: '', deadline: '', task_file: null };
 
 export default function useMentorDashboard() {
-  const [activeTab, setActiveTab] = useState('logbooks');
+  const [activeTab, setActiveTab] = useState('interns');
   const [logbooks, setLogbooks] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [evaluations, setEvaluations] = useState([]);
