@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
@@ -57,6 +58,13 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
 
     Route::post('/change-password', [AuthController::class, 'changePassword'])
         ->middleware('throttle:5,1');
+
+    Route::get('/announcements', [AnnouncementController::class, 'index'])
+        ->middleware('role:mentor,intern');
+    Route::post('/announcements', [AnnouncementController::class, 'store'])
+        ->middleware('role:mentor');
+    Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])
+        ->middleware('role:mentor');
 
     Route::post('/users/{user}/approve', [UserApprovalController::class, 'approve'])
         ->middleware('role:admin_kepegawaian,kadis');

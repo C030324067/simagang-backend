@@ -3,6 +3,7 @@ import useMentorDashboard from '../hooks/useMentorDashboard';
 import MentorAttendanceReview from '../components/MentorAttendanceReview';
 import MentorFinalEvaluation from '../components/MentorFinalEvaluation';
 import SmkAssessmentManager from '../components/SmkAssessmentManager';
+import { apiRequest } from '../api';
 import { 
   Users, 
   BookOpen, 
@@ -18,7 +19,9 @@ import {
   X,
   Star,
   FileText,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  Megaphone,
 } from 'lucide-react';
 
 export default function MentorDashboard() {
@@ -27,6 +30,9 @@ export default function MentorDashboard() {
   const [revisionFile, setRevisionFile] = React.useState(null);
   const [savingRevision, setSavingRevision] = React.useState(false);
   const [taskStatusSelections, setTaskStatusSelections] = React.useState({});
+  const [showAnnouncementModal, setShowAnnouncementModal] = React.useState(false);
+  const [announcementForm, setAnnouncementForm] = React.useState({ title: '', content: '' });
+  const [announcements, setAnnouncements] = React.useState([]);
   const {
     activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg, generatingCertificateId,
     selectedApplication, setSelectedApplication,
@@ -34,6 +40,35 @@ export default function MentorDashboard() {
     taskForm, setTaskForm, loadData, handleLoadApplication, handleUpdateTaskStatus,
     handleCreateTask, handleDownloadTaskFile,
   } = useMentorDashboard();
+
+  const loadAnnouncements = React.useCallback(async () => {
+    const response = await apiRequest('/announcements');
+    if (response.success) setAnnouncements(Array.isArray(response.data) ? response.data : response.data?.data || []);
+  }, []);
+
+  React.useEffect(() => { void loadAnnouncements(); }, [loadAnnouncements]);
+
+  const createAnnouncement = async (event) => {
+    event.preventDefault();
+    const response = await apiRequest('/announcements', { method: 'POST', body: JSON.stringify(announcementForm) });
+    if (!response.success) {
+      setMsg({ type: 'error', text: response.message || 'Pengumuman gagal diterbitkan.' });
+      return;
+    }
+    setMsg({ type: 'success', text: response.message || 'Pengumuman diterbitkan.' });
+    setAnnouncementForm({ title: '', content: '' });
+    setShowAnnouncementModal(false);
+    await loadAnnouncements();
+  };
+
+  const deleteAnnouncement = async (announcement) => {
+    if (!window.confirm(`Hapus pengumuman "${announcement.title}"?`)) return;
+    const response = await apiRequest(`/announcements/${announcement.id}`, { method: 'DELETE' });
+    if (response.success) {
+      setAnnouncements((current) => current.filter((item) => item.id !== announcement.id));
+      setMsg({ type: 'success', text: response.message || 'Pengumuman dihapus.' });
+    } else setMsg({ type: 'error', text: response.message || 'Pengumuman gagal dihapus.' });
+  };
 
   const today = new Date();
   const minimumTaskDeadline = [
@@ -93,6 +128,13 @@ export default function MentorDashboard() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => setShowAnnouncementModal(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
+          >
+            <Megaphone className="w-4 h-4" />
+            + Buat Pengumuman
+          </button>
           <button
             onClick={() => setShowTaskModal(true)}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
@@ -207,10 +249,42 @@ export default function MentorDashboard() {
           <Award className="w-4 h-4" />
           Penilaian Akhir ({evaluations.length})
         </button>
+
+        <button
+          onClick={() => { setActiveTab('announcements'); void loadAnnouncements(); }}
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+            activeTab === 'announcements'
+              ? 'bg-[#4F46E5] text-white shadow-xs'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
+          }`}
+        >
+          <Megaphone className="w-4 h-4" />
+          Pengumuman ({announcements.length})
+        </button>
       </div>
 
       {/* TAB: PRESENSI */}
       {activeTab === 'attendance' && <MentorAttendanceReview />}
+
+      {activeTab === 'announcements' && (
+        <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-xs">
+          <h2 className="text-sm font-bold text-slate-900">Pengumuman Bidang</h2>
+          {announcements.length ? announcements.map((announcement) => (
+            <article key={announcement.id} className="rounded-2xl border border-slate-200 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="font-bold text-slate-900">{announcement.title}</h3>
+                  <p className="mt-1 text-xs text-slate-500">{announcement.division?.name || 'Bidang'} · {new Date(announcement.created_at).toLocaleString('id-ID')}</p>
+                </div>
+                <button type="button" onClick={() => void deleteAnnouncement(announcement)} className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50">
+                  <Trash2 className="h-4 w-4" /> Hapus
+                </button>
+              </div>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{announcement.content}</p>
+            </article>
+          )) : <p className="rounded-xl bg-slate-50 p-5 text-sm text-slate-500">Belum ada pengumuman untuk bidang ini.</p>}
+        </section>
+      )}
 
       {/* TAB: PERMOHONAN / PESERTA MAGANG */}
       {activeTab === 'interns' && (
@@ -718,6 +792,22 @@ export default function MentorDashboard() {
             <div className="flex justify-end border-t border-slate-100 pt-3">
               <button type="button" onClick={() => setSelectedApplication(null)} className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200">Tutup</button>
             </div>
+          </section>
+        </div>
+      )}
+
+      {showAnnouncementModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <section role="dialog" aria-modal="true" aria-labelledby="announcement-form-title" className="w-full max-w-xl space-y-5 rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-4">
+              <h2 id="announcement-form-title" className="text-lg font-extrabold text-slate-900">Buat Pengumuman Bidang</h2>
+              <button type="button" onClick={() => setShowAnnouncementModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100" aria-label="Tutup"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={createAnnouncement} className="space-y-4">
+              <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">Judul Pengumuman</span><input required maxLength={200} value={announcementForm.title} onChange={(event) => setAnnouncementForm((current) => ({ ...current, title: event.target.value }))} className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm" /></label>
+              <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-700">Isi Pengumuman</span><textarea required rows={6} value={announcementForm.content} onChange={(event) => setAnnouncementForm((current) => ({ ...current, content: event.target.value }))} className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm" /></label>
+              <div className="flex justify-end gap-2"><button type="button" onClick={() => setShowAnnouncementModal(false)} className="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-600">Batal</button><button type="submit" className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700">Terbitkan</button></div>
+            </form>
           </section>
         </div>
       )}

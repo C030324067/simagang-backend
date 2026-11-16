@@ -1,6 +1,6 @@
 ﻿# Kamus Data Database SIMAGANG
 
-Struktur tabel berikut disusun berdasarkan file migration proyek hingga 2 November 2026. Tipe data ditulis secara ringkas; `Timestamp` mencakup kolom waktu standar `created_at` dan `updated_at`.
+Struktur tabel berikut disusun berdasarkan file migration proyek hingga 16 November 2026. Tipe data ditulis secara ringkas; `Timestamp` mencakup kolom waktu standar `created_at` dan `updated_at`.
 
 ### Tabel 3.1 Tabel Users
 
@@ -181,3 +181,17 @@ Struktur tabel berikut disusun berdasarkan file migration proyek hingga 2 Novemb
 | 6 | created_at | Timestamp |
 | 7 | updated_at | Timestamp |
 | 8 | intern_application_id | Bigint |
+
+### Tabel 3.9 Tabel Announcements
+
+| No | Nama Field | Tipedata |
+| -- | ---------- | -------- |
+| 1 | id | Bigint |
+| 2 | mentor_id | Bigint, foreign key ke `users.id`, cascade on delete |
+| 3 | division_id | Bigint, nullable, foreign key ke `divisions.id`, cascade on delete |
+| 4 | title | Varchar(200) |
+| 5 | content | Text |
+| 6 | created_at | Timestamp |
+| 7 | updated_at | Timestamp |
+
+Tabel `announcements` menyimpan pengumuman umum yang diterbitkan mentor untuk peserta magang di bidang terkait. Relasi `mentor_id` mengacu ke pengguna pembimbing, sedangkan `division_id` mengacu ke bidang penerima pengumuman.

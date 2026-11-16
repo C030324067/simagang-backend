@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { apiRequest } from '../api';
 import useInternDashboard from '../hooks/useInternDashboard';
 import InternAttendance from '../components/InternAttendance';
 
@@ -85,6 +86,16 @@ export default function InternDashboard() {
   const [isAllTasksModalOpen, setIsAllTasksModalOpen] = useState(false);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
   const [certificateRefreshing, setCertificateRefreshing] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    apiRequest('/announcements').then((response) => {
+      if (!active || !response.success) return;
+      setAnnouncements(Array.isArray(response.data) ? response.data : response.data?.data || []);
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!isCertificateModalOpen) return undefined;
@@ -171,6 +182,19 @@ export default function InternDashboard() {
               <X className="h-4 w-4" />
             </button>
           </div>
+        )}
+
+        {announcements.length > 0 && (
+          <section aria-labelledby="division-announcements-title" className="space-y-3 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-xs sm:p-6">
+            <div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Award className="h-5 w-5" /></span><div><h2 id="division-announcements-title" className="text-base font-extrabold text-slate-900">Pengumuman Bidang</h2><p className="text-xs text-slate-500">Informasi terbaru untuk peserta di bidangmu</p></div></div>
+            {announcements.map((announcement) => (
+              <article key={announcement.id} className="rounded-2xl border border-amber-100 bg-white/90 p-4 sm:p-5">
+                <h3 className="text-sm font-extrabold text-slate-900">{announcement.title}</h3>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{announcement.content}</p>
+                <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">Oleh {announcement.mentor?.name || 'Mentor'} · {announcement.division?.name || 'Bidang'} · {announcement.created_at ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(announcement.created_at)) : ''}</p>
+              </article>
+            ))}
+          </section>
         )}
 
         {/* 1. HEADER PAGE & RINGKASAN TUGAS */}
