@@ -4,7 +4,7 @@ import { apiRequest } from '../api';
 const collection = (response) => response.data?.data ?? response.data ?? [];
 
 export default function SmkAssessmentManager({ interns, onSaved }) {
-  const smkInterns = interns.filter((intern) => intern.application?.jenjang === 'SMK');
+  const smkInterns = interns.filter((intern) => /smk|sederajat/i.test(intern.application?.jenjang || ''));
   const [applicationId, setApplicationId] = useState('');
   const [aspects, setAspects] = useState([]);
   const [scores, setScores] = useState({});

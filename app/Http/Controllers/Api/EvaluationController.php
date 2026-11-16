@@ -27,9 +27,10 @@ class EvaluationController extends Controller
         $user = $request->user();
         $query = Evaluation::with(['intern.division', 'mentor'])->latest();
 
-        if ($user->role === 'intern') {
+        $activeRole = $user->activeRole();
+        if ($activeRole === 'intern') {
             $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $user->id));
-        } elseif ($user->role === 'mentor') {
+        } elseif ($activeRole === 'mentor') {
             $query->where('mentor_id', $user->id);
         }
 
@@ -38,12 +39,12 @@ class EvaluationController extends Controller
 
     public function show(Request $request, User $intern): JsonResponse
     {
-        if ($request->user()->role === 'mentor'
+        if ($request->user()->activeRole() === 'mentor'
             && (! $request->user()->division_id || (int) $intern->division_id !== (int) $request->user()->division_id)) {
             return $this->errorResponse('Anda tidak berhak melihat evaluasi peserta dari divisi lain.', 403);
         }
 
-        if ($request->user()->role === 'intern' && (int) $intern->id !== (int) $request->user()->id) {
+        if ($request->user()->activeRole() === 'intern' && (int) $intern->id !== (int) $request->user()->id) {
             return $this->errorResponse('Anda tidak berhak melihat evaluasi peserta lain.', 403);
         }
 
@@ -58,7 +59,7 @@ class EvaluationController extends Controller
     public function metrics(Request $request, User $intern, EffectiveWorkingDaysCalculator $workingDays): JsonResponse
     {
         $actor = $request->user();
-        $canViewMetrics = $actor->role === 'intern'
+        $canViewMetrics = $actor->activeRole() === 'intern'
             ? (int) $actor->id === (int) $intern->id
             : $this->mentorCanReview($actor, $intern);
         if (! $canViewMetrics) {
@@ -130,7 +131,7 @@ class EvaluationController extends Controller
         ) / 4, 2);
         $gradeLetter = $this->gradeFor($finalScore);
 
-        $evaluation = DB::transaction(function () use ($application, $intern, $mentor, $validated, $metrics, $finalScore, $gradeLetter): Evaluation {
+        $evaluation = DB::transaction(function () use ($application, $mentor, $validated, $metrics, $finalScore, $gradeLetter): Evaluation {
             $evaluation = Evaluation::updateOrCreate(
                 ['intern_application_id' => $application->id],
                 [
@@ -169,10 +170,18 @@ class EvaluationController extends Controller
 
     private function mentorCanReview(User $mentor, User $intern): bool
     {
-        return $mentor->role === 'mentor'
-            && $mentor->division_id !== null
-            && $intern->role === 'intern'
-            && (int) $mentor->division_id === (int) $intern->division_id;
+        if ($mentor->activeRole() !== 'mentor' || $intern->role !== 'intern') {
+            return false;
+        }
+
+        if ($mentor->division_id !== null && (int) $mentor->division_id === (int) $intern->division_id) {
+            return true;
+        }
+
+        return InternApplication::query()
+            ->where('user_id', $intern->id)
+            ->where('mentor_id', $mentor->id)
+            ->exists();
     }
 
     /** @return array<string, int|float|string> */

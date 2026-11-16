@@ -10,6 +10,7 @@ const rubric = [
 ];
 
 export default function MentorFinalEvaluation({ interns, evaluations, onSaved }) {
+  const universityInterns = interns.filter((intern) => /kuliah|perguruan tinggi|mahasiswa/i.test(intern.application?.jenjang || ''));
   const [internId, setInternId] = useState('');
   const [metrics, setMetrics] = useState(null);
   const [scores, setScores] = useState({ score_discipline: 85, score_quality: 85, score_initiative: 85, score_teamwork: 85, notes: '' });
@@ -44,9 +45,9 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
   const estimatedScore = ((total.score_discipline + total.score_quality + total.score_initiative + total.score_teamwork) / 4).toFixed(2);
 
   return <section id="mentor-evaluation-form" className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-    <div><p className="text-xs font-bold uppercase tracking-wider text-amber-700">Evaluasi akhir</p><h2 className="mt-1 text-xl font-extrabold text-slate-900">Rubrik Penilaian Mentor</h2><p className="mt-1 text-sm text-slate-500">Nilai empat kriteria dengan skala 1–100. Nilai akhir dihitung sebagai rata-rata berbobot sama.</p></div>
+    <div><p className="text-xs font-bold uppercase tracking-wider text-amber-700">Evaluasi akhir</p><h2 className="mt-1 text-xl font-extrabold text-slate-900">Rubrik Penilaian Mentor (Peserta Kuliah / Mahasiswa)</h2><p className="mt-1 text-sm text-slate-500">Nilai empat kriteria dengan skala 1–100. Nilai akhir dihitung sebagai rata-rata berbobot sama.</p></div>
     {message && <p role="status" className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">{message}</p>}
-    <label className="block"><span className="mb-1 block text-xs font-bold text-slate-600">Peserta magang</span><select id="mentor-evaluation-intern" required value={internId} onChange={(event) => setInternId(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="">Pilih peserta</option>{interns.map((intern) => <option key={intern.id} value={intern.id}>{intern.name}</option>)}</select>{interns.length === 0 && <span className="mt-1 block text-xs text-amber-700">Belum ada peserta magang aktif yang dapat dinilai.</span>}</label>
+    <label className="block"><span className="mb-1 block text-xs font-bold text-slate-600">Peserta magang</span><select id="mentor-evaluation-intern" required value={internId} onChange={(event) => setInternId(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="">Pilih peserta kuliah / mahasiswa</option>{universityInterns.map((intern) => <option key={intern.id} value={intern.id}>{intern.name}</option>)}</select>{universityInterns.length === 0 && <span className="mt-1 block text-xs text-amber-700">Belum ada peserta magang aktif yang dapat dinilai.</span>}</label>
     {internId && <>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">{[
         ['Total Tugas', metrics?.total_tasks], ['Tugas Selesai', metrics?.completed_tasks], ['Sedang Dikerjakan', metrics?.in_progress_tasks], ['Perlu Revisi', metrics?.revision_tasks],
