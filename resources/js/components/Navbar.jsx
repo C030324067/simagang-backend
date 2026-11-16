@@ -1,8 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
-import { Camera, ChevronDown, Eye, EyeOff, LogOut, Menu, UserRound, X } from 'lucide-react';
+import { Bell, Camera, ChevronDown, Eye, EyeOff, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { apiRequest } from '../api';
+
+const relativeAnnouncementTime = (value) => {
+  const publishedAt = new Date(value).getTime();
+  if (Number.isNaN(publishedAt)) return '';
+  const minutes = Math.max(0, Math.floor((Date.now() - publishedAt) / 60000));
+  if (minutes < 1) return 'Baru saja';
+  if (minutes < 60) return `${minutes} menit yang lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam yang lalu`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} hari yang lalu`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} bulan yang lalu`;
+  return `${Math.floor(months / 12)} tahun yang lalu`;
+};
 
 export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const { user, logout, fetchProfile, activeRole, switchRole } = useAuth();
@@ -25,11 +40,66 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
     new_password_confirmation: '',
   });
   const [visiblePasswords, setVisiblePasswords] = useState({});
+  const [announcementItems, setAnnouncementItems] = useState([]);
+  const [readAnnouncementIds, setReadAnnouncementIds] = useState([]);
+  const [announcementDropdownOpen, setAnnouncementDropdownOpen] = useState(false);
+  const [announcementHistoryOpen, setAnnouncementHistoryOpen] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const profileMenuRef = useRef(null);
+  const announcementMenuRef = useRef(null);
   const profilePhotoInputRef = useRef(null);
   const profileCameraInputRef = useRef(null);
   const profileVideoRef = useRef(null);
   const profileCameraStreamRef = useRef(null);
+  const announcementStorageKey = `simagang_read_announcements_${user?.id || 'anonymous'}`;
+  const isInternRoleActive = (activeRole || user?.active_role || user?.role) === 'intern';
+
+  useEffect(() => {
+    if (!user?.id || !isInternRoleActive) {
+      setAnnouncementItems([]);
+      return undefined;
+    }
+
+    let active = true;
+    try {
+      const storedIds = JSON.parse(localStorage.getItem(announcementStorageKey) || '[]');
+      setReadAnnouncementIds(Array.isArray(storedIds) ? storedIds.map(String) : []);
+    } catch {
+      setReadAnnouncementIds([]);
+    }
+
+    apiRequest('/announcements').then((response) => {
+      if (!active || !response.success) return;
+      setAnnouncementItems(Array.isArray(response.data) ? response.data : response.data?.data || []);
+    });
+
+    return () => { active = false; };
+  }, [announcementStorageKey, isInternRoleActive, user?.id]);
+
+  useEffect(() => {
+    if (!announcementDropdownOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (!announcementMenuRef.current?.contains(event.target)) setAnnouncementDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [announcementDropdownOpen]);
+
+  useEffect(() => {
+    if (!selectedAnnouncement && !announcementHistoryOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') {
+        setSelectedAnnouncement(null);
+        setAnnouncementHistoryOpen(false);
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [selectedAnnouncement, announcementHistoryOpen]);
 
   useEffect(() => {
     if (!profilePhotoPreview.startsWith('blob:')) return undefined;
@@ -288,6 +358,19 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
   const activeRoleBadgeClass = currentActiveRole === 'mentor'
     ? 'border-emerald-200 bg-emerald-100 text-emerald-800'
     : 'border-blue-200 bg-blue-100 text-blue-800';
+  const unreadAnnouncementCount = announcementItems.filter((item) => !readAnnouncementIds.includes(String(item.id))).length;
+
+  const openAnnouncement = (announcement) => {
+    const announcementId = String(announcement.id);
+    const updatedIds = readAnnouncementIds.includes(announcementId)
+      ? readAnnouncementIds
+      : [...readAnnouncementIds, announcementId];
+    setReadAnnouncementIds(updatedIds);
+    localStorage.setItem(announcementStorageKey, JSON.stringify(updatedIds));
+    setAnnouncementDropdownOpen(false);
+    setAnnouncementHistoryOpen(false);
+    setSelectedAnnouncement(announcement);
+  };
 
   const handleRoleSwitch = async (role) => {
     setRoleSwitchMessage('');
@@ -389,6 +472,35 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
           
           /* Tampilan Jika Sudah Login */
           <div className="relative flex items-center shrink-0" ref={profileMenuRef}>
+            {isInternRoleActive && (
+              <div ref={announcementMenuRef} className="relative mr-2">
+                <button
+                  type="button"
+                  aria-label="Buka pengumuman bidang"
+                  aria-expanded={announcementDropdownOpen}
+                  onClick={() => setAnnouncementDropdownOpen((open) => !open)}
+                  className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadAnnouncementCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-extrabold leading-none text-white">{unreadAnnouncementCount}</span>}
+                </button>
+                {announcementDropdownOpen && (
+                  <section aria-label="Pengumuman terbaru" className="absolute right-0 top-full z-[70] mt-2 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+                    <div className="border-b border-slate-100 px-4 py-3"><h2 className="text-sm font-extrabold text-slate-900">Pengumuman Bidang</h2><p className="mt-0.5 text-xs text-slate-500">Informasi terbaru dari mentor bidangmu</p></div>
+                    <div className="max-h-[min(60vh,420px)] overflow-y-auto">
+                      {announcementItems.length ? announcementItems.slice(0, 8).map((announcement, index) => (
+                        <button key={announcement.id} type="button" onClick={() => openAnnouncement(announcement)} className={`block w-full px-4 py-3 text-left transition hover:bg-slate-50 ${index ? 'border-t border-slate-100' : ''}`}>
+                          <span className="flex items-start justify-between gap-3"><strong className="line-clamp-1 text-sm font-bold text-slate-900">{announcement.title}</strong><span className="shrink-0 text-[11px] font-semibold text-blue-600">{relativeAnnouncementTime(announcement.created_at)}</span></span>
+                          <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-slate-500">{announcement.content}</span>
+                          <span className="mt-2 block truncate text-[11px] text-slate-400">{announcement.mentor?.name || 'Mentor'} · {announcement.division?.name || 'Bidang'}</span>
+                        </button>
+                      )) : <p className="px-4 py-8 text-center text-sm text-slate-500">Belum ada pengumuman bidang.</p>}
+                    </div>
+                    <button type="button" onClick={() => { setAnnouncementDropdownOpen(false); setAnnouncementHistoryOpen(true); }} className="w-full border-t border-slate-100 px-4 py-3 text-center text-xs font-bold text-blue-700 transition hover:bg-blue-50">Lihat semua pengumuman</button>
+                  </section>
+                )}
+              </div>
+            )}
             <button
               type="button"
               aria-haspopup="menu"
@@ -702,6 +814,32 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
               </section>
             </div>
           )}
+        </div>,
+        document.body
+      )}
+      {announcementHistoryOpen && createPortal(
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) setAnnouncementHistoryOpen(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="announcement-history-title" className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 id="announcement-history-title" className="text-lg font-extrabold text-slate-900">Semua Pengumuman Bidang</h2><p className="mt-0.5 text-xs text-slate-500">Riwayat informasi terbaru dari mentor bidangmu</p></div><button type="button" onClick={() => setAnnouncementHistoryOpen(false)} aria-label="Tutup riwayat pengumuman" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+            <div className="overflow-y-auto">
+              {announcementItems.length ? announcementItems.map((announcement, index) => (
+                <button key={announcement.id} type="button" onClick={() => openAnnouncement(announcement)} className={`block w-full px-5 py-4 text-left transition hover:bg-slate-50 ${index ? 'border-t border-slate-100' : ''}`}>
+                  <span className="flex items-start justify-between gap-3"><strong className="text-sm font-bold text-slate-900">{announcement.title}</strong><span className="shrink-0 text-xs font-semibold text-blue-600">{relativeAnnouncementTime(announcement.created_at)}</span></span>
+                  <span className="mt-1 block line-clamp-2 text-sm leading-relaxed text-slate-600">{announcement.content}</span>
+                  <span className="mt-2 block text-xs text-slate-400">{announcement.mentor?.name || 'Mentor'} · {announcement.division?.name || 'Bidang'}</span>
+                </button>
+              )) : <p className="p-8 text-center text-sm text-slate-500">Belum ada pengumuman bidang.</p>}
+            </div>
+          </section>
+        </div>,
+        document.body
+      )}
+      {selectedAnnouncement && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedAnnouncement(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="announcement-detail-title" className="w-full max-w-xl overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4"><div><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Pengumuman Bidang</p><h2 id="announcement-detail-title" className="mt-1 text-lg font-extrabold text-slate-900">{selectedAnnouncement.title}</h2></div><button type="button" onClick={() => setSelectedAnnouncement(null)} aria-label="Tutup detail pengumuman" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+            <div className="space-y-5 p-5"><p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{selectedAnnouncement.content}</p><div className="border-t border-slate-100 pt-4 text-xs text-slate-500"><p>Mentor: <strong className="font-semibold text-slate-700">{selectedAnnouncement.mentor?.name || 'Mentor'}</strong></p><p className="mt-1">Bidang: <strong className="font-semibold text-slate-700">{selectedAnnouncement.division?.name || 'Bidang'}</strong></p><p className="mt-1">Dipublikasikan: <strong className="font-semibold text-slate-700">{selectedAnnouncement.created_at ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(selectedAnnouncement.created_at)) : '—'}</strong></p></div></div>
+          </section>
         </div>,
         document.body
       )}
