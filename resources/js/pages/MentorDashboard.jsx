@@ -17,7 +17,6 @@ import {
   Calendar,
   AlertCircle,
   X,
-  Star,
   FileText,
   RefreshCw,
   Trash2,
@@ -130,10 +129,10 @@ export default function MentorDashboard() {
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setShowAnnouncementModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
           >
             <Megaphone className="w-4 h-4" />
-            + Buat Pengumuman
+            Buat Pengumuman
           </button>
           <button
             onClick={() => setShowTaskModal(true)}
@@ -141,19 +140,6 @@ export default function MentorDashboard() {
           >
             <Plus className="w-4 h-4" />
             Tugas Baru
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('evaluations');
-              window.requestAnimationFrame(() => {
-                document.getElementById('mentor-evaluation-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                document.getElementById('mentor-evaluation-intern')?.focus({ preventScroll: true });
-              });
-            }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
-          >
-            <Star className="w-4 h-4 fill-white/20" />
-            Beri Nilai Akhir
           </button>
         </div>
       </div>

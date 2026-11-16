@@ -479,10 +479,10 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                   aria-label="Buka pengumuman bidang"
                   aria-expanded={announcementDropdownOpen}
                   onClick={() => setAnnouncementDropdownOpen((open) => !open)}
-                  className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                  className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition hover:bg-indigo-50 hover:text-indigo-700 ${unreadAnnouncementCount ? 'text-indigo-700' : 'text-slate-600'}`}
                 >
                   <Bell className="h-5 w-5" />
-                  {unreadAnnouncementCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-extrabold leading-none text-white">{unreadAnnouncementCount}</span>}
+                  {unreadAnnouncementCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-extrabold leading-none text-white">{unreadAnnouncementCount}</span>}
                 </button>
                 {announcementDropdownOpen && (
                   <section aria-label="Pengumuman terbaru" className="absolute right-0 top-full z-[70] mt-2 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
@@ -490,13 +490,13 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                     <div className="max-h-[min(60vh,420px)] overflow-y-auto">
                       {announcementItems.length ? announcementItems.slice(0, 8).map((announcement, index) => (
                         <button key={announcement.id} type="button" onClick={() => openAnnouncement(announcement)} className={`block w-full px-4 py-3 text-left transition hover:bg-slate-50 ${index ? 'border-t border-slate-100' : ''}`}>
-                          <span className="flex items-start justify-between gap-3"><strong className="line-clamp-1 text-sm font-bold text-slate-900">{announcement.title}</strong><span className="shrink-0 text-[11px] font-semibold text-blue-600">{relativeAnnouncementTime(announcement.created_at)}</span></span>
+                          <span className="flex items-start justify-between gap-3"><strong className="line-clamp-1 text-sm font-bold text-slate-900">{announcement.title}</strong><span className="shrink-0 text-[11px] font-semibold text-indigo-600">{relativeAnnouncementTime(announcement.created_at)}</span></span>
                           <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-slate-500">{announcement.content}</span>
                           <span className="mt-2 block truncate text-[11px] text-slate-400">{announcement.mentor?.name || 'Mentor'} · {announcement.division?.name || 'Bidang'}</span>
                         </button>
                       )) : <p className="px-4 py-8 text-center text-sm text-slate-500">Belum ada pengumuman bidang.</p>}
                     </div>
-                    <button type="button" onClick={() => { setAnnouncementDropdownOpen(false); setAnnouncementHistoryOpen(true); }} className="w-full border-t border-slate-100 px-4 py-3 text-center text-xs font-bold text-blue-700 transition hover:bg-blue-50">Lihat semua pengumuman</button>
+                    <button type="button" onClick={() => { setAnnouncementDropdownOpen(false); setAnnouncementHistoryOpen(true); }} className="w-full border-t border-slate-100 px-4 py-3 text-center text-xs font-bold text-indigo-700 transition hover:bg-indigo-50">Lihat semua pengumuman</button>
                   </section>
                 )}
               </div>
@@ -824,7 +824,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
             <div className="overflow-y-auto">
               {announcementItems.length ? announcementItems.map((announcement, index) => (
                 <button key={announcement.id} type="button" onClick={() => openAnnouncement(announcement)} className={`block w-full px-5 py-4 text-left transition hover:bg-slate-50 ${index ? 'border-t border-slate-100' : ''}`}>
-                  <span className="flex items-start justify-between gap-3"><strong className="text-sm font-bold text-slate-900">{announcement.title}</strong><span className="shrink-0 text-xs font-semibold text-blue-600">{relativeAnnouncementTime(announcement.created_at)}</span></span>
+                  <span className="flex items-start justify-between gap-3"><strong className="text-sm font-bold text-slate-900">{announcement.title}</strong><span className="shrink-0 text-xs font-semibold text-indigo-600">{relativeAnnouncementTime(announcement.created_at)}</span></span>
                   <span className="mt-1 block line-clamp-2 text-sm leading-relaxed text-slate-600">{announcement.content}</span>
                   <span className="mt-2 block text-xs text-slate-400">{announcement.mentor?.name || 'Mentor'} · {announcement.division?.name || 'Bidang'}</span>
                 </button>
@@ -837,7 +837,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
       {selectedAnnouncement && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedAnnouncement(null); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="announcement-detail-title" className="w-full max-w-xl overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4"><div><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Pengumuman Bidang</p><h2 id="announcement-detail-title" className="mt-1 text-lg font-extrabold text-slate-900">{selectedAnnouncement.title}</h2></div><button type="button" onClick={() => setSelectedAnnouncement(null)} aria-label="Tutup detail pengumuman" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4"><div><p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Pengumuman Bidang</p><h2 id="announcement-detail-title" className="mt-1 text-lg font-extrabold text-slate-900">{selectedAnnouncement.title}</h2></div><button type="button" onClick={() => setSelectedAnnouncement(null)} aria-label="Tutup detail pengumuman" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
             <div className="space-y-5 p-5"><p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{selectedAnnouncement.content}</p><div className="border-t border-slate-100 pt-4 text-xs text-slate-500"><p>Mentor: <strong className="font-semibold text-slate-700">{selectedAnnouncement.mentor?.name || 'Mentor'}</strong></p><p className="mt-1">Bidang: <strong className="font-semibold text-slate-700">{selectedAnnouncement.division?.name || 'Bidang'}</strong></p><p className="mt-1">Dipublikasikan: <strong className="font-semibold text-slate-700">{selectedAnnouncement.created_at ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(selectedAnnouncement.created_at)) : '—'}</strong></p></div></div>
           </section>
         </div>,
