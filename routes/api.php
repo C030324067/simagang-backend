@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\DivisionController;
 use App\Http\Controllers\Api\EvaluationController;
+use App\Http\Controllers\Api\ExecutiveReportController;
 use App\Http\Controllers\Api\InternshipPeriodController;
 use App\Http\Controllers\Api\LogbookController;
 use App\Http\Controllers\Api\PenilaianSmkController;
@@ -48,6 +49,11 @@ Route::get('/applications/track/{trackingCode}/letter', [ApplicationController::
 */
 Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    Route::prefix('kadis')->middleware('role:kadis')->group(function () {
+        Route::get('/executive-report', [ExecutiveReportController::class, 'index']);
+        Route::get('/executive-report/export-pdf', [ExecutiveReportController::class, 'exportPdf']);
+    });
 
     Route::middleware('role:admin_kepegawaian')->group(function () {
         Route::get('/internship-periods', [InternshipPeriodController::class, 'index']);

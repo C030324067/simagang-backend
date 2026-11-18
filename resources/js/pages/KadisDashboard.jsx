@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import useApplicationReviewDashboard from '../hooks/useApplicationReviewDashboard';
+import { apiRequest, getToken } from '../api';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -11,7 +12,13 @@ import {
   Calendar,
   Briefcase,
   FileSignature,
-  Search
+  Search,
+  FileDown,
+  Filter,
+  RotateCcw,
+  Users,
+  GraduationCap,
+  ChartNoAxesCombined
 } from 'lucide-react';
 
 const extractApplications = (response) => {
@@ -47,6 +54,14 @@ export default function KadisDashboard() {
   // State untuk Riwayat Keputusan Kadis
   const [historyApps, setHistoryApps] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [divisions, setDivisions] = useState([]);
+  const [reportFilters, setReportFilters] = useState({ division_id: '', start_date: '', end_date: '' });
+  const [appliedReportFilters, setAppliedReportFilters] = useState({});
+  const [reportData, setReportData] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportDownloading, setReportDownloading] = useState(false);
 
   const safePendingApps = Array.isArray(pendingApps) ? pendingApps.filter(Boolean) : [];
   const safeActiveInterns = Array.isArray(activeInterns) ? activeInterns.filter(Boolean) : [];
@@ -119,6 +134,98 @@ export default function KadisDashboard() {
     fetchHistoryApps();
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    apiRequest('/divisions').then((response) => {
+      if (!active) return;
+      if (response.ok || response.success) {
+        const data = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        setDivisions(data);
+      } else {
+        setMsg({ type: 'error', text: response.message || 'Daftar bidang gagal dimuat.' });
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'report') return undefined;
+
+    let active = true;
+    const query = new URLSearchParams(
+      Object.entries(appliedReportFilters).filter(([, value]) => value !== '' && value != null),
+    ).toString();
+    setReportLoading(true);
+    apiRequest(`/kadis/executive-report${query ? `?${query}` : ''}`).then((response) => {
+      if (!active) return;
+      if (response.ok || response.success) {
+        setReportData(response.data);
+      } else {
+        setMsg({ type: 'error', text: response.message || 'Laporan eksekutif gagal dimuat.' });
+      }
+    }).finally(() => {
+      if (active) setReportLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, appliedReportFilters]);
+
+  const applyReportFilters = (event) => {
+    event.preventDefault();
+    setAppliedReportFilters({
+      ...(reportFilters.division_id ? { division_id: reportFilters.division_id } : {}),
+      ...(reportFilters.start_date ? { start_date: reportFilters.start_date } : {}),
+      ...(reportFilters.end_date ? { end_date: reportFilters.end_date } : {}),
+    });
+  };
+
+  const resetReportFilters = () => {
+    setReportFilters({ division_id: '', start_date: '', end_date: '' });
+    setAppliedReportFilters({});
+  };
+
+  const downloadExecutiveReport = async () => {
+    setReportDownloading(true);
+    try {
+      const query = new URLSearchParams(
+        Object.entries(appliedReportFilters).filter(([, value]) => value !== '' && value != null),
+      ).toString();
+      const token = getToken();
+      if (!token) throw new Error('Token autentikasi tidak ditemukan. Silakan masuk kembali.');
+
+      const response = await fetch(`/api/kadis/executive-report/export-pdf${query ? `?${query}` : ''}`, {
+        headers: {
+          Accept: 'application/pdf, application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || `Laporan PDF gagal diunduh (HTTP ${response.status}).`);
+      }
+
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      const disposition = response.headers.get('Content-Disposition') || '';
+      link.href = objectUrl;
+      link.download = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'laporan-eksekutif-magang.pdf';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      setMsg({ type: 'success', text: 'Laporan eksekutif berhasil diunduh.' });
+    } catch (error) {
+      setMsg({ type: 'error', text: error.message || 'Laporan PDF gagal diunduh.' });
+    } finally {
+      setReportDownloading(false);
+    }
+  };
+
   // Filter pencarian modal pemagang aktif
   const filteredInterns = safeActiveInterns.filter((app) => {
     const term = (searchTerm || '').trim().toLowerCase();
@@ -140,15 +247,17 @@ export default function KadisDashboard() {
         <section className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-2">
           <div className="space-y-1.5 max-w-2xl">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A]">
-              Dashboard Kepala Dinas
+              {activeTab === 'report' ? 'Laporan Eksekutif' : 'Dashboard Kepala Dinas'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-              Berikan tanda tangan otorisasi digital akhir untuk menerbitkan Surat Resmi Penerimaan Magang bagi pemohon yang telah disetujui Kepegawaian dan Kabid.
+              {activeTab === 'report'
+                ? 'Pantau ringkasan pelaksanaan magang, capaian per bidang, dan data peserta berdasarkan periode yang dipilih.'
+                : 'Berikan tanda tangan otorisasi digital akhir untuk menerbitkan Surat Resmi Penerimaan Magang bagi pemohon yang telah disetujui Kepegawaian dan Kabid.'}
             </p>
           </div>
 
           {/* Stat Cards Container Header (Ukuran Identik Presisi) */}
-          <div className="flex items-center gap-4 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
+          {activeTab === 'dashboard' && <div className="flex items-center gap-4 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
             
             {/* Card 1: Pemagang Aktif Dinas */}
             <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-xs text-center min-w-[210px] sm:min-w-[230px] h-[120px] flex flex-col items-center justify-center shrink-0">
@@ -178,8 +287,33 @@ export default function KadisDashboard() {
               <div className="h-4 mt-1" /> {/* Penyeimbang tinggi agar posisinya sejajar */}
             </div>
 
-          </div>
+          </div>}
         </section>
+
+        <nav role="tablist" className="flex w-full gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xs sm:w-fit" aria-label="Navigasi dashboard Kepala Dinas">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'dashboard'}
+            onClick={() => setActiveTab('dashboard')}
+            className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold transition sm:text-sm ${
+              activeTab === 'dashboard' ? 'bg-[#2563EB] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Otorisasi & Pemagang Aktif
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'report'}
+            onClick={() => setActiveTab('report')}
+            className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold transition sm:text-sm ${
+              activeTab === 'report' ? 'bg-[#2563EB] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Laporan Eksekutif
+          </button>
+        </nav>
 
         {/* Alert Notification */}
         {msg?.text && (
@@ -206,6 +340,236 @@ export default function KadisDashboard() {
           </div>
         )}
 
+        {activeTab === 'report' && (
+          <div className="space-y-6">
+            <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs sm:p-6">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
+                    <Filter className="h-4 w-4 text-[#2563EB]" />
+                    Filter Laporan
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-500">Pilih bidang dan periode magang yang ingin ditinjau.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={downloadExecutiveReport}
+                  disabled={reportDownloading}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <FileDown className="h-4 w-4" />
+                  {reportDownloading ? 'Menyiapkan PDF...' : 'Unduh Laporan PDF'}
+                </button>
+              </div>
+
+              <form onSubmit={applyReportFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="space-y-1.5 text-xs font-semibold text-slate-600">
+                  Divisi/Bidang
+                  <select
+                    value={reportFilters.division_id}
+                    onChange={(event) => setReportFilters((filters) => ({ ...filters, division_id: event.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal text-slate-700 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="">Semua Bidang</option>
+                    {divisions.map((division) => (
+                      <option key={division.id} value={division.id}>{division.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1.5 text-xs font-semibold text-slate-600">
+                  Tanggal Mulai
+                  <input
+                    type="date"
+                    value={reportFilters.start_date}
+                    onChange={(event) => setReportFilters((filters) => ({ ...filters, start_date: event.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal text-slate-700 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+                <label className="space-y-1.5 text-xs font-semibold text-slate-600">
+                  Tanggal Akhir
+                  <input
+                    type="date"
+                    min={reportFilters.start_date || undefined}
+                    value={reportFilters.end_date}
+                    onChange={(event) => setReportFilters((filters) => ({ ...filters, end_date: event.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal text-slate-700 outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+                <div className="flex items-end gap-2">
+                  <button type="submit" className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-700">
+                    <Filter className="h-3.5 w-3.5" />
+                    Terapkan Filter
+                  </button>
+                  <button type="button" onClick={resetReportFilters} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50" aria-label="Reset filter">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Reset
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            {reportLoading ? (
+              <div className="space-y-6" aria-label="Memuat laporan eksekutif" aria-busy="true">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {[1, 2, 3, 4].map((item) => (
+                    <div key={item} className="animate-pulse rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
+                      <div className="h-3 w-28 rounded bg-slate-200" />
+                      <div className="mt-4 h-8 w-20 rounded bg-slate-200" />
+                      <div className="mt-3 h-3 w-36 rounded bg-slate-100" />
+                    </div>
+                  ))}
+                </div>
+                {[7, 7].map((columns, tableIndex) => (
+                  <section key={tableIndex} className="animate-pulse overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
+                    <div className="h-4 w-48 rounded bg-slate-200" />
+                    <div className="mt-5 space-y-3">
+                      {[1, 2, 3, 4].map((row) => (
+                        <div key={row} className="flex gap-4">
+                          {Array.from({ length: columns }, (_, column) => (
+                            <div key={column} className="h-8 flex-1 rounded bg-slate-100" />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : reportData && (
+              <>
+                {(() => {
+                  const summary = reportData.summary || {};
+                  const accepted = Number(summary.total_accepted || 0);
+                  const completed = Number(summary.total_completed || 0);
+                  const completionRate = accepted ? (completed / accepted) * 100 : 0;
+                  const kpis = [
+                    { label: 'Total Pendaftar', value: summary.total_applicants ?? 0, icon: Users, suffix: 'peserta terdaftar' },
+                    { label: 'Peserta Diterima', value: summary.total_accepted ?? 0, icon: CheckCircle2, suffix: `${summary.total_active ?? 0} peserta aktif` },
+                    { label: 'Rata-rata Kehadiran', value: summary.average_attendance_percentage == null ? '—' : `${Number(summary.average_attendance_percentage).toFixed(1)}%`, icon: ChartNoAxesCombined, suffix: 'persentase kehadiran dinas' },
+                    { label: 'Tingkat Penyelesaian', value: `${completionRate.toFixed(1)}%`, icon: GraduationCap, suffix: `${completed} dari ${accepted} peserta diterima selesai` },
+                  ];
+
+                  return (
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                      {kpis.map(({ label, value, icon: Icon, suffix }) => (
+                        <article key={label} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500">{label}</p>
+                              <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{value}</p>
+                              <p className="mt-1 text-[11px] text-slate-400">{suffix}</p>
+                            </div>
+                            <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-[#2563EB]">
+                              <Icon className="h-5 w-5" />
+                            </span>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs">
+                  <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+                    <h2 className="font-bold text-slate-900">Rekapitulasi Per Bidang</h2>
+                    <p className="mt-1 text-xs text-slate-500">Ringkasan kuota, status peserta, dan nilai akhir rata-rata.</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px] text-left text-xs">
+                      <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-5 py-3 font-bold">Nama Bidang</th>
+                          <th className="px-4 py-3 text-right font-bold">Kuota</th>
+                          <th className="px-4 py-3 text-right font-bold">Total Pendaftar</th>
+                          <th className="px-4 py-3 text-right font-bold">Diterima</th>
+                          <th className="px-4 py-3 text-right font-bold">Aktif</th>
+                          <th className="px-4 py-3 text-right font-bold">Lulus</th>
+                          <th className="px-5 py-3 text-right font-bold">Rata-rata Nilai</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {(reportData.divisions || []).map((division) => (
+                          <tr key={division.division_id} className="text-slate-700 hover:bg-slate-50/70">
+                            <td className="px-5 py-3.5 font-semibold text-slate-900">{division.division_name}</td>
+                            <td className="px-4 py-3.5 text-right">{division.quota ?? '—'}</td>
+                            <td className="px-4 py-3.5 text-right">{division.total_applicants ?? 0}</td>
+                            <td className="px-4 py-3.5 text-right">{division.total_accepted ?? 0}</td>
+                            <td className="px-4 py-3.5 text-right">{division.total_active ?? 0}</td>
+                            <td className="px-4 py-3.5 text-right">{division.total_completed ?? 0}</td>
+                            <td className="px-5 py-3.5 text-right">{division.average_final_score == null ? '—' : Number(division.average_final_score).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                        {(!reportData.divisions || reportData.divisions.length === 0) && (
+                          <tr><td colSpan="7" className="px-5 py-10 text-center text-slate-400">Tidak ada data bidang untuk filter ini.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs">
+                  <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
+                    <h2 className="font-bold text-slate-900">Daftar Peserta Magang</h2>
+                    <p className="mt-1 text-xs text-slate-500">{(reportData.participants || []).length} peserta sesuai filter aktif.</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[900px] text-left text-xs">
+                      <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-5 py-3 font-bold">Nama</th>
+                          <th className="px-4 py-3 font-bold">Institusi</th>
+                          <th className="px-4 py-3 font-bold">Bidang</th>
+                          <th className="px-4 py-3 font-bold">Periode</th>
+                          <th className="px-4 py-3 font-bold">Status</th>
+                          <th className="px-4 py-3 text-right font-bold">Kehadiran</th>
+                          <th className="px-5 py-3 text-right font-bold">Nilai Akhir/Predikat</th>
+                        </tr>
+                      </thead>
+                      {reportData.participants?.length > 0 ? (
+                        <tbody className="divide-y divide-slate-100">
+                          {reportData.participants.map((participant) => (
+                            <tr key={participant.application_id} className="text-slate-600 hover:bg-slate-50/70">
+                              <td className="px-5 py-3.5 font-semibold text-slate-900">{participant.participant_name || '—'}</td>
+                              <td className="px-4 py-3.5">{participant.institution_name || '—'}</td>
+                              <td className="px-4 py-3.5">{participant.division_name || '—'}</td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">{participant.start_date || '—'} – {participant.end_date || '—'}</td>
+                              <td className="px-4 py-3.5">
+                                <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                                  participant.internship_status === 'completed'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : participant.internship_status === 'in_progress'
+                                      ? 'bg-blue-50 text-blue-700'
+                                      : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {participant.internship_status === 'completed' ? 'Selesai' : participant.internship_status === 'in_progress' ? 'Aktif' : participant.final_status || '—'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 text-right">{participant.attendance_percentage == null ? '—' : `${Number(participant.attendance_percentage).toFixed(1)}%`}</td>
+                              <td className="px-5 py-3.5 text-right font-semibold text-slate-800">
+                                {participant.final_score ?? '—'}{participant.grade_letter ? ` / ${participant.grade_letter}` : ''}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      ) : (
+                        <tbody>
+                          <tr>
+                            <td colSpan="7" className="px-5 py-14 text-center">
+                              <Users className="mx-auto h-8 w-8 text-slate-300" />
+                              <p className="mt-3 text-sm font-bold text-slate-700">Belum ada data peserta</p>
+                              <p className="mt-1 text-xs text-slate-400">Sesuaikan filter bidang atau periode untuk melihat laporan.</p>
+                            </td>
+                          </tr>
+                        </tbody>
+                      )}
+                    </table>
+                  </div>
+                </section>
+              </>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'dashboard' && <>
         {/* KARTU 1: Antrean Otorisasi Akhir */}
         <section className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden p-6 sm:p-8 space-y-6">
           <div className="flex items-center gap-2 text-[#0F172A]">
@@ -340,6 +704,7 @@ export default function KadisDashboard() {
             </div>
           )}
         </section>
+        </>}
 
       </main>
 
