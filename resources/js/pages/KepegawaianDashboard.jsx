@@ -93,7 +93,7 @@ export default function KepegawaianDashboard() {
         <nav
           role="tablist"
           aria-label="Navigasi dashboard Kepegawaian"
-          className="flex w-full gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm"
+          className="grid w-full grid-cols-1 gap-1.5 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm sm:grid-cols-2 lg:grid-cols-5"
         >
           {[
             { id: 'quota', label: 'Pengaturan Kuota' },
@@ -108,7 +108,7 @@ export default function KepegawaianDashboard() {
               role="tab"
               aria-selected={activeTab === id}
               onClick={() => setActiveTab(id)}
-              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition sm:text-sm ${
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-center text-xs font-semibold transition sm:text-sm ${
                 activeTab === id
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'bg-transparent text-slate-600 hover:text-slate-900'

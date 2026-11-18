@@ -163,7 +163,7 @@ export default function InternshipPeriodSettings({ divisions }) {
           <input type="checkbox" checked={form.is_active} onChange={(event) => setForm((previous) => ({ ...previous, is_active: event.target.checked }))} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
           Aktifkan periode
         </label>
-        <button type="submit" disabled={saving || divisions.length === 0} className="self-end rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
+        <button type="submit" disabled={saving || divisions.length === 0} className="w-full self-end rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 lg:col-start-4 lg:col-span-2">
           {saving ? 'Menyimpan…' : 'Simpan kuota'}
         </button>
       </form>
