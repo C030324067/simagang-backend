@@ -119,7 +119,7 @@ export default function InternshipPeriodSettings({ divisions }) {
         </div>
       )}
 
-      <form className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-6" onSubmit={save}>
+      <form className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-5" onSubmit={save}>
         <label className="text-xs font-semibold text-slate-600">
           Divisi
           <select required value={form.division_id} onChange={(event) => setForm((previous) => ({ ...previous, division_id: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

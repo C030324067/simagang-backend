@@ -19,6 +19,7 @@ export default function KepegawaianDashboard() {
   const [downloadingId, setDownloadingId] = React.useState(null);
   const [evaluations, setEvaluations] = React.useState([]);
   const [issuingId, setIssuingId] = React.useState(null);
+  const [activeTab, setActiveTab] = React.useState('quota');
 
   React.useEffect(() => {
     apiRequest('/evaluations?per_page=1000').then((response) => {
@@ -41,32 +42,29 @@ export default function KepegawaianDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F6FA] font-sans text-slate-800 py-8">
-      
-      {/* Main Content Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-
-        {/* Header Banner & Counter */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
-          <div className="space-y-2 max-w-2xl">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F2942] tracking-tight">
+    <div className="min-h-screen bg-slate-50/80 py-8 font-sans text-slate-800">
+      <main className="mx-auto max-w-[1440px] space-y-6 px-4 sm:px-6 lg:px-8">
+        <section className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-2xl">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
               Dashboard Verifikasi Kepegawaian Diskominfo
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-              Verifikasi kelengkapan berkas administrasi pemohon magang (Mandiri & Rekomendasi Kampus), periksa kuota dinas, dan tentukan bidang penempatan.
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Verifikasi kelengkapan berkas pemohon magang, periksa kuota, dan tentukan bidang penempatan.
             </p>
           </div>
-
-          {/* Counter Box Right */}
-          <div className="bg-white px-6 py-5 rounded-2xl border border-slate-100 shadow-xs min-w-[210px] flex flex-col justify-center items-center self-start md:self-auto">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
+          <div className="flex min-w-[220px] items-center justify-between gap-5 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm md:min-w-[250px]">
+            <div>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
               MENUNGGU VERIFIKASI
-            </span>
-            <div className="text-4xl font-black text-[#4F46E5] text-center mt-1">
-              {pendingApps.length}
+              </span>
+              <div className="mt-1 text-4xl font-extrabold leading-none text-indigo-600">{pendingApps.length}</div>
             </div>
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
+              <Clock className="h-5 w-5" />
+            </span>
           </div>
-        </div>
+        </section>
 
         {/* Alert Notification */}
         {msg.text && (
@@ -92,9 +90,40 @@ export default function KepegawaianDashboard() {
           </div>
         )}
 
-        <InternshipPeriodSettings divisions={divisions} />
+        <nav
+          role="tablist"
+          aria-label="Navigasi dashboard Kepegawaian"
+          className="flex w-full gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm"
+        >
+          {[
+            { id: 'quota', label: 'Pengaturan Kuota' },
+            { id: 'pending', label: `Antrean Permohonan (${pendingApps.length})`, icon: Clock },
+            { id: 'approved', label: `Persetujuan Kadis (${approvedApps.length})`, icon: FileText },
+            { id: 'certificates', label: 'Penerbitan Sertifikat', icon: FileText },
+            { id: 'accepted', label: `Peserta Diterima (${acceptedApps.length})`, icon: FileText },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === id}
+              onClick={() => setActiveTab(id)}
+              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition sm:text-sm ${
+                activeTab === id
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-transparent text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {Icon && <Icon className="h-4 w-4" />}
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {activeTab === 'quota' && <InternshipPeriodSettings divisions={divisions} />}
 
         {/* Section 1: Antrean Permohonan Masuk */}
+        {activeTab === 'pending' && (
         <section className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden p-6 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <Clock className="w-5 h-5 text-[#0F2942]" />
@@ -192,8 +221,10 @@ export default function KepegawaianDashboard() {
             </div>
           )}
         </section>
+        )}
 
         {/* Section 2: Persetujuan Kadis — terbitkan surat resmi */}
+        {activeTab === 'approved' && (
         <section className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <FileText className="w-5 h-5 text-[#0F2942]" />
@@ -250,7 +281,9 @@ export default function KepegawaianDashboard() {
             )}
           </div>
         </section>
+        )}
 
+        {activeTab === 'certificates' && (
         <section className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100"><FileText className="w-5 h-5 text-[#0F2942]" /><h3 className="font-bold text-[#0F2942] text-base sm:text-lg">Penerbitan Sertifikat</h3></div>
           <p className="text-sm text-slate-500">Peserta yang telah menyelesaikan magang dan memiliki evaluasi akhir mentor.</p>
@@ -264,7 +297,9 @@ export default function KepegawaianDashboard() {
             {!evaluations.some((evaluation) => acceptedApps.some((app) => app.internship_status === 'completed' && Number(app.user?.id) === Number(evaluation.intern?.id))) && <p className="py-6 text-center text-sm text-slate-400">Belum ada peserta selesai dengan evaluasi akhir.</p>}
           </div>
         </section>
+        )}
 
+        {activeTab === 'accepted' && (
         <section className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <FileText className="w-5 h-5 text-[#0F2942]" />
@@ -296,6 +331,7 @@ export default function KepegawaianDashboard() {
             </div>
           )}
         </section>
+        )}
 
       </main>
 
