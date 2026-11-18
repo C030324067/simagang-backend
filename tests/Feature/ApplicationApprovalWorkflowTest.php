@@ -131,6 +131,12 @@ class ApplicationApprovalWorkflowTest extends TestCase
             ->assertJsonPath('data.status_kabid', 'approved')
             ->assertJsonPath('data.mentor_id', $this->mentor->id);
 
+        $this->actingAs($this->kadis, 'sanctum')
+            ->getJson('/api/applications/kadis')
+            ->assertOk()
+            ->assertJsonPath('data.0.mentor.id', $this->mentor->id)
+            ->assertJsonPath('data.0.mentor.name', $this->mentor->name);
+
         // Step 4: Kadis authorizes the application before the official letter is uploaded.
         $responseStep4 = $this->actingAs($this->kadis, 'sanctum')
             ->putJson("/api/applications/{$application->id}/approve-kadis", [
@@ -176,5 +182,44 @@ class ApplicationApprovalWorkflowTest extends TestCase
             'id' => $application->id,
             'final_status' => 'rejected',
         ]);
+    }
+
+    public function test_kadis_history_lists_approved_and_rejected_kadis_decisions(): void
+    {
+        $approvedApplicant = User::factory()->create(['role' => 'applicant']);
+        $rejectedApplicant = User::factory()->create(['role' => 'applicant']);
+        $approved = InternApplication::create([
+            'user_id' => $approvedApplicant->id,
+            'application_type' => 'mandiri',
+            'institution_name' => 'Universitas Negeri',
+            'start_date' => Carbon::today()->addDays(5)->toDateString(),
+            'end_date' => Carbon::today()->addDays(60)->toDateString(),
+            'division_id' => $this->division->id,
+            'status' => 'approved_by_kadis',
+            'status_kadis' => 'approved',
+            'status_kabid' => 'approved',
+            'final_status' => 'in_review',
+            'notes_kadis' => 'Disetujui.',
+        ]);
+        $rejected = InternApplication::create([
+            'user_id' => $rejectedApplicant->id,
+            'application_type' => 'mandiri',
+            'institution_name' => 'Institut Teknologi',
+            'start_date' => Carbon::today()->addDays(5)->toDateString(),
+            'end_date' => Carbon::today()->addDays(60)->toDateString(),
+            'division_id' => $this->division->id,
+            'status' => 'rejected',
+            'status_kadis' => 'rejected',
+            'status_kabid' => 'approved',
+            'final_status' => 'rejected',
+            'notes_kadis' => 'Tidak disetujui.',
+        ]);
+
+        $this->actingAs($this->kadis, 'sanctum')
+            ->getJson('/api/applications/history-kadis')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $approved->id, 'status_kadis' => 'approved'])
+            ->assertJsonFragment(['id' => $rejected->id, 'status_kadis' => 'rejected']);
     }
 }

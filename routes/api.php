@@ -55,11 +55,6 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
         Route::get('/executive-report/export-pdf', [ExecutiveReportController::class, 'exportPdf']);
     });
 
-    Route::prefix('kabid')->middleware('role:kabid')->group(function () {
-        Route::get('/report', [ExecutiveReportController::class, 'kabidReport']);
-        Route::get('/report/export-pdf', [ExecutiveReportController::class, 'exportKabidPdf']);
-    });
-
     Route::middleware('role:admin_kepegawaian')->group(function () {
         Route::get('/internship-periods', [InternshipPeriodController::class, 'index']);
         Route::put('/internship-periods', [InternshipPeriodController::class, 'upsert']);
@@ -96,7 +91,6 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
         Route::get('/{application}/documents/{document}', [ApplicationController::class, 'document'])
             ->middleware('role:admin_kepegawaian,kabid');
         Route::get('/kabid', [ApplicationController::class, 'kabid'])->middleware('role:kabid');
-        Route::get('/history-kabid', [ApplicationController::class, 'kabidHistory'])->middleware('role:kabid');
         Route::get('/{application}/mentors', [ApplicationController::class, 'mentors'])->middleware('role:kabid');
         Route::get('/kadis', [ApplicationController::class, 'kadis'])->middleware('role:kadis');
         Route::put('/{application}/status', [ApplicationController::class, 'updateStatus'])

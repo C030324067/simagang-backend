@@ -3,10 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Division;
-use App\Models\Evaluation;
 use App\Models\InternApplication;
 use App\Models\InternApplicationHistory;
-use App\Models\Logbook;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -30,7 +28,6 @@ class KabidDashboardTest extends TestCase
         $this->division = $this->createDivision('Aptika', 'aptika');
         $this->otherDivision = $this->createDivision('Statistik', 'statistik');
         $this->kabid = User::factory()->create([
-            'name' => 'Kabid Aptika',
             'role' => 'kabid',
             'status_akun' => 'approved',
             'is_active' => true,
@@ -86,56 +83,6 @@ class KabidDashboardTest extends TestCase
             ->assertJsonPath('data.data.0.user.phone', '08123456789')
             ->assertJsonPath('data.data.0.user.email', 'second-intern@example.test')
             ->assertJsonPath('data.data.0.department', 'Teknik Informatika');
-    }
-
-    public function test_kabid_report_is_locked_to_their_division_and_returns_participant_metrics(): void
-    {
-        $mentor = $this->createUser('mentor', $this->division, true);
-        $participant = $this->createUser('intern', $this->division, true);
-        $application = $this->createTestApplication($participant, $this->division, 'accepted', 'accepted');
-        $application->forceFill([
-            'internship_status' => 'in_progress',
-            'mentor_id' => $mentor->id,
-        ])->save();
-        Evaluation::create([
-            'intern_application_id' => $application->id,
-            'mentor_id' => $mentor->id,
-            'final_score' => 92.25,
-            'attendance_percentage' => 88.5,
-            'grade_letter' => 'A',
-        ]);
-        Logbook::create([
-            'intern_application_id' => $application->id,
-            'date' => now()->toDateString(),
-            'activity_description' => 'Menyusun laporan kegiatan.',
-            'verification_status' => 'approved',
-        ]);
-
-        $outsideParticipant = $this->createUser('intern', $this->otherDivision, true);
-        $this->createTestApplication($outsideParticipant, $this->otherDivision, 'accepted', 'accepted');
-
-        $this->actingAs($this->kabid, 'sanctum')
-            ->getJson('/api/kabid/report?division_id='.$this->otherDivision->id)
-            ->assertOk()
-            ->assertJsonPath('data.summary.total_accepted', 1)
-            ->assertJsonPath('data.summary.total_validated_logbooks', 1)
-            ->assertJsonPath('data.participants.0.participant_name', $participant->name)
-            ->assertJsonPath('data.participants.0.mentor_name', $mentor->name)
-            ->assertJsonPath('data.participants.0.logbook_percentage', 100)
-            ->assertJsonPath('data.participants.0.final_score', '92.25');
-
-        $this->getJson('/api/kabid/report?status=unknown')
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('status');
-    }
-
-    public function test_kabid_can_export_a_division_scoped_report_as_pdf(): void
-    {
-        $this->actingAs($this->kabid, 'sanctum')
-            ->get('/api/kabid/report/export-pdf?division_id='.$this->otherDivision->id)
-            ->assertOk()
-            ->assertHeader('content-type', 'application/pdf')
-            ->assertHeader('content-disposition', 'attachment; filename=rekap-bidang-magang-'.now()->format('Ymd').'.pdf');
     }
 
     public function test_kabid_queue_contains_only_pending_kabid_items_in_their_division(): void
@@ -309,14 +256,6 @@ class KabidDashboardTest extends TestCase
         $this->createTestApplication($outsideApplicant, $this->otherDivision, 'pending_kadis', 'in_review');
 
         $this->actingAs($this->kabid, 'sanctum')
-            ->getJson('/api/applications/history-kabid')
-            ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $sameDivisionApplication->id)
-            ->assertJsonPath('data.0.notes_kabid', 'Catatan keputusan.')
-            ->assertJsonPath('data.0.user.email', $sameDivisionApplicant->email);
-
-        $this->actingAs($this->kabid, 'sanctum')
             ->getJson('/api/applications?per_page=10')
             ->assertOk()
             ->assertJsonPath('data.total', 1)
@@ -334,10 +273,8 @@ class KabidDashboardTest extends TestCase
     private function createUser(string $role, Division $division, bool $active, ?string $email = null): User
     {
         return User::factory()->create([
-            'name' => $role === 'mentor' ? 'Pembimbing Test' : ucfirst($role).' Test',
-            'email' => $email ?? ($role === 'mentor'
-                ? 'pembimbing-'.fake()->unique()->numerify('####').'@example.test'
-                : fake()->unique()->safeEmail()),
+            'name' => ucfirst($role).' Test',
+            'email' => $email ?? fake()->unique()->safeEmail(),
             'role' => $role,
             'status_akun' => $active ? 'approved' : 'pending',
             'is_active' => $active,

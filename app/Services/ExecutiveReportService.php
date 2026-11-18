@@ -12,7 +12,7 @@ class ExecutiveReportService
     /**
      * Build the data shared by the JSON and PDF reports.
      *
-     * @param  array{division_id?: int, start_date?: string, end_date?: string, status?: string, participants_only?: bool}  $filters
+     * @param  array{division_id?: int, start_date?: string, end_date?: string}  $filters
      * @return array<string, mixed>
      */
     public function generate(array $filters): array
@@ -21,13 +21,7 @@ class ExecutiveReportService
             ->with([
                 'user:id,name',
                 'division:id,name',
-                'mentor:id,name',
                 'evaluation:intern_application_id,attendance_percentage,final_score,grade_letter',
-            ])
-            ->withCount([
-                'logbooks',
-                'logbooks as validated_logbooks_count' => fn (Builder $query): Builder => $query
-                    ->where('verification_status', 'approved'),
             ])
             ->get();
 
@@ -78,10 +72,6 @@ class ExecutiveReportService
                     ->pluck('attendance_percentage')
                     ->filter(fn ($percentage): bool => $percentage !== null)
                     ->avg(),
-                'total_validated_logbooks' => $accepted->sum('validated_logbooks_count'),
-                'average_final_score' => $accepted->pluck('evaluation.final_score')
-                    ->filter(fn ($score): bool => $score !== null)
-                    ->avg(),
             ],
             'divisions' => $divisions,
             'participants' => $applications->map(fn (InternApplication $application): array => [
@@ -97,34 +87,16 @@ class ExecutiveReportService
                 'attendance_percentage' => $application->evaluation?->attendance_percentage,
                 'final_score' => $application->evaluation?->final_score,
                 'grade_letter' => $application->evaluation?->grade_letter,
-                'mentor_name' => $application->mentor?->name,
-                'total_logbooks' => $application->logbooks_count,
-                'validated_logbooks' => $application->validated_logbooks_count,
-                'logbook_percentage' => $application->logbooks_count > 0
-                    ? round(($application->validated_logbooks_count / $application->logbooks_count) * 100, 1)
-                    : null,
             ])->values(),
         ];
     }
 
     /**
-     * @param  array{division_id?: int, start_date?: string, end_date?: string, status?: string, participants_only?: bool}  $filters
+     * @param  array{division_id?: int, start_date?: string, end_date?: string}  $filters
      */
     private function applicationsQuery(array $filters): Builder
     {
         return InternApplication::query()
-            ->when(
-                $filters['participants_only'] ?? false,
-                fn (Builder $query): Builder => $query->where('final_status', 'accepted'),
-            )
-            ->when(
-                ($filters['status'] ?? null) === 'active',
-                fn (Builder $query): Builder => $query->where('internship_status', 'in_progress'),
-            )
-            ->when(
-                ($filters['status'] ?? null) === 'completed',
-                fn (Builder $query): Builder => $query->where('internship_status', 'completed'),
-            )
             ->when(
                 isset($filters['division_id']),
                 fn (Builder $query) => $query->where('division_id', $filters['division_id']),

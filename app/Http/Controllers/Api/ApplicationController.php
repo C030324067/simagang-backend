@@ -304,23 +304,6 @@ class ApplicationController extends Controller
         return $this->pendingKabid($request);
     }
 
-    public function kabidHistory(Request $request): JsonResponse
-    {
-        $kabid = $request->user();
-        if (! $kabid->division_id) {
-            return $this->errorResponse('Akun Kepala Bidang belum terhubung dengan bidang.', 403);
-        }
-
-        $applications = InternApplication::query()
-            ->with(['user:id,name,email', 'division:id,name', 'verifierKabid:id,name'])
-            ->forKabidDivision((int) $kabid->division_id)
-            ->whereIn('status_kabid', ['approved', 'rejected'])
-            ->orderByDesc('kabid_decided_at')
-            ->get();
-
-        return $this->successResponse($applications, 'Riwayat keputusan bidang berhasil dimuat.');
-    }
-
     public function kabidInterns(Request $request): JsonResponse
     {
         $kabid = $request->user();
@@ -371,33 +354,15 @@ class ApplicationController extends Controller
             ->orderByRaw("CASE WHEN role = 'kabid' THEN 1 ELSE 2 END")
             ->orderBy('name', 'asc')
             ->get(['id', 'name', 'email', 'role'])
-            ->reject(function (User $mentor): bool {
-                $name = mb_strtolower(trim($mentor->name));
-
-                return $mentor->role === 'kabid'
-                    ? str_starts_with($name, 'kabid ')
-                    : str_starts_with($name, 'mentor ')
-                        || preg_match('/^mentor\d+\.[a-z0-9_-]+@/i', $mentor->email) === 1;
-            })
-            ->values();
-        $activeInternCounts = InternApplication::query()
-            ->activeInternships()
-            ->whereIn('mentor_id', $mentors->pluck('id'))
-            ->selectRaw('mentor_id, count(*) as active_intern_count')
-            ->groupBy('mentor_id')
-            ->pluck('active_intern_count', 'mentor_id');
-        $mentors = $mentors
-            ->map(fn (User $mentor): array => [
-                ...$mentor->only(['id', 'name', 'role']),
-                'active_intern_count' => (int) ($activeInternCounts[$mentor->id] ?? 0),
-            ]);
+            ->values()
+            ->map(fn (User $mentor): array => $mentor->only(['id', 'name', 'role']));
 
         return $this->successResponse($mentors, 'Daftar pembimbing bidang berhasil dimuat.');
     }
 
     public function kadis(): JsonResponse
     {
-        $applications = InternApplication::with(['user', 'division'])
+        $applications = InternApplication::with(['user', 'division', 'mentor:id,name'])
             ->whereIn('status', ['review_kadis', 'pending_kadis'])->latest()->get();
 
         return $this->successResponse($applications, 'Antrean persetujuan Kadis berhasil dimuat.');
@@ -740,7 +705,7 @@ class ApplicationController extends Controller
     {
         $applications = InternApplication::with(['user', 'division', 'verifierKadis'])
             ->where(function ($query): void {
-                $query->where('status_kadis', 'approved')
+                $query->whereIn('status_kadis', ['approved', 'rejected'])
                     ->orWhereIn('status', ['approved_by_kadis', 'accepted']);
             })
             ->latest()
