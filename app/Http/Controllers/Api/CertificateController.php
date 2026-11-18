@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\Evaluation;
+use App\Models\InternApplication;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -16,6 +17,7 @@ use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
 class CertificateController extends Controller
@@ -33,63 +35,43 @@ class CertificateController extends Controller
             'intern_id' => ['required', 'exists:users,id'],
         ]);
 
-        $intern = User::with(['division', 'activeApplication'])->findOrFail($validated['intern_id']);
-
-        if ($intern->role !== 'intern') {
-            return $this->errorResponse('Pengguna yang dipilih bukan pemohon magang', 422);
-        }
-
-        $application = $intern->applications()
+        $application = InternApplication::query()
+            ->where('user_id', $validated['intern_id'])
             ->where('final_status', 'accepted')
             ->latest('id')
             ->first();
-
-        if (! $application || $application->internship_status !== 'completed') {
-            return $this->errorResponse('Sertifikat dapat diterbitkan setelah penilaian akhir pembimbing disimpan.', 422);
+        $existing = $application?->certificate;
+        $certificateNumber = null;
+        if ($request->exists('certificate_number')) {
+            $request->merge(['certificate_number' => trim((string) $request->input('certificate_number'))]);
+            $numberData = $request->validate([
+                'certificate_number' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('certificates', 'certificate_number')->ignore($existing?->id),
+                ],
+            ]);
+            $certificateNumber = $numberData['certificate_number'];
         }
 
-        // Check if intern has an evaluation
-        $evaluation = Evaluation::where('intern_application_id', $application->id)->first();
-        if (! $evaluation) {
-            return $this->errorResponse('Pemohon magang belum memiliki nilai evaluasi akhir dari pembimbing', 422);
-        }
+        $intern = User::query()->findOrFail($validated['intern_id']);
 
-        // Check if certificate already generated
-        $existing = Certificate::where('intern_application_id', $application->id)->first();
-        if ($existing) {
-            $existing->load('intern.division');
-
-            return $this->successResponse($existing, 'Sertifikat magang telah diterbitkan sebelumnya');
-        }
-
-        $certificateNumber = 'CERT/DISKOMINFO/'.date('Y').'/'.str_pad((string) $intern->id, 4, '0', STR_PAD_LEFT);
-        $qrHash = hash('sha256', $intern->id.'-'.time().'-'.Str::random(16));
-
-        $certificate = Certificate::create([
-            'intern_application_id' => $application->id,
-            'certificate_number' => $certificateNumber,
-            'qr_hash' => $qrHash,
-            'issued_at' => now(),
-        ]);
-
-        $certificate->load(['intern.division']);
-
-        return $this->successResponse($certificate, 'Sertifikat magang digital dengan kode QR berhasil diterbitkan', 201);
+        return $this->issueForIntern($intern, $certificateNumber);
     }
 
     public function generateFromEvaluation(Request $request, Evaluation $evaluation): JsonResponse
     {
         $mentor = $request->user();
-        if ($mentor->role !== 'mentor'
+        if ($mentor->activeRole() !== 'mentor'
             || (int) $evaluation->mentor_id !== (int) $mentor->id
-            || ! $mentor->division_id
-            || (int) $evaluation->internApplication?->user?->division_id !== (int) $mentor->division_id) {
+            || ! $evaluation->internApplication?->user
+            || (! $mentor->division_id && (int) $evaluation->internApplication->mentor_id !== (int) $mentor->id)
+            || ($mentor->division_id && (int) $evaluation->internApplication->user->division_id !== (int) $mentor->division_id)) {
             return $this->errorResponse('Anda tidak berhak menerbitkan sertifikat untuk evaluasi ini.', 403);
         }
 
-        $request->merge(['intern_id' => $evaluation->internApplication?->user_id]);
-
-        return $this->generate($request);
+        return $this->issueForIntern($evaluation->internApplication->user, null);
     }
 
     /**
@@ -161,6 +143,24 @@ class CertificateController extends Controller
         }
 
         $application = $certificate->internApplication;
+        $evaluation = $application?->evaluation;
+        $evaluation?->load('mentor');
+        $educationLevel = $application?->educationLevel() ?? 'Kuliah';
+        $technicalScores = $evaluation?->technical_scores ?? [];
+        if ($educationLevel === 'SMK' && $technicalScores === []) {
+            $technicalScores = $application?->penilaianSmk()
+                ->orderBy('aspek')
+                ->get()
+                ->map(fn ($item): array => ['criteria' => $item->aspek, 'score' => (float) $item->nilai])
+                ->all() ?? [];
+        }
+        $skillScores = [
+            ['criteria' => 'Disiplin', 'score' => $evaluation?->score_discipline],
+            ['criteria' => 'Perilaku dan Sopan Santun', 'score' => $evaluation?->score_quality],
+            ['criteria' => 'Inisiatif dan Kreativitas', 'score' => $evaluation?->score_initiative],
+            ['criteria' => 'Motivasi', 'score' => $evaluation?->score_teamwork],
+            ['criteria' => 'Komunikasi dan Kerjasama', 'score' => $evaluation?->score_softskill],
+        ];
         $verifyUrl = url('/verify-cert/'.$certificate->qr_hash);
         $qrCode = new QrCode(
             data: $verifyUrl,
@@ -176,18 +176,95 @@ class CertificateController extends Controller
         $data = [
             'certificate' => $certificate,
             'intern' => $certificate->intern,
-            'evaluation' => $application?->evaluation,
+            'evaluation' => $evaluation,
             'application' => $application,
             'verify_url' => $verifyUrl,
             'qr_code_data_uri' => $qrCodeDataUri,
-            'transcript_scores' => $application?->jenjang === 'SMK'
-                ? $application->penilaianSmk()->orderBy('aspek')->get()
-                : $application?->penilaianKuliah()->orderBy('aspek')->get() ?? collect(),
-            'education_level' => $application?->jenjang ?? 'Kuliah',
+            'education_level' => $educationLevel,
+            'technical_scores' => $technicalScores,
+            'skill_scores' => $skillScores,
+            'grade_description' => $this->descriptionFor((float) ($evaluation?->final_score ?? 0)),
+            'grade_letter' => $this->gradeFor((float) ($evaluation?->final_score ?? 0)),
+            'duration_months' => max(1, (int) ceil($application?->start_date?->diffInMonths($application->end_date) ?? 1)),
+            'issued_date' => $certificate->issued_at ?? now(),
+            'mentor_nip' => $evaluation?->mentor?->nip,
+            'mentor_position' => $evaluation?->mentor?->position,
         ];
 
         $pdf = Pdf::loadView('pdf.certificate', $data)->setPaper('a4', 'landscape');
 
         return $pdf->download('Sertifikat-'.Str::slug($certificate->intern->name).'.pdf');
+    }
+
+    private function issueForIntern(User $intern, ?string $requestedNumber): JsonResponse
+    {
+        if ($intern->role !== 'intern') {
+            return $this->errorResponse('Pengguna yang dipilih bukan pemohon magang.', 422);
+        }
+
+        $application = $intern->applications()
+            ->where('final_status', 'accepted')
+            ->latest('id')
+            ->first();
+        if (! $application || $application->internship_status !== 'completed') {
+            return $this->errorResponse('Sertifikat dapat diterbitkan setelah penilaian akhir pembimbing disimpan.', 422);
+        }
+
+        if (! Evaluation::query()->where('intern_application_id', $application->id)->exists()) {
+            return $this->errorResponse('Pemohon magang belum memiliki nilai evaluasi akhir dari pembimbing.', 422);
+        }
+
+        $existing = Certificate::query()->where('intern_application_id', $application->id)->first();
+        if ($existing) {
+            if ($requestedNumber !== null && $existing->certificate_number !== $requestedNumber) {
+                $existing->update(['certificate_number' => $requestedNumber]);
+            }
+            $existing->load(['intern.division', 'internApplication']);
+
+            return $this->successResponse($existing, 'Sertifikat magang telah diterbitkan.');
+        }
+
+        $certificateNumber = $requestedNumber ?? $this->defaultCertificateNumber($application->id);
+        $certificate = Certificate::create([
+            'intern_application_id' => $application->id,
+            'certificate_number' => $certificateNumber,
+            'qr_hash' => hash('sha256', $intern->id.'-'.now()->timestamp.'-'.Str::random(16)),
+            'issued_at' => now(),
+        ]);
+        $certificate->load(['intern.division', 'internApplication']);
+
+        return $this->successResponse($certificate, 'Sertifikat magang digital dengan kode QR berhasil diterbitkan.', 201);
+    }
+
+    private function defaultCertificateNumber(int $applicationId): string
+    {
+        $romanMonths = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'];
+
+        return sprintf(
+            'B-%s/Diskominfo/000.3.1/%s/%s',
+            str_pad((string) $applicationId, 3, '0', STR_PAD_LEFT),
+            $romanMonths[(int) now()->format('n')],
+            now()->format('Y'),
+        );
+    }
+
+    private function gradeFor(float $score): string
+    {
+        return match (true) {
+            $score >= 90 => 'A',
+            $score >= 75 => 'B',
+            $score >= 60 => 'C',
+            default => 'D',
+        };
+    }
+
+    private function descriptionFor(float $score): string
+    {
+        return match (true) {
+            $score >= 90 => 'SANGAT BAIK',
+            $score >= 75 => 'BAIK',
+            $score >= 60 => 'CUKUP',
+            default => 'KURANG',
+        };
     }
 }

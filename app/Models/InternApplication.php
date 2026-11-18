@@ -134,6 +134,24 @@ class InternApplication extends Model
         return $this->hasOne(Certificate::class);
     }
 
+    public function educationLevel(): string
+    {
+        $level = Str::lower(trim((string) $this->jenjang));
+        if ($level !== '') {
+            return str_contains($level, 'smk') ? 'SMK' : 'Kuliah';
+        }
+
+        $institution = Str::lower((string) $this->institution_name);
+        if (preg_match('/(^|[^a-z])smk(?:s|n)?([^a-z]|$)|sekolah menengah kejuruan/u', $institution)) {
+            return 'SMK';
+        }
+        if (preg_match('/universitas|perguruan tinggi|politeknik|institut|sekolah tinggi|stimik|akademi/u', $institution)) {
+            return 'Kuliah';
+        }
+
+        return preg_match('/^\d{10}$/', (string) $this->student_number) ? 'SMK' : 'Kuliah';
+    }
+
     public function suratBalasan(): BelongsTo
     {
         return $this->belongsTo(SuratBalasan::class, 'surat_balasan_id');

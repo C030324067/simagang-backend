@@ -1,6 +1,6 @@
 import React from 'react';
 import useKepegawaianDashboard from '../hooks/useKepegawaianDashboard';
-import { apiRequest, downloadAcceptanceLetter } from '../api';
+import { apiRequest, downloadAcceptanceLetter, getToken } from '../api';
 import InternshipPeriodSettings from '../components/InternshipPeriodSettings';
 import { 
   Clock, 
@@ -8,8 +8,27 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertCircle, 
-  X 
+  X,
+  Download
 } from 'lucide-react';
+
+const getGradeDescription = (score) => {
+  const value = Number(score) || 0;
+  if (value >= 90) return 'SANGAT BAIK';
+  if (value >= 75) return 'BAIK';
+  if (value >= 60) return 'CUKUP';
+  return 'KURANG';
+};
+
+const isSmkApplication = (application) => {
+  const level = application?.education_level || application?.jenjang || '';
+  if (level) return /smk/i.test(level);
+
+  const institution = application?.institution_name || '';
+  if (/(^|\W)smk(s|n)?(\W|$)|sekolah menengah kejuruan/i.test(institution)) return true;
+  if (/universitas|perguruan tinggi|politeknik|institut|sekolah tinggi|stimik|akademi/i.test(institution)) return false;
+  return /^\d{10}$/.test(String(application?.student_number || ''));
+};
 
 export default function KepegawaianDashboard() {
   const {
@@ -19,6 +38,8 @@ export default function KepegawaianDashboard() {
   const [downloadingId, setDownloadingId] = React.useState(null);
   const [evaluations, setEvaluations] = React.useState([]);
   const [issuingId, setIssuingId] = React.useState(null);
+  const [downloadingCertificateId, setDownloadingCertificateId] = React.useState(null);
+  const [certificateNumbers, setCertificateNumbers] = React.useState({});
   const [activeTab, setActiveTab] = React.useState('quota');
 
   React.useEffect(() => {
@@ -27,11 +48,67 @@ export default function KepegawaianDashboard() {
     });
   }, []);
 
-  const issueCertificate = async (internId) => {
+  const issueCertificate = async (internId, certificateNumber) => {
+    if (!certificateNumber?.trim()) {
+      setMsg({ type: 'error', text: 'Nomor sertifikat wajib diisi.' });
+      return;
+    }
+
     setIssuingId(internId);
-    const response = await apiRequest('/certificates/generate', { method: 'POST', body: JSON.stringify({ intern_id: internId }) });
-    setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Penerbitan sertifikat gagal.' });
-    setIssuingId(null);
+    try {
+      const response = await apiRequest('/certificates/generate', {
+        method: 'POST',
+        body: JSON.stringify({ intern_id: internId, certificate_number: certificateNumber.trim() }),
+      });
+      setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Penerbitan sertifikat gagal.' });
+      if (response.success) {
+        setEvaluations((current) => current.map((evaluation) => (
+          Number(evaluation.intern?.id) === Number(internId)
+            ? {
+                ...evaluation,
+                internApplication: {
+                  ...(evaluation.internApplication || {}),
+                  certificate: response.data,
+                },
+              }
+            : evaluation
+        )));
+      }
+    } finally {
+      setIssuingId(null);
+    }
+  };
+
+  const downloadCertificate = async (certificate) => {
+    setDownloadingCertificateId(certificate.id);
+    try {
+      const response = await fetch(`/api/certificates/${certificate.id}/download`, {
+        headers: {
+          Accept: 'application/pdf, application/json',
+          Authorization: `Bearer ${getToken()}`,
+          'X-Active-Role': localStorage.getItem('simagang_active_role') || '',
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        setMsg({ type: 'error', text: error.message || 'Sertifikat PDF gagal diunduh.' });
+        return;
+      }
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      const disposition = response.headers.get('Content-Disposition') || '';
+      link.href = objectUrl;
+      link.download = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'Sertifikat-Magang.pdf';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      setMsg({ type: 'success', text: 'Sertifikat PDF berhasil diunduh.' });
+    } catch (error) {
+      setMsg({ type: 'error', text: error.message || 'Sertifikat PDF gagal diunduh.' });
+    } finally {
+      setDownloadingCertificateId(null);
+    }
   };
 
   const printAcceptanceLetter = async (applicationId) => {
@@ -40,6 +117,11 @@ export default function KepegawaianDashboard() {
     setMsg({ type: response.success ? 'success' : 'error', text: response.message });
     setDownloadingId(null);
   };
+
+  const certificateEvaluations = evaluations.filter((evaluation) => acceptedApps.some((app) => (
+    app.internship_status === 'completed'
+    && Number(app.user?.id) === Number(evaluation.internApplication?.user_id || evaluation.intern?.id)
+  )));
 
   return (
     <div className="min-h-screen bg-slate-50/80 py-8 font-sans text-slate-800">
@@ -283,13 +365,77 @@ export default function KepegawaianDashboard() {
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100"><FileText className="w-5 h-5 text-[#0F2942]" /><h3 className="font-bold text-[#0F2942] text-base sm:text-lg">Penerbitan Sertifikat</h3></div>
           <p className="text-sm text-slate-500">Peserta yang telah menyelesaikan magang dan memiliki evaluasi akhir mentor.</p>
           <div className="divide-y divide-slate-100">
-            {evaluations.filter((evaluation) => acceptedApps.some((app) => app.internship_status === 'completed' && Number(app.user?.id) === Number(evaluation.intern?.id))).map((evaluation) => (
-              <div key={evaluation.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 py-4">
-                <div><p className="font-bold text-sm text-[#0F2942]">{evaluation.intern?.name}</p><p className="text-xs text-slate-500">Nilai akhir: {evaluation.final_score ?? '—'}</p></div>
-                <button type="button" disabled={issuingId === evaluation.intern?.id} onClick={() => issueCertificate(evaluation.intern?.id)} className="rounded-xl bg-[#4F46E5] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{issuingId === evaluation.intern?.id ? 'Menerbitkan…' : 'Terbitkan Sertifikat'}</button>
-              </div>
-            ))}
-            {!evaluations.some((evaluation) => acceptedApps.some((app) => app.internship_status === 'completed' && Number(app.user?.id) === Number(evaluation.intern?.id))) && <p className="py-6 text-center text-sm text-slate-400">Belum ada peserta selesai dengan evaluasi akhir.</p>}
+            {certificateEvaluations.map((evaluation) => {
+              const application = evaluation.internApplication
+                || acceptedApps.find((app) => Number(app.user?.id) === Number(evaluation.intern?.id));
+              const internId = evaluation.intern?.id;
+              const certificate = evaluation.internApplication?.certificate;
+              const isSmk = isSmkApplication(application);
+              const certificateNumber = certificateNumbers[internId] ?? certificate?.certificate_number ?? '';
+
+              return (
+                <div key={evaluation.id} className="space-y-3 py-5">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-bold text-sm text-[#0F2942]">{evaluation.intern?.name}</p>
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${isSmk ? 'bg-violet-100 text-violet-800' : 'bg-blue-100 text-blue-800'}`}>
+                          {isSmk ? 'SMK - PKL' : 'Mahasiswa - Magang'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {application?.institution_name || 'Institusi tidak tersedia'}
+                        {application?.major ? ` · ${application.major}` : ''}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-slate-700">
+                        Nilai Akhir: {Number(evaluation.final_score || 0).toFixed(2)} / {evaluation.grade_letter || '—'}
+                        {' · '}{getGradeDescription(evaluation.final_score)}
+                      </p>
+                    </div>
+                    {certificate && (
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
+                        Terbit {certificate.issued_at ? new Date(certificate.issued_at).toLocaleDateString('id-ID') : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <label className="min-w-0 flex-1">
+                      <span className="mb-1 block text-xs font-bold text-slate-600">Nomor Sertifikat</span>
+                      <input
+                        type="text"
+                        required
+                        maxLength={255}
+                        value={certificateNumber}
+                        onChange={(event) => setCertificateNumbers((previous) => ({ ...previous, [internId]: event.target.value }))}
+                        placeholder="B-478/Diskominfo/000.3.1/XI/2026"
+                        aria-label={`Nomor sertifikat untuk ${evaluation.intern?.name || 'peserta'}`}
+                        className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={issuingId === internId}
+                      onClick={() => issueCertificate(internId, certificateNumber)}
+                      className="rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {issuingId === internId ? 'Menerbitkan…' : certificate ? 'Simpan Nomor Sertifikat' : 'Terbitkan Sertifikat'}
+                    </button>
+                    {certificate && (
+                      <button
+                        type="button"
+                        disabled={downloadingCertificateId === certificate.id}
+                        onClick={() => downloadCertificate(certificate)}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-xs font-bold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                      >
+                        <Download className="h-4 w-4" />
+                        {downloadingCertificateId === certificate.id ? 'Menyiapkan PDF…' : 'Unduh / Cetak Sertifikat PDF'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {!certificateEvaluations.length && <p className="py-6 text-center text-sm text-slate-400">Belum ada peserta selesai dengan evaluasi akhir.</p>}
           </div>
         </section>
         )}

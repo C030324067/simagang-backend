@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class EvaluationController extends Controller
@@ -25,7 +26,7 @@ class EvaluationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Evaluation::with(['intern.division', 'mentor'])->latest();
+        $query = Evaluation::with(['intern.division', 'mentor', 'internApplication.certificate'])->latest();
 
         $activeRole = $user->activeRole();
         if ($activeRole === 'intern') {
@@ -48,7 +49,7 @@ class EvaluationController extends Controller
             return $this->errorResponse('Anda tidak berhak melihat evaluasi peserta lain.', 403);
         }
 
-        $evaluation = Evaluation::with(['intern.division', 'mentor'])->whereHas('internApplication', fn ($q) => $q->where('user_id', $intern->id))->latest('id')->first();
+        $evaluation = Evaluation::with(['intern.division', 'mentor', 'internApplication.certificate'])->whereHas('internApplication', fn ($q) => $q->where('user_id', $intern->id))->latest('id')->first();
         if (! $evaluation) {
             return $this->errorResponse('Evaluasi akhir peserta belum tersedia.', 404);
         }
@@ -82,10 +83,14 @@ class EvaluationController extends Controller
     {
         $validated = $request->validate([
             'intern_id' => ['required', 'integer', 'exists:users,id'],
-            'score_discipline' => ['required', 'numeric', 'min:1', 'max:100'],
-            'score_quality' => ['required', 'numeric', 'min:1', 'max:100'],
-            'score_initiative' => ['required', 'numeric', 'min:1', 'max:100'],
-            'score_teamwork' => ['required', 'numeric', 'min:1', 'max:100'],
+            'score_discipline' => ['required', 'numeric', 'min:0', 'max:100'],
+            'score_quality' => ['required', 'numeric', 'min:0', 'max:100'],
+            'score_initiative' => ['required', 'numeric', 'min:0', 'max:100'],
+            'score_teamwork' => ['required', 'numeric', 'min:0', 'max:100'],
+            'score_softskill' => ['required', 'numeric', 'min:0', 'max:100'],
+            'technical_scores' => ['nullable', 'array', 'max:7'],
+            'technical_scores.*.criteria' => ['required', 'string', 'max:255', 'distinct'],
+            'technical_scores.*.score' => ['required', 'numeric', 'min:0', 'max:100'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -107,6 +112,35 @@ class EvaluationController extends Controller
             return $this->errorResponse('Peserta belum memiliki periode magang yang disetujui.', 422);
         }
 
+        $isSmk = $application->educationLevel() === 'SMK';
+        $technicalScores = $validated['technical_scores'] ?? [];
+        if ($isSmk && count($technicalScores) === 0) {
+            throw ValidationException::withMessages([
+                'technical_scores' => 'Peserta SMK wajib memiliki minimal satu nilai teknis.',
+            ]);
+        }
+        if (! $isSmk && count($technicalScores) > 0) {
+            throw ValidationException::withMessages([
+                'technical_scores' => 'Nilai teknis hanya digunakan untuk peserta SMK.',
+            ]);
+        }
+
+        $technicalScores = array_map(static fn (array $item): array => [
+            'criteria' => trim($item['criteria']),
+            'score' => (float) $item['score'],
+        ], $technicalScores);
+        if (collect($technicalScores)->contains(static fn (array $item): bool => $item['criteria'] === '')) {
+            throw ValidationException::withMessages([
+                'technical_scores' => 'Nama aspek teknis tidak boleh kosong.',
+            ]);
+        }
+        $normalizedCriteria = array_map(static fn (array $item): string => mb_strtolower($item['criteria']), $technicalScores);
+        if (count(array_unique($normalizedCriteria)) !== count($normalizedCriteria)) {
+            throw ValidationException::withMessages([
+                'technical_scores' => 'Nama aspek teknis tidak boleh duplikat.',
+            ]);
+        }
+
         $endDateStr = Carbon::parse($application->end_date)->toDateString();
         if (now()->toDateString() < $endDateStr) {
             return $this->errorResponse('Evaluasi akhir baru dapat diberikan setelah periode magang selesai.', 422);
@@ -123,15 +157,18 @@ class EvaluationController extends Controller
             return $this->errorResponse('Metrik hari kerja belum dapat dihitung. Evaluasi belum disimpan.', 503);
         }
 
-        $finalScore = round((
-            (float) $validated['score_discipline']
-            + (float) $validated['score_quality']
-            + (float) $validated['score_initiative']
-            + (float) $validated['score_teamwork']
-        ) / 4, 2);
+        $skillScores = [
+            (float) $validated['score_discipline'],
+            (float) $validated['score_quality'],
+            (float) $validated['score_initiative'],
+            (float) $validated['score_teamwork'],
+            (float) $validated['score_softskill'],
+        ];
+        $allScores = array_merge($skillScores, array_column($technicalScores, 'score'));
+        $finalScore = round(array_sum($allScores) / count($allScores), 2);
         $gradeLetter = $this->gradeFor($finalScore);
 
-        $evaluation = DB::transaction(function () use ($application, $mentor, $validated, $metrics, $finalScore, $gradeLetter): Evaluation {
+        $evaluation = DB::transaction(function () use ($application, $mentor, $validated, $metrics, $finalScore, $gradeLetter, $technicalScores): Evaluation {
             $evaluation = Evaluation::updateOrCreate(
                 ['intern_application_id' => $application->id],
                 [
@@ -140,8 +177,8 @@ class EvaluationController extends Controller
                     'score_quality' => $validated['score_quality'],
                     'score_initiative' => $validated['score_initiative'],
                     'score_teamwork' => $validated['score_teamwork'],
-                    'score_softskill' => $validated['score_teamwork'],
-                    'score_responsibility' => $validated['score_initiative'],
+                    'score_softskill' => $validated['score_softskill'],
+                    'technical_scores' => $technicalScores ?: null,
                     'task_average' => 0,
                     'attendance_percentage' => $metrics['attendance_percentage'],
                     'final_score' => $finalScore,
@@ -157,12 +194,15 @@ class EvaluationController extends Controller
             return $evaluation;
         });
 
-        $evaluation->load(['intern.division', 'mentor']);
+        $evaluation->load(['intern.division', 'mentor', 'internApplication.certificate']);
         $evaluation->setAttribute('evaluation_summary', sprintf(
-            'Nilai akhir %s (%s), berdasarkan empat kriteria rubrik dengan bobot sama.',
+            'Nilai akhir %s (%s), berdasarkan %d aspek penilaian dengan bobot sama.',
             number_format($finalScore, 2),
             $gradeLetter,
+            count($allScores),
         ));
+        $evaluation->setAttribute('grade_description', $this->descriptionFor($finalScore));
+        $evaluation->setAttribute('education_level', $application->educationLevel());
         $evaluation->setAttribute('metrics', $metrics);
 
         return $this->successResponse($evaluation, 'Evaluasi akhir berhasil disimpan. Ringkasan nilai tersedia untuk penerbitan sertifikat.', 201);
@@ -247,12 +287,19 @@ class EvaluationController extends Controller
     {
         return match (true) {
             $score >= 90 => 'A',
-            $score >= 85 => 'B+',
-            $score >= 80 => 'B',
-            $score >= 75 => 'C+',
-            $score >= 70 => 'C',
-            $score >= 60 => 'D',
-            default => 'F',
+            $score >= 75 => 'B',
+            $score >= 60 => 'C',
+            default => 'D',
+        };
+    }
+
+    private function descriptionFor(float $score): string
+    {
+        return match (true) {
+            $score >= 90 => 'SANGAT BAIK',
+            $score >= 75 => 'BAIK',
+            $score >= 60 => 'CUKUP',
+            default => 'KURANG',
         };
     }
 }

@@ -190,6 +190,7 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
 
         Route::middleware('role:mentor')->group(function () {
             Route::post('/', [EvaluationController::class, 'store']);
+            Route::post('/{evaluation}/generate-certificate', [CertificateController::class, 'generateFromEvaluation']);
         });
     });
 

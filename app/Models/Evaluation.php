@@ -24,6 +24,7 @@ class Evaluation extends Model
         'score_teamwork',
         'score_softskill',
         'score_responsibility',
+        'technical_scores',
         'grade_letter',
         'notes',
         'evaluated_at',
@@ -41,6 +42,7 @@ class Evaluation extends Model
             'score_teamwork' => 'decimal:2',
             'score_softskill' => 'decimal:2',
             'score_responsibility' => 'decimal:2',
+            'technical_scores' => 'array',
             'evaluated_at' => 'datetime',
         ];
     }
