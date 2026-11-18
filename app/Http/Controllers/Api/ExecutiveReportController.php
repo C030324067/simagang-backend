@@ -9,6 +9,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -55,6 +56,40 @@ class ExecutiveReportController extends Controller
             ->download('laporan-eksekutif-magang-'.now()->format('Ymd').'.pdf');
     }
 
+    public function kabidReport(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->reportService->generate($this->validatedKabidFilters($request)),
+        ]);
+    }
+
+    public function exportKabidPdf(Request $request): Response
+    {
+        $filters = $this->validatedKabidFilters($request);
+        $report = $this->reportService->generate($filters);
+        $divisionName = $request->user()->division?->name;
+        $startDate = isset($filters['start_date'])
+            ? Carbon::createFromFormat('Y-m-d', $filters['start_date'])->locale('id')->translatedFormat('d F Y')
+            : null;
+        $endDate = isset($filters['end_date'])
+            ? Carbon::createFromFormat('Y-m-d', $filters['end_date'])->locale('id')->translatedFormat('d F Y')
+            : null;
+        $periodLabel = match (true) {
+            $startDate !== null && $endDate !== null => "Periode: {$startDate} s.d. {$endDate}",
+            $startDate !== null => "Periode: Mulai {$startDate}",
+            $endDate !== null => "Periode: Sampai {$endDate}",
+            default => 'Periode: Semua Periode',
+        };
+
+        return Pdf::loadView('pdf.executive-report', [
+            'report' => $report,
+            'divisionName' => $divisionName,
+            'periodLabel' => $periodLabel,
+        ])
+            ->setPaper('a4', 'portrait')
+            ->download('rekap-bidang-magang-'.now()->format('Ymd').'.pdf');
+    }
+
     /**
      * @return array{division_id?: int, start_date?: string, end_date?: string}
      */
@@ -74,5 +109,33 @@ class ExecutiveReportController extends Controller
         }
 
         return array_filter($filters, fn ($value): bool => $value !== null);
+    }
+
+    /**
+     * @return array{division_id: int, start_date?: string, end_date?: string, status?: string, participants_only: bool}
+     */
+    private function validatedKabidFilters(Request $request): array
+    {
+        $divisionId = $request->user()->division_id;
+        abort_unless($divisionId, 403, 'Akun Kepala Bidang belum terhubung dengan bidang.');
+
+        $filters = $request->validate([
+            'start_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'end_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'status' => ['sometimes', 'nullable', Rule::in(['active', 'completed'])],
+        ]);
+
+        if (isset($filters['start_date'], $filters['end_date'])
+            && $filters['end_date'] < $filters['start_date']) {
+            throw ValidationException::withMessages([
+                'end_date' => 'Tanggal akhir harus sama dengan atau setelah tanggal mulai.',
+            ]);
+        }
+
+        return [
+            'division_id' => (int) $divisionId,
+            ...array_filter($filters, fn ($value): bool => $value !== null),
+            'participants_only' => true,
+        ];
     }
 }
