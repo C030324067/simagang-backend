@@ -53,16 +53,11 @@ export default function KepegawaianDashboard() {
               Verifikasi kelengkapan berkas pemohon magang, periksa kuota, dan tentukan bidang penempatan.
             </p>
           </div>
-          <div className="flex min-w-[220px] items-center justify-between gap-5 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm md:min-w-[250px]">
-            <div>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              MENUNGGU VERIFIKASI
-              </span>
-              <div className="mt-1 text-4xl font-extrabold leading-none text-indigo-600">{pendingApps.length}</div>
-            </div>
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
-              <Clock className="h-5 w-5" />
+          <div className="flex min-w-[170px] flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white px-6 py-3.5 shadow-sm md:min-w-[190px]">
+            <span className="text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Menunggu Verifikasi
             </span>
+            <div className="mt-1 text-3xl font-extrabold leading-none text-indigo-600">{pendingApps.length}</div>
           </div>
         </section>
 
