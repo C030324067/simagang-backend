@@ -245,7 +245,7 @@
         Bersama dengan surat ini kami <strong>Bersedia</strong> memberi kesempatan Magang kepada mahasiswa/i dari 
         {{ $application->institution_name ?? ($application->user?->institution_name ?? '—') }} di Dinas Komunikasi dan Informatika Kabupaten Tabalong
         @if (!empty($application->start_date) && !empty($application->end_date))
-            selama <strong>{{ $durasiBulan ?? 0 }} bulan</strong>, periode <strong>{{ $application->start_date?->locale('id')->translatedFormat('j F Y') }} s/d {{ $application->end_date?->locale('id')->translatedFormat('j F Y') }}</strong>
+            selama <strong>{{ $durasiMagang ?? '0 hari' }}</strong>, periode <strong>{{ $application->start_date?->locale('id')->translatedFormat('j F Y') }} s/d {{ $application->end_date?->locale('id')->translatedFormat('j F Y') }}</strong>
         @endif. 
         Berikut ini adalah Nama-nama Mahasiswa/i yang akan melaksanakan Magang di Dinas Komunikasi dan Informatika Kabupaten Tabalong:
     </p>

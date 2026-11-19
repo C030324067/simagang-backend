@@ -934,7 +934,7 @@ class ApplicationController extends Controller
         $pdf = Pdf::loadView('pdf.surat_balasan', [
             'application' => $application,
             'applications' => $applications,
-            'durasiBulan' => Carbon::parse($application->start_date)->diffInMonths(Carbon::parse($application->end_date)),
+            'durasiMagang' => $this->formatInternshipDuration($application->start_date, $application->end_date),
             'nomorSurat' => $validated['official_letter_number'],
             'pendaftar' => $application,
             'tanggalPenerbitan' => now()->locale('id'),
@@ -1019,7 +1019,7 @@ class ApplicationController extends Controller
         return Pdf::loadView('pdf.surat_balasan', [
             'application' => $application,
             'applications' => $application->suratBalasan?->pendaftaran()->with(['user', 'division'])->get() ?? collect([$application]),
-            'durasiBulan' => Carbon::parse($application->start_date)->diffInMonths(Carbon::parse($application->end_date)),
+            'durasiMagang' => $this->formatInternshipDuration($application->start_date, $application->end_date),
             'nomorSurat' => $application->suratBalasan?->nomor_surat ?? $application->official_letter_number ?? $application->acceptance_letter_number,
             'pendaftar' => $application,
             'tanggalPenerbitan' => now()->locale('id'),
@@ -1031,6 +1031,19 @@ class ApplicationController extends Controller
         $division = Division::query()->find($divisionId);
 
         return $division !== null && $division->remainingQuota() > 0;
+    }
+
+    private function formatInternshipDuration(mixed $startDate, mixed $endDate): string
+    {
+        $days = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate));
+
+        if ($days < 28) {
+            return "{$days} hari";
+        }
+
+        $months = rtrim(rtrim(number_format($days / 30, 1, '.', ''), '0'), '.');
+
+        return str_replace('.', ',', $months).' bulan';
     }
 
     private function perPage(Request $request, int $default = 15): int
