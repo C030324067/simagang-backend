@@ -29,10 +29,15 @@ class EvaluationController extends Controller
         $query = Evaluation::with(['intern.division', 'mentor', 'internApplication.certificate'])->latest();
 
         $activeRole = $user->activeRole();
+        if ($user->role === 'kabid' && $activeRole !== 'mentor') {
+            return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
+        }
         if ($activeRole === 'intern') {
             $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $user->id));
         } elseif ($activeRole === 'mentor') {
-            $query->where('mentor_id', $user->id);
+            abort_unless($user->isMentorContext(), 403, 'Akun ini tidak memiliki akses pembimbing.');
+            $query->where('mentor_id', $user->id)
+                ->whereHas('internApplication', fn ($applications) => $applications->forMentor((int) $user->id));
         }
 
         return $this->successResponse($query->paginate($request->input('per_page', 15)), 'Daftar evaluasi akhir berhasil dimuat.');
@@ -40,16 +45,28 @@ class EvaluationController extends Controller
 
     public function show(Request $request, User $intern): JsonResponse
     {
-        if ($request->user()->activeRole() === 'mentor'
-            && (! $request->user()->division_id || (int) $intern->division_id !== (int) $request->user()->division_id)) {
-            return $this->errorResponse('Anda tidak berhak melihat evaluasi peserta dari divisi lain.', 403);
+        $actor = $request->user();
+        if ($actor->role === 'kabid' && $actor->activeRole() !== 'mentor') {
+            return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
+        }
+        if ($actor->activeRole() === 'mentor' && ! $this->mentorCanReview($actor, $intern)) {
+            return $this->errorResponse('Anda tidak berhak melihat evaluasi peserta ini.', 403);
         }
 
-        if ($request->user()->activeRole() === 'intern' && (int) $intern->id !== (int) $request->user()->id) {
+        if ($actor->activeRole() === 'intern' && (int) $intern->id !== (int) $actor->id) {
             return $this->errorResponse('Anda tidak berhak melihat evaluasi peserta lain.', 403);
         }
 
-        $evaluation = Evaluation::with(['intern.division', 'mentor', 'internApplication.certificate'])->whereHas('internApplication', fn ($q) => $q->where('user_id', $intern->id))->latest('id')->first();
+        $evaluation = Evaluation::with(['intern.division', 'mentor', 'internApplication.certificate'])
+            ->whereHas('internApplication', function ($query) use ($intern, $actor): void {
+                $query->where('user_id', $intern->id);
+                if ($actor->activeRole() === 'mentor') {
+                    $query->forMentor((int) $actor->id);
+                }
+            })
+            ->when($actor->activeRole() === 'mentor', fn ($query) => $query->where('mentor_id', $actor->id))
+            ->latest('id')
+            ->first();
         if (! $evaluation) {
             return $this->errorResponse('Evaluasi akhir peserta belum tersedia.', 404);
         }
@@ -60,6 +77,9 @@ class EvaluationController extends Controller
     public function metrics(Request $request, User $intern, EffectiveWorkingDaysCalculator $workingDays): JsonResponse
     {
         $actor = $request->user();
+        if ($actor->role === 'kabid' && $actor->activeRole() !== 'mentor') {
+            return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
+        }
         $canViewMetrics = $actor->activeRole() === 'intern'
             ? (int) $actor->id === (int) $intern->id
             : $this->mentorCanReview($actor, $intern);
@@ -68,7 +88,12 @@ class EvaluationController extends Controller
         }
 
         try {
-            return $this->successResponse($this->buildMetrics($intern, $workingDays), 'Metrik perkembangan peserta berhasil dihitung.');
+            $application = $this->applicationForMentor($actor, $intern);
+
+            return $this->successResponse(
+                $this->buildMetrics($intern, $workingDays, $application, $actor->activeRole() === 'mentor' ? $actor : null),
+                'Metrik perkembangan peserta berhasil dihitung.',
+            );
         } catch (Throwable $exception) {
             Log::warning('Gagal menghitung metrik evaluasi akhir.', [
                 'intern_id' => $intern->id,
@@ -100,14 +125,10 @@ class EvaluationController extends Controller
             return $this->errorResponse('Peserta magang tidak ditemukan.', 422);
         }
         if (! $this->mentorCanReview($mentor, $intern)) {
-            return $this->errorResponse('Anda tidak berhak menilai peserta dari divisi lain.', 403);
+            return $this->errorResponse('Anda tidak berhak menilai peserta ini.', 403);
         }
 
-        $application = InternApplication::query()
-            ->where('user_id', $intern->id)
-            ->where('final_status', 'accepted')
-            ->latest('id')
-            ->first();
+        $application = $this->applicationForMentor($mentor, $intern);
         if (! $application) {
             return $this->errorResponse('Peserta belum memiliki periode magang yang disetujui.', 422);
         }
@@ -147,7 +168,7 @@ class EvaluationController extends Controller
         }
 
         try {
-            $metrics = $this->buildMetrics($intern, $workingDays);
+            $metrics = $this->buildMetrics($intern, $workingDays, $application, $mentor);
         } catch (Throwable $exception) {
             Log::warning('Evaluasi akhir gagal menghitung metrik peserta.', [
                 'intern_id' => $intern->id,
@@ -210,24 +231,31 @@ class EvaluationController extends Controller
 
     private function mentorCanReview(User $mentor, User $intern): bool
     {
-        if ($mentor->activeRole() !== 'mentor' || $intern->role !== 'intern') {
-            return false;
-        }
+        return $mentor->isMentorContext()
+            && $intern->role === 'intern'
+            && InternApplication::query()
+                ->forMentor((int) $mentor->id)
+                ->where('user_id', $intern->id)
+                ->exists();
+    }
 
-        if ($mentor->division_id !== null && (int) $mentor->division_id === (int) $intern->division_id) {
-            return true;
-        }
-
+    private function applicationForMentor(User $mentor, User $intern): ?InternApplication
+    {
         return InternApplication::query()
+            ->forMentor((int) $mentor->id)
             ->where('user_id', $intern->id)
-            ->where('mentor_id', $mentor->id)
-            ->exists();
+            ->latest('id')
+            ->first();
     }
 
     /** @return array<string, int|float|string> */
-    private function buildMetrics(User $intern, EffectiveWorkingDaysCalculator $workingDays): array
-    {
-        $application = InternApplication::query()
+    private function buildMetrics(
+        User $intern,
+        EffectiveWorkingDaysCalculator $workingDays,
+        ?InternApplication $application = null,
+        ?User $mentor = null,
+    ): array {
+        $application ??= InternApplication::query()
             ->where('user_id', $intern->id)
             ->where('final_status', 'accepted')
             ->latest('id')
@@ -256,6 +284,9 @@ class EvaluationController extends Controller
             ->count('date');
 
         $tasks = Task::query()->where('assigned_to', $intern->id);
+        if ($mentor) {
+            $tasks->where('created_by', $mentor->id);
+        }
         $totalTasks = (clone $tasks)->count();
         $completedTasks = (clone $tasks)->where('status', 'completed')->count();
         $inProgressTasks = (clone $tasks)->where('status', 'in_progress')->count();

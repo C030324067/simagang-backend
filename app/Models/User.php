@@ -225,6 +225,19 @@ class User extends Authenticatable
         return $this->role === 'mentor';
     }
 
+    public function isMentorContext(): bool
+    {
+        return $this->activeRole() === 'mentor' && $this->hasRole('mentor');
+    }
+
+    public function canMentorApplication(InternApplication $application): bool
+    {
+        return $this->isMentorContext()
+            && (int) $application->mentor_id === (int) $this->id
+            && $application->final_status === 'accepted'
+            && $application->user()->where('role', 'intern')->exists();
+    }
+
     /**
      * Get the roles available to this account, including mentor assignments.
      *
@@ -234,7 +247,7 @@ class User extends Authenticatable
     {
         $roles = array_filter([$this->role], fn (?string $role): bool => filled($role));
 
-        if ($this->role === 'kabid' && InternApplication::query()->where('mentor_id', $this->getKey())->exists()) {
+        if ($this->role === 'kabid' && InternApplication::query()->forMentor((int) $this->getKey())->exists()) {
             $roles[] = 'mentor';
         }
 

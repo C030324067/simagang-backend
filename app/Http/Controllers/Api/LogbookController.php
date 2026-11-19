@@ -19,18 +19,21 @@ class LogbookController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $activeRole = $user->activeRole();
         $query = Logbook::with(['user', 'verifier'])->latest('date');
 
-        if ($user->role === 'intern') {
+        if ($user->role === 'kabid' && $activeRole !== 'mentor') {
+            return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
+        }
+
+        if ($activeRole === 'intern') {
             $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $user->id));
-        } elseif ($user->role === 'mentor') {
-            if (! $user->division_id) {
-                return $this->errorResponse('Akun mentor belum terhubung dengan divisi.', 403);
+        } elseif ($activeRole === 'mentor') {
+            if (! $user->isMentorContext()) {
+                return $this->errorResponse('Akun ini tidak memiliki akses pembimbing.', 403);
             }
 
-            $query->whereHas('user', fn ($query) => $query
-                ->where('role', 'intern')
-                ->where('users.division_id', $user->division_id));
+            $query->whereHas('internApplication', fn ($q) => $q->forMentor((int) $user->id));
         } elseif ($request->filled('user_id')) {
             $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $request->input('user_id')));
         }
@@ -97,13 +100,12 @@ class LogbookController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role === 'mentor'
-            && (! $user->division_id
-                || ! $logbook->user()
-                    ->where('role', 'intern')
-                    ->where('users.division_id', $user->division_id)
-                    ->exists())) {
-            return $this->errorResponse('Anda tidak berhak memverifikasi logbook dari divisi lain.', 403);
+        if ($user->isMentorContext()) {
+            if (! $user->canMentorApplication($logbook->internApplication)) {
+                return $this->errorResponse('Anda tidak berhak memverifikasi logbook peserta lain.', 403);
+            }
+        } elseif ($user->activeRole() !== 'admin_kepegawaian') {
+            return $this->errorResponse('Anda tidak berhak memverifikasi logbook ini.', 403);
         }
 
         $validated = $request->validate([

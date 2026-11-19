@@ -172,6 +172,13 @@ class InternApplication extends Model
         return $query->where('division_id', $divisionId);
     }
 
+    public function scopeForMentor(Builder $query, int $mentorId): Builder
+    {
+        return $query->where('mentor_id', $mentorId)
+            ->where('final_status', 'accepted')
+            ->whereHas('user', fn (Builder $users) => $users->where('role', 'intern'));
+    }
+
     public function scopeActiveInternships(Builder $query): Builder
     {
         return $query->where('final_status', 'accepted')

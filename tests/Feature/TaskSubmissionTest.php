@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Division;
+use App\Models\InternApplication;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,6 +33,7 @@ class TaskSubmissionTest extends TestCase
             'status_akun' => 'approved',
             'division_id' => $division->id,
         ]);
+        $this->assignInternToMentor($intern, $mentor, $division);
         $task = Task::create([
             'title' => 'Laporan kegiatan',
             'description' => 'Buat laporan kegiatan mingguan.',
@@ -84,6 +86,7 @@ class TaskSubmissionTest extends TestCase
             'status_akun' => 'approved',
             'division_id' => $division->id,
         ]);
+        $this->assignInternToMentor($intern, $mentor, $division);
         $task = Task::create([
             'title' => 'Laporan kegiatan',
             'assigned_to' => $intern->id,
@@ -118,6 +121,7 @@ class TaskSubmissionTest extends TestCase
             'status_akun' => 'approved',
             'division_id' => $division->id,
         ]);
+        $this->assignInternToMentor($intern, $mentor, $division);
         $task = Task::create([
             'title' => 'Laporan kegiatan',
             'assigned_to' => $intern->id,
@@ -153,6 +157,7 @@ class TaskSubmissionTest extends TestCase
             'status_akun' => 'approved',
             'division_id' => $division->id,
         ]);
+        $this->assignInternToMentor($intern, $mentor, $division);
         $task = Task::create([
             'title' => 'Laporan kegiatan',
             'assigned_to' => $intern->id,
@@ -219,5 +224,21 @@ class TaskSubmissionTest extends TestCase
             ->putJson("/api/tasks/{$task->id}/status", ['status' => 'revision_needed'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['catatan_revisi']);
+    }
+
+    private function assignInternToMentor(User $intern, User $mentor, Division $division): void
+    {
+        InternApplication::create([
+            'user_id' => $intern->id,
+            'application_type' => 'mandiri',
+            'institution_name' => 'Universitas Tabalong',
+            'start_date' => now()->subDays(5)->toDateString(),
+            'end_date' => now()->addDays(30)->toDateString(),
+            'division_id' => $division->id,
+            'mentor_id' => $mentor->id,
+            'status' => 'accepted',
+            'final_status' => 'accepted',
+            'internship_status' => 'in_progress',
+        ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Division;
+use App\Models\InternApplication;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,6 +32,18 @@ class TaskMentorFilesTest extends TestCase
             'role' => 'intern',
             'status_akun' => 'approved',
             'division_id' => $division->id,
+        ]);
+        InternApplication::create([
+            'user_id' => $intern->id,
+            'application_type' => 'mandiri',
+            'institution_name' => 'Universitas Tabalong',
+            'start_date' => now()->subDays(5)->toDateString(),
+            'end_date' => now()->addDays(30)->toDateString(),
+            'division_id' => $division->id,
+            'mentor_id' => $mentor->id,
+            'status' => 'accepted',
+            'final_status' => 'accepted',
+            'internship_status' => 'in_progress',
         ]);
 
         $created = $this->actingAs($mentor, 'sanctum')

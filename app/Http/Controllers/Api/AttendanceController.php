@@ -29,12 +29,15 @@ class AttendanceController extends Controller
     {
         $user = $request->user();
         $query = Attendance::with('user')->latest('date');
+        $activeRole = $user->activeRole();
 
-        if ($user->role === 'intern') {
+        if ($activeRole === 'intern') {
             $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $user->id));
-        } elseif ($user->role === 'mentor') {
-            abort_unless($user->division_id, 403, 'Akun mentor belum terhubung dengan divisi.');
-            $query->whereHas('user', fn ($userQuery) => $userQuery->where('users.division_id', $user->division_id));
+        } elseif ($activeRole === 'mentor') {
+            abort_unless($user->isMentorContext(), 403, 'Akun ini tidak memiliki akses pembimbing.');
+            $query->whereHas('internApplication', fn ($applications) => $applications->forMentor((int) $user->id));
+        } elseif ($user->role === 'kabid') {
+            return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
         } elseif ($request->filled('user_id')) {
             $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $request->input('user_id')));
         }
@@ -55,7 +58,11 @@ class AttendanceController extends Controller
     public function summary(Request $request, EffectiveWorkingDaysCalculator $workingDays): JsonResponse
     {
         $actor = $request->user();
-        $internId = $actor->role === 'intern' ? $actor->id : $request->integer('user_id');
+        $activeRole = $actor->activeRole();
+        if (! in_array($activeRole, ['intern', 'mentor'], true)) {
+            return $this->errorResponse('Pilih mode Intern atau Mentor untuk melihat ringkasan kehadiran.', 403);
+        }
+        $internId = $activeRole === 'intern' ? $actor->id : $request->integer('user_id');
 
         if (! $internId) {
             return $this->errorResponse('Pilih peserta magang untuk melihat ringkasan kehadiran.', 422);
@@ -66,15 +73,18 @@ class AttendanceController extends Controller
             return $this->errorResponse('Peserta magang tidak ditemukan.', 404);
         }
 
-        if ($actor->role === 'mentor' && (! $actor->division_id || (int) $intern->division_id !== (int) $actor->division_id)) {
-            return $this->errorResponse('Anda tidak berhak melihat kehadiran peserta dari bidang lain.', 403);
+        $applicationQuery = InternApplication::query()->where('user_id', $intern->id)->where('final_status', 'accepted');
+        if ($activeRole === 'mentor') {
+            if (! $actor->isMentorContext()) {
+                return $this->errorResponse('Akun ini tidak memiliki akses pembimbing.', 403);
+            }
+            $applicationQuery->forMentor((int) $actor->id);
         }
+        $application = $applicationQuery->latest('id')->first();
 
-        $application = InternApplication::query()
-            ->where('user_id', $intern->id)
-            ->where('final_status', 'accepted')
-            ->latest('id')
-            ->first();
+        if ($activeRole === 'mentor' && ! $application) {
+            return $this->errorResponse('Anda tidak berhak melihat kehadiran peserta ini.', 403);
+        }
 
         if (! $application) {
             return $this->successResponse([
@@ -277,14 +287,14 @@ class AttendanceController extends Controller
     public function pendingApprovals(Request $request): JsonResponse
     {
         $mentor = $request->user();
-        abort_unless($mentor->division_id, 403, 'Akun mentor belum terhubung dengan divisi.');
+        abort_unless($mentor->isMentorContext(), 403, 'Akun ini tidak memiliki akses pembimbing.');
 
         $attendances = Attendance::query()
             ->with(['user' => function ($query): void {
                 $query->select('users.id', 'users.name', 'users.email', 'users.division_id');
             }])
             ->where('approval_status', 'pending_approval')
-            ->whereHas('user', fn ($query) => $query->where('users.division_id', $mentor->division_id))
+            ->whereHas('internApplication', fn ($query) => $query->forMentor((int) $mentor->id))
             ->latest('date')
             ->latest('id')
             ->get();
@@ -306,8 +316,7 @@ class AttendanceController extends Controller
     public function review(Request $request, Attendance $attendance): JsonResponse
     {
         $mentor = $request->user();
-        abort_unless($mentor->division_id, 403, 'Akun mentor belum terhubung dengan divisi.');
-        abort_unless((int) $attendance->user()->value('users.division_id') === (int) $mentor->division_id, 404);
+        abort_unless($mentor->canMentorApplication($attendance->internApplication), 404);
 
         $validated = $request->validate([
             'approval_status' => ['required', Rule::in(['approved', 'rejected'])],
@@ -318,8 +327,9 @@ class AttendanceController extends Controller
             return $this->errorResponse('Presensi ini sudah ditinjau sebelumnya.', 422);
         }
 
-        DB::transaction(function () use ($attendance, $validated): void {
+        DB::transaction(function () use ($attendance, $validated, $mentor): void {
             $lockedAttendance = Attendance::query()->lockForUpdate()->findOrFail($attendance->id);
+            abort_unless($mentor->canMentorApplication($lockedAttendance->internApplication), 404);
             if ($lockedAttendance->approval_status !== 'pending_approval') {
                 abort(409, 'Presensi sudah ditinjau oleh mentor lain. Muat ulang antrean.');
             }
@@ -336,8 +346,7 @@ class AttendanceController extends Controller
     public function file(Request $request, Attendance $attendance, string $kind): StreamedResponse
     {
         $mentor = $request->user();
-        abort_unless($mentor->division_id, 403, 'Akun mentor belum terhubung dengan divisi.');
-        abort_unless((int) $attendance->user()->value('users.division_id') === (int) $mentor->division_id, 404);
+        abort_unless($mentor->canMentorApplication($attendance->internApplication), 404);
 
         $path = match ($kind) {
             'selfie' => $attendance->selfie_path ?: $attendance->photo_in,

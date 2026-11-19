@@ -256,6 +256,9 @@ export default function KabidDashboard() {
                   <div>
                     <p className="font-bold text-sm text-[#0F172A]">{app.user?.name}</p>
                     <p className="text-xs text-slate-500">{app.institution_name} · {app.division?.name || 'Bidang'}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Mentor Pembimbing: <span className="font-semibold text-slate-700">{app.mentor?.name || 'Belum ditentukan'}</span>
+                    </p>
                   </div>
                   <button
                     type="button"

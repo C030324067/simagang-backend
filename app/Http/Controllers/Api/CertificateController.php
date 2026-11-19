@@ -64,15 +64,14 @@ class CertificateController extends Controller
     public function generateFromEvaluation(Request $request, Evaluation $evaluation): JsonResponse
     {
         $mentor = $request->user();
-        if ($mentor->activeRole() !== 'mentor'
+        if (! $mentor->isMentorContext()
             || (int) $evaluation->mentor_id !== (int) $mentor->id
             || ! $evaluation->internApplication?->user
-            || (! $mentor->division_id && (int) $evaluation->internApplication->mentor_id !== (int) $mentor->id)
-            || ($mentor->division_id && (int) $evaluation->internApplication->user->division_id !== (int) $mentor->division_id)) {
+            || ! $mentor->canMentorApplication($evaluation->internApplication)) {
             return $this->errorResponse('Anda tidak berhak menerbitkan sertifikat untuk evaluasi ini.', 403);
         }
 
-        return $this->issueForIntern($evaluation->internApplication->user, null);
+        return $this->issueForIntern($evaluation->internApplication->user, null, $evaluation->internApplication);
     }
 
     /**
@@ -138,12 +137,15 @@ class CertificateController extends Controller
         $certificate = Certificate::with(['intern.division', 'intern.evaluations.mentor', 'intern.activeApplication'])
             ->findOrFail($id);
 
-        if ($request->user()->role === 'intern'
+        if ($request->user()->activeRole() === 'intern'
             && (int) $certificate->internApplication()->value('user_id') !== (int) $request->user()->id) {
             abort(404);
         }
 
         $application = $certificate->internApplication;
+        if ($request->user()->activeRole() === 'mentor') {
+            abort_unless($request->user()->canMentorApplication($application), 404);
+        }
         $evaluation = $application?->evaluation;
         $evaluation?->load('mentor');
         $educationLevel = $application?->educationLevel() ?? 'Kuliah';
@@ -197,13 +199,13 @@ class CertificateController extends Controller
         return $pdf->download('Sertifikat-'.Str::slug($certificate->intern->name).'.pdf');
     }
 
-    private function issueForIntern(User $intern, ?string $requestedNumber): JsonResponse
+    private function issueForIntern(User $intern, ?string $requestedNumber, ?InternApplication $application = null): JsonResponse
     {
         if ($intern->role !== 'intern') {
             return $this->errorResponse('Pengguna yang dipilih bukan pemohon magang.', 422);
         }
 
-        $application = $intern->applications()
+        $application ??= $intern->applications()
             ->where('final_status', 'accepted')
             ->latest('id')
             ->first();

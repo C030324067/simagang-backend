@@ -102,7 +102,7 @@ class PenilaianSmkController extends Controller
     {
         $user = $request->user();
 
-        return in_array($user->role, ['admin_kepegawaian', 'mentor'], true)
-            && ($user->role === 'admin_kepegawaian' || (int) $user->division_id === (int) $application->division_id);
+        return $user->activeRole() === 'admin_kepegawaian'
+            || $user->canMentorApplication($application);
     }
 }

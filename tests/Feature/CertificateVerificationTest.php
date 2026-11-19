@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Division;
-use App\Models\Certificate;
 use App\Models\InternApplication;
 use App\Models\User;
 use Carbon\Carbon;
@@ -50,6 +49,7 @@ class CertificateVerificationTest extends TestCase
             'end_date' => Carbon::today()->toDateString(),
             'final_status' => 'accepted',
             'division_id' => $this->division->id,
+            'mentor_id' => $this->mentor->id,
         ]);
     }
 
@@ -113,6 +113,7 @@ class CertificateVerificationTest extends TestCase
             'end_date' => Carbon::today()->toDateString(),
             'final_status' => 'accepted',
             'division_id' => $this->division->id,
+            'mentor_id' => $this->mentor->id,
         ]);
 
         $evaluationResponse = $this->actingAs($this->mentor, 'sanctum')->postJson('/api/evaluations', [

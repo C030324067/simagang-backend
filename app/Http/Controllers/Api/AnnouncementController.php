@@ -20,6 +20,9 @@ class AnnouncementController extends Controller
         $activeRole = $user->activeRole();
 
         if ($activeRole === 'mentor') {
+            if (! $user->isMentorContext()) {
+                return $this->errorResponse('Akun ini tidak memiliki akses pembimbing.', 403);
+            }
             $divisionId = $user->division_id;
         } elseif ($activeRole === 'intern') {
             $application = InternApplication::query()
@@ -40,6 +43,7 @@ class AnnouncementController extends Controller
         $announcements = Announcement::query()
             ->with(['mentor:id,name', 'division:id,name'])
             ->where('division_id', $divisionId)
+            ->when($activeRole === 'mentor', fn ($query) => $query->where('mentor_id', $user->id))
             ->latest()
             ->get();
 

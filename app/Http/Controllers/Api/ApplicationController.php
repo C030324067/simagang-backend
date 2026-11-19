@@ -35,6 +35,8 @@ class ApplicationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $actor = $request->user();
+        $activeRole = $actor->activeRole();
         $query = InternApplication::with([
             'user',
             'division',
@@ -45,12 +47,12 @@ class ApplicationController extends Controller
         ])
             ->latest();
 
-        if ($request->user()->role === 'kabid') {
-            if (! $request->user()->division_id) {
+        if ($activeRole === 'kabid') {
+            if (! $actor->division_id) {
                 return $this->errorResponse('Akun Kepala Bidang belum terhubung dengan bidang.', 403);
             }
 
-            $query->forKabidDivision((int) $request->user()->division_id)
+            $query->forKabidDivision((int) $actor->division_id)
                 ->whereIn('status', ['pending_kadis', 'approved_by_kadis', 'accepted', 'rejected_by_kabid']);
         }
 
@@ -66,17 +68,13 @@ class ApplicationController extends Controller
             $query->where('application_type', $request->input('application_type'));
         }
 
-        if ($request->user()->role === 'mentor') {
-            if (! $request->user()->division_id) {
-                return $this->errorResponse('Akun mentor belum terhubung dengan divisi.', 403);
+        if ($activeRole === 'mentor') {
+            if (! $actor->isMentorContext()) {
+                return $this->errorResponse('Akun ini tidak memiliki akses pembimbing.', 403);
             }
 
-            $query->where('final_status', 'accepted')
-                ->where('division_id', $request->user()->division_id)
-                ->whereHas('user', fn ($query) => $query
-                    ->where('role', 'intern')
-                    ->where('status_akun', 'approved')
-                    ->where('users.division_id', $request->user()->division_id));
+            $query->forMentor((int) $actor->id)
+                ->activeInternships();
         }
 
         $applications = $query->paginate($this->perPage($request));
@@ -89,31 +87,20 @@ class ApplicationController extends Controller
      */
     public function show(Request $request, InternApplication $application): JsonResponse
     {
-        abort_unless(
-            $request->user()->role !== 'intern'
-                || (int) $application->user_id === (int) $request->user()->id,
-            403,
-        );
-        if ($request->user()->role === 'kabid') {
+        $actor = $request->user();
+        $activeRole = $actor->activeRole();
+        abort_unless($activeRole !== 'intern' || (int) $application->user_id === (int) $actor->id, 403);
+
+        if ($activeRole === 'kabid') {
             abort_unless(
-                $request->user()->division_id
-                    && (int) $application->division_id === (int) $request->user()->division_id,
+                $actor->division_id
+                    && (int) $application->division_id === (int) $actor->division_id,
                 403,
             );
         }
 
-        if ($request->user()->role === 'mentor') {
-            abort_unless(
-                $request->user()->division_id
-                    && (int) $application->division_id === (int) $request->user()->division_id
-                    && $application->final_status === 'accepted'
-                    && $application->user()
-                        ->where('role', 'intern')
-                        ->where('status_akun', 'approved')
-                        ->where('division_id', $request->user()->division_id)
-                        ->exists(),
-                404,
-            );
+        if ($activeRole === 'mentor') {
+            abort_unless($actor->canMentorApplication($application), 404);
         }
 
         $application->load(['user', 'division', 'verifierKepegawaian', 'verifierKabid', 'verifierKadis']);
@@ -317,6 +304,7 @@ class ApplicationController extends Controller
             ->with([
                 'division:id,name',
                 'user:id,name,email,no_hp,division_id,is_active',
+                'mentor:id,name,role',
             ])
             ->latest()
             ->paginate($this->perPage($request));

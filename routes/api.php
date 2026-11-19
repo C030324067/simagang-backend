@@ -149,7 +149,9 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
         });
 
         Route::middleware('role:mentor')->group(function () {
+            Route::get('/pending-approval', [AttendanceController::class, 'pendingApprovals']);
             Route::get('/{attendance}/files/{kind}', [AttendanceController::class, 'file']);
+            Route::put('/{attendance}/review', [AttendanceController::class, 'review']);
         });
     });
 
@@ -160,7 +162,7 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
         Route::middleware('role:intern')->group(function () {
             Route::post('/', [LogbookController::class, 'store']);
         });
-
+        Route::middleware('role:mentor,admin_kepegawaian')->put('/{logbook}/verify', [LogbookController::class, 'verify']);
     });
 
     // Task Management Endpoints

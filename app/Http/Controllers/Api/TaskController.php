@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TaskStatusRequest;
+use App\Models\InternApplication;
 use App\Models\Task;
+use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,8 +31,11 @@ class TaskController extends Controller
             $query->where('division_id', $user->division_id)
                 ->where('assigned_to', $user->id);
         } elseif ($role === 'mentor') {
-            $query->where('division_id', $user->division_id)
-                ->where('created_by', $user->id);
+            abort_unless($user->isMentorContext(), 403, 'Akun ini tidak memiliki akses pembimbing.');
+            $query->where('created_by', $user->id)
+                ->whereHas('assignedUser.applications', fn ($applications) => $applications->forMentor((int) $user->id));
+        } elseif ($user->role === 'kabid') {
+            return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
         }
 
         if ($request->filled('status')) {
@@ -50,12 +55,8 @@ class TaskController extends Controller
         $user = $request->user();
         $role = $user->activeRole();
 
-        if ($role !== 'mentor') {
+        if ($role !== 'mentor' || ! $user->isMentorContext()) {
             return $this->errorResponse('Hanya mentor aktif yang dapat membuat tugas.', 403);
-        }
-
-        if (! $user->division_id) {
-            return $this->errorResponse('Akun mentor belum terhubung dengan divisi', 403);
         }
 
         $validated = $request->validate([
@@ -65,15 +66,22 @@ class TaskController extends Controller
             'assigned_to' => [
                 'required',
                 Rule::exists('users', 'id')->where(fn ($query) => $query
-                    ->where('role', 'intern')
-                    ->where('status_akun', 'approved')
-                    ->where('division_id', $user->division_id)),
+                    ->where('role', 'intern')),
             ],
             // The form submits a date (YYYY-MM-DD), so allow any time today.
             'deadline' => ['nullable', 'date', 'after_or_equal:today'],
         ], [
-            'assigned_to.exists' => 'Peserta magang harus berasal dari divisi mentor.',
+            'assigned_to.exists' => 'Pilih peserta magang yang valid.',
         ]);
+
+        $application = InternApplication::query()
+            ->forMentor((int) $user->id)
+            ->where('user_id', $validated['assigned_to'])
+            ->latest('id')
+            ->first();
+        if (! $application) {
+            return $this->errorResponse('Peserta magang tidak ditugaskan kepada Anda.', 422);
+        }
 
         $taskFilePath = null;
         $taskFileName = null;
@@ -87,7 +95,7 @@ class TaskController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'assigned_to' => $validated['assigned_to'],
-            'division_id' => $user->division_id,
+            'division_id' => $application->division_id,
             'created_by' => $user->id,
             'deadline' => $validated['deadline'] ?? null,
             'status' => 'pending',
@@ -114,7 +122,11 @@ class TaskController extends Controller
         }
 
         if ($role === 'mentor'
-            && ((int) $task->created_by !== (int) $user->id || (int) $task->division_id !== (int) $user->division_id)) {
+            && ! $this->mentorCanAccessTask($user, $task)) {
+            return $this->errorResponse('Anda tidak berhak memperbarui tugas ini.', 403);
+        }
+
+        if (! in_array($role, ['intern', 'mentor'], true)) {
             return $this->errorResponse('Anda tidak berhak memperbarui tugas ini.', 403);
         }
 
@@ -181,8 +193,7 @@ class TaskController extends Controller
         $canDownloadTask = match ($role) {
             'intern' => (int) $task->assigned_to === (int) $user->id
                 && (int) $task->division_id === (int) $user->division_id,
-            'mentor' => (int) $task->created_by === (int) $user->id
-                && (int) $task->division_id === (int) $user->division_id,
+            'mentor' => $this->mentorCanAccessTask($user, $task),
             default => false,
         };
 
@@ -217,5 +228,17 @@ class TaskController extends Controller
         }
 
         return $this->errorResponse('Berkas tugas tidak ditemukan.', 404);
+    }
+
+    private function mentorCanAccessTask(User $mentor, Task $task): bool
+    {
+        $intern = $task->assignedUser;
+
+        return $mentor->isMentorContext()
+            && (int) $task->created_by === (int) $mentor->id
+            && $intern !== null
+            && $intern->applications()
+                ->forMentor((int) $mentor->id)
+                ->exists();
     }
 }
