@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiRequest, getToken, setToken } from '../api';
+import { apiRequest, clearAccountExpirationState, getToken, setToken } from '../api';
 
 const AuthContext = createContext(null);
 const USER_STORAGE_KEY = 'simagang_user';
@@ -76,14 +76,15 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
-    if (!getToken()) {
+    const requestToken = getToken();
+    if (!requestToken) {
       setUser(null);
       setLoading(false);
       return;
     }
 
     const res = await apiRequest('/auth/me');
-    if (res.success && res.data) {
+    if (res.success && res.data && getToken() === requestToken) {
       setUser(res.data);
       cacheUser(res.data);
       const roles = Array.isArray(res.data.available_roles) ? res.data.available_roles : [res.data.role];
@@ -91,7 +92,7 @@ export function AuthProvider({ children }) {
       const nextRole = roles.includes(storedRole) ? storedRole : res.data.role;
       setActiveRole(nextRole || '');
       if (nextRole) localStorage.setItem('simagang_active_role', nextRole);
-    } else if (res.status === 401) {
+    } else if (res.status === 401 && !getToken()) {
       setUser(null);
       setToken(null);
       setTokenState('');
@@ -110,6 +111,7 @@ export function AuthProvider({ children }) {
     });
 
     if (res.success && res.data) {
+      clearAccountExpirationState();
       localStorage.removeItem('simagang_active_role');
       setToken(res.data.token);
       setTokenState(res.data.token);
@@ -123,12 +125,16 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await apiRequest('/auth/logout', { method: 'POST' });
+    const logoutRequest = getToken()
+      ? apiRequest('/auth/logout', { method: 'POST' })
+      : Promise.resolve();
+    clearAccountExpirationState();
     localStorage.removeItem('simagang_active_role');
     setToken(null);
     setTokenState('');
     setUser(null);
     setActiveRole('');
+    await logoutRequest;
   };
 
   const switchRole = async (role) => {

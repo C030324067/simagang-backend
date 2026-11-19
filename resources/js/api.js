@@ -3,9 +3,33 @@
  */
 
 const API_BASE = '/api';
+const ACCOUNT_EXPIRATION_ROLES = ['intern', 'peserta', 'pemohon'];
+const INTERNAL_ROLES = ['admin', 'kepegawaian', 'admin_kepegawaian', 'kabid', 'mentor', 'kadis', 'superadmin'];
+const ACCOUNT_EXPIRATION_STATE_KEY = /(?:account[_-]?expired|account[_-]?expiration[_-]?(?:error|expired|state)|expiration[_-]?(?:error|expired|state)|expired[_-]?account)/i;
 
 export function getToken() {
   return localStorage.getItem('simagang_token') || '';
+}
+
+export function clearAccountExpirationState() {
+  [localStorage, sessionStorage].forEach((storage) => {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if (key && ACCOUNT_EXPIRATION_STATE_KEY.test(key)) {
+        storage.removeItem(key);
+      }
+    }
+  });
+
+  window.dispatchEvent(new Event('simagang:clear-account-expiration'));
+}
+
+function getCachedUser() {
+  try {
+    return JSON.parse(localStorage.getItem('simagang_user') || 'null');
+  } catch {
+    return null;
+  }
 }
 
 export function setToken(token) {
@@ -85,14 +109,32 @@ export async function apiRequest(endpoint, options = {}) {
       message: `Error parsing server response (HTTP ${res.status})`,
     }));
 
-    if (res.status === 401) {
+    if (res.status === 401 && token && token === getToken()) {
       // A 401 confirms that the stored token is no longer accepted.
       setToken(null);
     }
 
     if (res.status === 403 && data.code === 'ACCOUNT_EXPIRED') {
-      setToken(null);
-      window.dispatchEvent(new CustomEvent('simagang:account-expired', { detail: data }));
+      const currentToken = getToken();
+      const cachedUser = getCachedUser();
+      const activeRole = localStorage.getItem('simagang_active_role');
+      const roles = [cachedUser?.role, activeRole].filter(Boolean);
+      const hasInternalRole = roles.some((role) => INTERNAL_ROLES.includes(role));
+      const isParticipant = ACCOUNT_EXPIRATION_ROLES.includes(cachedUser?.role);
+      const isCurrentParticipantRequest = Boolean(token)
+        && token === currentToken
+        && isParticipant
+        && !hasInternalRole;
+      const isUnauthenticatedParticipantLogin = endpoint === '/auth/login'
+        && !currentToken
+        && !hasInternalRole;
+
+      if (isCurrentParticipantRequest || isUnauthenticatedParticipantLogin) {
+        if (isCurrentParticipantRequest) {
+          setToken(null);
+        }
+        window.dispatchEvent(new CustomEvent('simagang:account-expired', { detail: data }));
+      }
     }
 
     return {

@@ -10,14 +10,14 @@ class DeactivateExpiredInterns extends Command
 {
     protected $signature = 'app:deactivate-expired-interns';
 
-    protected $description = 'Menonaktifkan akun intern yang melewati masa tenggang H+7.';
+    protected $description = 'Menonaktifkan akun peserta yang melewati masa tenggang H+7.';
 
     public function handle(): int
     {
         $deactivatedCount = 0;
 
         User::query()
-            ->where('role', 'intern')
+            ->whereIn('role', User::ACCOUNT_EXPIRATION_ROLES)
             ->where('status_akun', '!=', 'expired')
             ->chunkById(100, function ($users) use (&$deactivatedCount): void {
                 foreach ($users as $user) {

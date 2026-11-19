@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,7 +13,7 @@ class CheckAccountExpiration
     {
         $user = $request->user();
 
-        if (! $user || ! $user->isIntern()) {
+        if (! $user || ! $user->isIntern() || in_array($user->role, User::INTERNAL_ROLES, true)) {
             return $next($request);
         }
 

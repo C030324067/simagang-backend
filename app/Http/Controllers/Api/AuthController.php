@@ -70,7 +70,7 @@ class AuthController extends Controller
             return $this->errorResponse('Password yang Anda masukkan salah.', 401);
         }
 
-        if ($user->isIntern() && $user->isExpired()) {
+        if ($user->isIntern() && ! in_array($user->role, User::INTERNAL_ROLES, true) && $user->isExpired()) {
             $user->forceFill(['status_akun' => 'expired', 'is_active' => false])->save();
             $user->internApplication?->update(['internship_status' => 'completed']);
             $user->tokens()->delete();

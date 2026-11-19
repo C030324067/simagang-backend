@@ -15,6 +15,18 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    public const ACCOUNT_EXPIRATION_ROLES = ['intern', 'peserta', 'pemohon'];
+
+    public const INTERNAL_ROLES = [
+        'admin',
+        'kepegawaian',
+        'admin_kepegawaian',
+        'kabid',
+        'mentor',
+        'kadis',
+        'superadmin',
+    ];
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -166,7 +178,7 @@ class User extends Authenticatable
 
     public function isIntern(): bool
     {
-        return $this->role === 'intern';
+        return in_array($this->role, self::ACCOUNT_EXPIRATION_ROLES, true);
     }
 
     public function isAdminKepegawaian(): bool

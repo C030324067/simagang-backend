@@ -13,6 +13,10 @@ import VerifyCertificate from './pages/VerifyCertificate';
 import ApplicationController from './components/ApplicationController';
 import AccountExpirationNoticeModal from './components/AccountExpirationNoticeModal';
 
+const INTERNAL_ROLES = new Set(['admin', 'kepegawaian', 'admin_kepegawaian', 'kabid', 'mentor', 'kadis', 'superadmin']);
+
+const isInternalRole = (role) => INTERNAL_ROLES.has(role);
+
 // --- KOMPONEN FORM PENGAJUAN MAGANG (LANGSUNG DI SINI AGAR TIDAK BLANK) ---
 function ApplyPage({ onBack, onSuccess }) {
   const [submitted, setSubmitted] = useState(false);
@@ -222,11 +226,20 @@ function MainApp() {
 
   useEffect(() => {
     const onExpired = (event) => {
+      if (isInternalRole(user?.role) || isInternalRole(activeRole)) {
+        setExpirationNotice(null);
+        return;
+      }
       setExpirationNotice({ expired: true, message: event.detail?.message || '' });
     };
+    const onClearExpiration = () => setExpirationNotice(null);
     window.addEventListener('simagang:account-expired', onExpired);
-    return () => window.removeEventListener('simagang:account-expired', onExpired);
-  }, [logout]);
+    window.addEventListener('simagang:clear-account-expiration', onClearExpiration);
+    return () => {
+      window.removeEventListener('simagang:account-expired', onExpired);
+      window.removeEventListener('simagang:clear-account-expiration', onClearExpiration);
+    };
+  }, [user, activeRole]);
 
   useEffect(() => {
     const noticeKey = user?.id ? `simagang_expiration_notice_seen_${user.id}` : null;
@@ -381,13 +394,14 @@ function MainApp() {
       </main>
       <Footer />
       <AccountExpirationNoticeModal
-        open={Boolean(expirationNotice)}
+        open={Boolean(expirationNotice) && !isInternalRole(user?.role) && !isInternalRole(activeRole)}
         expired={expirationNotice?.expired}
         message={expirationNotice?.message}
-        onClose={() => {
+        onClose={async () => {
           if (expirationNotice?.expired) {
-            logout();
+            const logoutRequest = logout();
             setCurrentTab('login');
+            await logoutRequest;
           } else {
             if (user?.id) {
               localStorage.setItem(`simagang_expiration_notice_seen_${user.id}`, '1');
