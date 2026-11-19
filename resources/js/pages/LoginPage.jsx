@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../context/AuthContext';
+import AutoDismissNotice from '../components/AutoDismissNotice';
 
 export default function LoginPage({
   onSuccess,
@@ -186,9 +187,9 @@ export default function LoginPage({
           {passwordResetToken ? (
             passwordResetComplete ? (
               <div className="space-y-4 text-center">
-                <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700" role="status">
+                <AutoDismissNotice as="p" watch={passwordResetComplete} className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700" role="status">
                   Password berhasil diperbarui. Silakan masuk dengan password baru.
-                </p>
+                </AutoDismissNotice>
                 <button
                   type="button"
                   onClick={onPasswordReset}
@@ -200,9 +201,9 @@ export default function LoginPage({
             ) : (
               <>
                 {passwordResetError && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-xs font-medium text-red-600" role="alert">
+                  <AutoDismissNotice watch={passwordResetError} className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-xs font-medium text-red-600" role="alert">
                     {passwordResetError}
-                  </div>
+                  </AutoDismissNotice>
                 )}
                 <form onSubmit={handlePasswordReset} className="space-y-4">
                   <div>
@@ -256,9 +257,9 @@ export default function LoginPage({
             <>
               {/* Pesan Error */}
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl font-medium text-center">
+                <AutoDismissNotice watch={error} className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl font-medium text-center" role="alert">
                   {error}
-                </div>
+                </AutoDismissNotice>
               )}
 
               {/* Form Login */}
@@ -385,9 +386,9 @@ export default function LoginPage({
             </div>
             {resetRequestSent ? (
               <div className="mt-5 space-y-4">
-                <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700" role="status">
+                <AutoDismissNotice as="p" watch={resetRequestSent} className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700" role="status">
                   Jika email terdaftar, instruksi reset password akan dikirim ke email tersebut.
-                </p>
+                </AutoDismissNotice>
                 <button
                   type="button"
                   onClick={() => setForgotPasswordOpen(false)}
@@ -399,9 +400,9 @@ export default function LoginPage({
             ) : (
               <form onSubmit={handleForgotPassword} className="mt-5 space-y-4">
                 {resetRequestError && (
-                  <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600" role="alert">
+                  <AutoDismissNotice as="p" watch={resetRequestError} className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600" role="alert">
                     {resetRequestError}
-                  </p>
+                  </AutoDismissNotice>
                 )}
                 <div>
                   <label htmlFor="forgot-password-email" className="mb-1.5 block text-xs font-semibold text-slate-700">Email</label>

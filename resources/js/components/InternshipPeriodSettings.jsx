@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
 import { apiRequest } from '../api';
+import AutoDismissNotice from './AutoDismissNotice';
 
 const monthNames = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -113,10 +114,10 @@ export default function InternshipPeriodSettings({ divisions }) {
       </div>
 
       {notice && (
-        <div className={`flex items-center gap-2 rounded-xl border p-3 text-sm ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`} role={notice.type === 'error' ? 'alert' : 'status'}>
+        <AutoDismissNotice watch={notice} className={`flex items-center gap-2 rounded-xl border p-3 text-sm ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`} role={notice.type === 'error' ? 'alert' : 'status'}>
           {notice.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
           {notice.text}
-        </div>
+        </AutoDismissNotice>
       )}
 
       <form className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-5" onSubmit={save}>

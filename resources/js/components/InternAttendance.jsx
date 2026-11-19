@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Upload, X } from 'lucide-react';
 import { apiRequest } from '../api';
 import { formatAttendanceStatus } from '../utils/attendanceStatus';
+import AutoDismissNotice from './AutoDismissNotice';
 
 const emptyLocation = { latitude: null, longitude: null };
 
@@ -298,7 +299,7 @@ export default function InternAttendance({ open, onClose, attendance, attendance
               </div>
             )}
 
-            {errorMessage && <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">{errorMessage}</p>}
+            {errorMessage && <AutoDismissNotice as="p" watch={errorMessage} role="alert" className="rounded-xl border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">{errorMessage}</AutoDismissNotice>}
             <button
               type="submit"
               disabled={submitting || (attendanceMode === 'present' && !selfie)}

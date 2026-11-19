@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { Bell, Camera, ChevronDown, Eye, EyeOff, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { apiRequest } from '../api';
+import AutoDismissNotice from './AutoDismissNotice';
 
 const relativeAnnouncementTime = (value) => {
   const publishedAt = new Date(value).getTime();
@@ -555,7 +556,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                         {role === selectedRole && <span aria-label="Aktif">✓</span>}
                       </button>
                     ))}
-                    {roleSwitchMessage && <p role="status" className="px-3 pt-2 text-xs text-slate-600">{roleSwitchMessage}</p>}
+                    {roleSwitchMessage && <AutoDismissNotice as="p" watch={roleSwitchMessage} role="status" className="px-3 pt-2 text-xs text-slate-600">{roleSwitchMessage}</AutoDismissNotice>}
                   </div>
                 )}
                 <button
@@ -761,9 +762,9 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                 </section>
 
                 {profileMessage && (
-                  <p role={profileMessage.type === 'error' ? 'alert' : 'status'} className={`rounded-xl border p-3 text-sm ${profileMessage.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                  <AutoDismissNotice as="p" watch={profileMessage} role={profileMessage.type === 'error' ? 'alert' : 'status'} className={`rounded-xl border p-3 text-sm ${profileMessage.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
                     {profileMessage.text}
-                  </p>
+                  </AutoDismissNotice>
                 )}
                 <button
                   type="submit"
@@ -809,7 +810,7 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                   <button type="button" aria-label="Tutup kamera" onClick={stopProfileCamera} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
                 </div>
                 <video ref={profileVideoRef} autoPlay playsInline muted className="aspect-video w-full rounded-xl bg-slate-950 object-cover" />
-                {cameraError && <p role="alert" className="mt-3 text-sm text-rose-700">{cameraError}</p>}
+                {cameraError && <AutoDismissNotice as="p" watch={cameraError} role="alert" className="mt-3 text-sm text-rose-700">{cameraError}</AutoDismissNotice>}
                 <button type="button" onClick={captureProfilePhoto} disabled={Boolean(cameraError)} className="mt-4 w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50">Ambil Foto</button>
               </section>
             </div>

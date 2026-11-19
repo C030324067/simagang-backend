@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import useDivisions from '../hooks/useDivisions';
 import useInternshipPeriodStatus from '../hooks/useInternshipPeriodStatus';
+import AutoDismissNotice from '../components/AutoDismissNotice';
 import '../../css/RegisterApplication.css';
 
 const empty = { application_type: 'mandiri', recommendation_letter_number: '', nama: '', email: '', nim_nisn: '', bidang: '', institusi: '', jenjang: '', jurusan: '', hp: '', tgl_mulai: '', tgl_selesai: '', pw: '', pw2: '' };
@@ -36,7 +37,6 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
 
   const notify = (message, kind = 'success') => {
     setToast({ message, kind });
-    window.setTimeout(() => setToast(null), 4000);
   };
 
   const validate = () => {
@@ -284,7 +284,11 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
         </form>
         )}
       </main>
-      {toast && <div className={`toast show ${toast.kind}`} role="status">{toast.message}</div>}
+      {toast && (
+        <AutoDismissNotice watch={toast}>
+          <div className={`toast show ${toast.kind}`} role="status">{toast.message}</div>
+        </AutoDismissNotice>
+      )}
     </div>
   );
 }

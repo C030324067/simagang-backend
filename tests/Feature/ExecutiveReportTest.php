@@ -23,6 +23,8 @@ class ExecutiveReportTest extends TestCase
         $active = $this->createReportApplication($division, 'accepted', 'in_progress', $startDate, $endDate);
         $completed = $this->createReportApplication($division, 'accepted', 'completed', $startDate, $endDate);
         $this->createReportApplication($division, 'rejected', 'in_progress', $startDate, $endDate);
+        $expired = $this->createReportApplication($division, 'accepted', 'in_progress', $startDate, $endDate);
+        User::query()->findOrFail($expired->user_id)->update(['status_akun' => 'expired']);
         $this->createReportApplication($otherDivision, 'accepted', 'in_progress', $startDate, $endDate);
         $this->createEvaluation($active, 90, 80);
         $this->createEvaluation($completed, 80, 100);
@@ -31,18 +33,24 @@ class ExecutiveReportTest extends TestCase
         $this->actingAs($kadis, 'sanctum')
             ->getJson('/api/kadis/executive-report?division_id='.$division->id.'&start_date='.$startDate.'&end_date='.$endDate)
             ->assertOk()
-            ->assertJsonPath('data.summary.total_applicants', 3)
-            ->assertJsonPath('data.summary.total_accepted', 2)
+            ->assertJsonPath('data.summary.total_applicants', 4)
+            ->assertJsonPath('data.summary.total_accepted', 3)
             ->assertJsonPath('data.summary.total_active', 1)
             ->assertJsonPath('data.summary.total_completed', 1)
             ->assertJsonPath('data.summary.average_attendance_percentage', 90)
             ->assertJsonPath('data.divisions.0.division_name', 'Aptika')
             ->assertJsonPath('data.divisions.0.quota', 10)
-            ->assertJsonPath('data.divisions.0.total_applicants', 3)
+            ->assertJsonPath('data.divisions.0.total_applicants', 4)
+            ->assertJsonPath('data.divisions.0.total_active', 1)
+            ->assertJsonPath('data.divisions.0.total_completed', 1)
             ->assertJsonPath('data.divisions.0.average_final_score', 85)
             ->assertJsonPath('data.participants.0.participant_name', 'Peserta '.$active->id)
+            ->assertJsonPath('data.participants.0.participant_status', 'active')
             ->assertJsonPath('data.participants.0.institution_name', 'Universitas Tabalong')
-            ->assertJsonPath('data.participants.0.attendance_percentage', '80.00');
+            ->assertJsonPath('data.participants.0.attendance_percentage', '80.00')
+            ->assertJsonPath('data.participants.1.participant_status', 'completed')
+            ->assertJsonPath('data.participants.3.application_id', $expired->id)
+            ->assertJsonPath('data.participants.3.participant_status', 'expired');
     }
 
     public function test_executive_report_is_restricted_to_kadis_and_validates_date_range(): void

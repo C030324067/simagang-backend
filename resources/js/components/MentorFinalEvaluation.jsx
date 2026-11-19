@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { apiRequest } from '../api';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
+import AutoDismissNotice from './AutoDismissNotice';
 
 const rubric = [
   ['score_discipline', 'Disiplin'],
@@ -118,7 +119,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
         <h2 className="mt-1 text-xl font-extrabold text-slate-900">Penilaian Akhir Peserta Magang</h2>
         <p className="mt-1 text-sm text-slate-500">Nilai keterampilan menggunakan standar Diskominfo. Peserta SMK juga dinilai berdasarkan kompetensi kejuruan.</p>
       </div>
-      {message && <p role="status" className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">{message}</p>}
+      {message && <AutoDismissNotice as="p" watch={message} role="status" className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">{message}</AutoDismissNotice>}
 
       <label className="block">
         <span className="mb-1 block text-xs font-bold text-slate-600">Peserta magang</span>

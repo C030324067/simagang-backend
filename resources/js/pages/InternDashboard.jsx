@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import useInternDashboard from '../hooks/useInternDashboard';
 import InternAttendance from '../components/InternAttendance';
+import AutoDismissNotice from '../components/AutoDismissNotice';
 
 // Helper Format Tanggal (e.g. 22 Sep 2026)
 const formatDate = (value) => {
@@ -158,19 +159,21 @@ export default function InternDashboard() {
         
         {/* NOTIFIKASI PESAN */}
         {message && (
-          <div
-            className={`flex items-center justify-between rounded-2xl p-4 text-xs font-medium shadow-xs border ${
-              message.type === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{message.text}</span>
+          <AutoDismissNotice watch={message}>
+            <div
+              className={`flex items-center justify-between rounded-2xl p-4 text-xs font-medium shadow-xs border ${
+                message.type === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{message.text}</span>
+              </div>
+              <button onClick={() => setMessage(null)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button onClick={() => setMessage(null)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          </AutoDismissNotice>
         )}
 
         {/* 1. HEADER PAGE & RINGKASAN TUGAS */}
@@ -664,9 +667,9 @@ export default function InternDashboard() {
                 />
               </div>
               {taskSubmitError && (
-                <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+                <AutoDismissNotice as="p" watch={taskSubmitError} role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
                   {taskSubmitError}
-                </p>
+                </AutoDismissNotice>
               )}
               <div className="flex justify-end gap-2 pt-2">
                 <button

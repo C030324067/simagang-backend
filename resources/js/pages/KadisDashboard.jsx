@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import useApplicationReviewDashboard from '../hooks/useApplicationReviewDashboard';
 import { apiRequest, getToken } from '../api';
+import AutoDismissNotice from '../components/AutoDismissNotice';
 import {
   AlertCircle,
   BriefcaseBusiness,
@@ -54,8 +55,10 @@ const Avatar = ({ name, tone = 'blue', size = 'h-10 w-10' }) => {
   const colors = {
     blue: 'bg-blue-100 text-blue-700',
     violet: 'bg-violet-100 text-violet-700',
-    emerald: 'bg-emerald-100 text-emerald-700',
+    emerald: 'bg-emerald-50 text-emerald-700',
     amber: 'bg-amber-100 text-amber-700',
+    indigo: 'bg-indigo-50 text-indigo-600',
+    rose: 'bg-rose-50 text-rose-700',
   };
 
   return (
@@ -295,9 +298,10 @@ export default function KadisDashboard() {
     if (!term) return true;
     const name = String(app?.user?.name || app?.name || '').toLowerCase();
     const institution = String(app?.institution_name || '').toLowerCase();
+    const major = String(app?.major || '').toLowerCase();
     const division = String(app?.division?.name || '').toLowerCase();
     const email = String(app?.user?.email || '').toLowerCase();
-    return name.includes(term) || institution.includes(term) || division.includes(term) || email.includes(term);
+    return name.includes(term) || institution.includes(term) || major.includes(term) || division.includes(term) || email.includes(term);
   });
 
   const openAuthorization = (application) => {
@@ -326,7 +330,7 @@ export default function KadisDashboard() {
       <main className="mx-auto max-w-[1440px] space-y-6 px-4 py-7 sm:px-6 lg:px-8">
         <section className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-600">
               <Building2 className="h-3.5 w-3.5" />
               Dinas Komunikasi dan Informatika
             </span>
@@ -335,8 +339,7 @@ export default function KadisDashboard() {
               Otorisasi akhir permohonan magang dan pantau capaian pelaksanaan magang di seluruh bidang.
             </p>
           </div>
-          {activeTab === 'dashboard' && (
-            <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-[520px]">
+          <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-[520px]">
               <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -367,8 +370,7 @@ export default function KadisDashboard() {
                   </span>
                 </div>
               </article>
-            </div>
-          )}
+          </div>
         </section>
 
         <nav role="tablist" className="inline-flex max-w-full flex-wrap gap-1 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm" aria-label="Navigasi dashboard Kepala Dinas">
@@ -402,7 +404,8 @@ export default function KadisDashboard() {
         </nav>
 
         {msg?.text && (
-          <div className={`flex items-center justify-between gap-3 rounded-2xl border p-4 text-sm shadow-sm ${
+          <AutoDismissNotice watch={msg}>
+            <div className={`flex items-center justify-between gap-3 rounded-2xl border p-4 text-sm shadow-sm ${
             msg.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-rose-200 bg-rose-50 text-rose-900'
           }`}>
             <div className="flex items-center gap-2.5">
@@ -412,7 +415,8 @@ export default function KadisDashboard() {
             <button type="button" onClick={() => setMsg({ type: '', text: '' })} className="rounded-lg p-1 text-slate-500 transition hover:bg-black/5" aria-label="Tutup pemberitahuan">
               <X className="h-4 w-4" />
             </button>
-          </div>
+            </div>
+          </AutoDismissNotice>
         )}
 
         {activeTab === 'report' ? (
@@ -480,7 +484,7 @@ export default function KadisDashboard() {
 
             {reportLoading ? (
               <div className="space-y-6" aria-label="Memuat laporan eksekutif" aria-busy="true">
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {[1, 2, 3, 4].map((item) => (
                     <div key={item} className="animate-pulse rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
                       <div className="h-3 w-28 rounded bg-slate-200" />
@@ -509,17 +513,17 @@ export default function KadisDashboard() {
                   const stats = [
                     { label: 'Total Pendaftar', value: summary.total_applicants ?? 0, icon: Users, tone: 'blue', suffix: 'peserta terdaftar' },
                     { label: 'Peserta Diterima', value: summary.total_accepted ?? 0, icon: CheckCircle2, tone: 'emerald', suffix: `${summary.total_active ?? 0} peserta aktif` },
-                    { label: 'Rata-rata Kehadiran', value: attendance == null ? '—' : `${attendance.toFixed(1)}%`, icon: ChartNoAxesCombined, tone: 'emerald', suffix: 'persentase kehadiran dinas', attendance },
-                    { label: 'Tingkat Penyelesaian', value: `${completionRate.toFixed(1)}%`, icon: GraduationCap, tone: 'violet', suffix: `${completed} dari ${accepted} peserta diterima selesai` },
+                    { label: 'Rata-rata Kehadiran', value: attendance == null ? '—' : `${attendance.toFixed(1)}%`, icon: ChartNoAxesCombined, tone: 'emerald', suffix: 'persentase kehadiran dinas', progress: attendance, progressColor: 'bg-emerald-500' },
+                    { label: 'Tingkat Penyelesaian', value: `${completionRate.toFixed(1)}%`, icon: GraduationCap, tone: 'violet', suffix: `${completed} dari ${accepted} peserta diterima selesai`, progress: completionRate, progressColor: 'bg-blue-600' },
                   ];
 
                   return (
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                      {stats.map(({ label, value, icon, tone, suffix, attendance: attendanceValue }) => (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      {stats.map(({ label, value, icon, tone, suffix, progress, progressColor }) => (
                         <StatCard key={label} label={label} value={value} suffix={suffix} icon={icon} tone={tone}>
-                          {label === 'Rata-rata Kehadiran' && (
+                          {progress !== undefined && (
                             <div className="mt-3">
-                              <ProgressBar value={attendanceValue} color="bg-emerald-500" />
+                              <ProgressBar value={progress} color={progressColor} />
                             </div>
                           )}
                         </StatCard>
@@ -608,13 +612,27 @@ export default function KadisDashboard() {
                       {reportData.participants?.length > 0 ? (
                         <tbody className="divide-y divide-slate-100">
                           {reportData.participants.map((participant, index) => {
-                            const completed = participant.internship_status === 'completed';
+                            const status = participant.participant_status || 'pending';
+                            const statusStyles = {
+                              active: 'bg-blue-50 text-blue-700',
+                              completed: 'bg-emerald-50 text-emerald-700',
+                              expired: 'bg-rose-50 text-rose-700',
+                              rejected: 'bg-slate-100 text-slate-600',
+                              pending: 'bg-amber-50 text-amber-700',
+                            };
+                            const statusLabels = {
+                              active: 'Aktif',
+                              completed: 'Selesai',
+                              expired: 'Kedaluwarsa',
+                              rejected: 'Ditolak',
+                              pending: 'Menunggu',
+                            };
                             const attendance = participant.attendance_percentage == null ? null : Number(participant.attendance_percentage);
                             return (
                               <tr key={participant.application_id ?? index} className="text-slate-600 transition hover:bg-slate-50/70">
                                 <td className="px-5 py-4">
                                   <div className="flex items-center gap-3">
-                                    <Avatar name={participant.participant_name} tone="violet" />
+                                    <Avatar name={participant.participant_name} tone="indigo" />
                                     <div>
                                       <p className="font-bold text-slate-900">{participant.participant_name || '—'}</p>
                                       <p className="mt-0.5 text-[11px] text-slate-400">{participant.major || 'Peserta magang'}</p>
@@ -628,16 +646,20 @@ export default function KadisDashboard() {
                                 <td className="whitespace-nowrap px-4 py-4 text-slate-500">{formatDate(participant.start_date)} – {formatDate(participant.end_date)}</td>
                                 <td className="px-4 py-4">
                                   <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                                    completed ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                                    statusStyles[status] || statusStyles.pending
                                   }`}>
-                                    {completed ? 'Selesai' : participant.internship_status === 'in_progress' ? 'Aktif' : participant.final_status || '—'}
+                                    {statusLabels[status] || status}
                                   </span>
                                 </td>
                                 <td className="px-4 py-4">
-                                  <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-700">
-                                    <span>{attendance == null ? '—' : `${attendance.toFixed(1)}%`}</span>
-                                  </div>
-                                  <div className="mt-2"><ProgressBar value={attendance} color="bg-emerald-500" /></div>
+                                  {attendance == null ? (
+                                    <span className="text-slate-400">—</span>
+                                  ) : (
+                                    <>
+                                      <div className="text-[11px] font-semibold text-slate-700">{attendance.toFixed(1)}%</div>
+                                      <div className="mt-2"><ProgressBar value={attendance} color="bg-emerald-500" /></div>
+                                    </>
+                                  )}
                                 </td>
                                 <td className="px-5 py-4 text-right">
                                   <span className="font-bold text-slate-900">{participant.final_score == null ? '—' : Number(participant.final_score).toFixed(2)}</span>
@@ -776,7 +798,7 @@ export default function KadisDashboard() {
                     return (
                       <article key={app?.id ?? index} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6">
                         <div className="flex min-w-0 items-start gap-3">
-                          <Avatar name={app?.user?.name || app?.name} tone={rejected ? 'amber' : 'emerald'} />
+                          <Avatar name={app?.user?.name || app?.name} tone={rejected ? 'rose' : 'emerald'} />
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 className="font-bold text-slate-900">{app?.user?.name || app?.name || '—'}</h3>
@@ -926,7 +948,7 @@ export default function KadisDashboard() {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Cari nama, institusi, atau bidang..."
+                placeholder="Cari nama, institusi, jurusan, atau bidang..."
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -952,6 +974,7 @@ export default function KadisDashboard() {
                         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">Aktif</span>
                       </div>
                       <p className="mt-1 text-xs text-slate-500">{intern?.institution_name || '—'} <span className="mx-1 text-slate-300">·</span> {intern?.division?.name || '—'}</p>
+                      <p className="mt-1 text-xs text-slate-500">Jurusan: {intern?.major || '—'}</p>
                       <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-slate-400">
                         <CalendarDays className="h-3.5 w-3.5" /> {formatDate(intern?.start_date)} – {formatDate(intern?.end_date)}
                       </p>

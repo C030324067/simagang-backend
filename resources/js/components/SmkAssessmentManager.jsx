@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
+import AutoDismissNotice from './AutoDismissNotice';
 
 const collection = (response) => response.data?.data ?? response.data ?? [];
 
@@ -69,6 +70,6 @@ export default function SmkAssessmentManager({ interns, onSaved }) {
     <select value={applicationId} onChange={(event) => setApplicationId(event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><option value="">Pilih peserta SMK</option>{smkInterns.map((intern) => <option key={intern.application_id} value={intern.application_id}>{intern.name}</option>)}</select>
     <div className="flex flex-wrap gap-2">{aspects.map((aspect) => <div key={aspect.id} className="rounded-lg bg-slate-100 px-3 py-2 text-xs">{aspect.nama}<button type="button" onClick={() => renameAspect(aspect)} className="ml-2 font-bold text-blue-700">Ubah</button><button type="button" onClick={() => removeAspect(aspect)} className="ml-2 font-bold text-red-700">Hapus</button></div>)}</div>
     {applicationId && <form onSubmit={save} className="space-y-3">{aspects.map((aspect) => <label key={aspect.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-[1fr_8rem_1fr] md:items-center"><span className="text-sm font-semibold">{aspect.nama}</span><input type="number" min="0" max="100" required value={scores[aspect.nama]?.nilai ?? ''} onChange={(event) => setScores((current) => ({ ...current, [aspect.nama]: { ...current[aspect.nama], nilai: event.target.value } }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Nilai"/><input value={scores[aspect.nama]?.catatan ?? ''} onChange={(event) => setScores((current) => ({ ...current, [aspect.nama]: { ...current[aspect.nama], catatan: event.target.value } }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Catatan (opsional)"/></label>)}<button className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white">Simpan nilai SMK</button></form>}
-    {message && <p role="status" className="text-sm text-slate-600">{message}</p>}
+    {message && <AutoDismissNotice as="p" watch={message} role="status" className="text-sm text-slate-600">{message}</AutoDismissNotice>}
   </section>;
 }

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiRequest, downloadAcceptanceLetter } from '../api';
 import useApplicationReviewDashboard from '../hooks/useApplicationReviewDashboard';
 import useInternshipPeriodStatus from '../hooks/useInternshipPeriodStatus';
+import AutoDismissNotice from '../components/AutoDismissNotice';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -123,7 +124,7 @@ export default function KabidDashboard() {
                 Sisa Kuota Periode {user?.division?.name || 'Bidang'}: <span className="font-bold">{Math.max(0, quota.remaining_quota)}/{quota.max_quota ?? quota.monthly_quota}</span>
               </p>
             )}
-            {quotaError && <p role="status" className="text-xs text-rose-600">{quotaError}</p>}
+            {quotaError && <AutoDismissNotice as="p" watch={quotaError} role="status" className="text-xs text-rose-600">{quotaError}</AutoDismissNotice>}
           </div>
 
           {/* Menunggu Persetujuan Card */}
@@ -137,7 +138,8 @@ export default function KabidDashboard() {
 
         {/* Alert Notification */}
         {msg.text && (
-          <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
+          <AutoDismissNotice watch={msg}>
+            <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
             msg.type === 'success' 
               ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
               : 'bg-rose-50 border-rose-200 text-rose-900'
@@ -157,7 +159,8 @@ export default function KabidDashboard() {
             >
               <X className="w-4 h-4" />
             </button>
-          </div>
+            </div>
+          </AutoDismissNotice>
         )}
 
         {/* Main Table Section */}

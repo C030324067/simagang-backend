@@ -103,7 +103,6 @@ export default function useInternDashboard(user) {
       return true;
     }
     setMessage({ text: response.message || 'Status sertifikat gagal diperbarui.', type: 'error' });
-    window.setTimeout(() => setMessage(null), 4000);
     return false;
   }, []);
 
@@ -115,7 +114,6 @@ export default function useInternDashboard(user) {
 
   const notify = (text, type = 'success') => {
     setMessage({ text, type });
-    window.setTimeout(() => setMessage(null), 4000);
   };
 
   const submitLogbook = async (event) => {

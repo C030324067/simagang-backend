@@ -19,13 +19,25 @@ class ExecutiveReportService
     {
         $applications = $this->applicationsQuery($filters)
             ->with([
-                'user:id,name',
+                'user:id,name,role,status_akun,is_active',
+                'user.internApplication',
                 'division:id,name',
                 'evaluation:intern_application_id,attendance_percentage,final_score,grade_letter',
+                'certificate',
             ])
             ->get();
 
         $accepted = $applications->filter(fn (InternApplication $application): bool => $application->final_status === 'accepted');
+        $activeApplicationIds = array_fill_keys(
+            InternApplication::query()
+                ->activeInternships()
+                ->whereIn('id', $applications->modelKeys())
+                ->pluck('id')
+                ->all(),
+            true,
+        );
+        $today = now(config('app.timezone'))->toDateString();
+        $completed = $accepted->filter(fn (InternApplication $application): bool => $this->isCompleted($application, $today));
         $evaluations = $applications->pluck('evaluation')->filter();
         $divisionApplications = $applications->groupBy(fn (InternApplication $application): ?int => $application->division_id);
 
@@ -36,7 +48,7 @@ class ExecutiveReportService
             )
             ->orderBy('name')
             ->get(['id', 'name', 'quota'])
-            ->map(function (Division $division) use ($divisionApplications): array {
+            ->map(function (Division $division) use ($divisionApplications, $activeApplicationIds, $today): array {
                 /** @var Collection<int, InternApplication> $items */
                 $items = $divisionApplications->get($division->id, collect());
                 $accepted = $items->filter(fn (InternApplication $application): bool => $application->final_status === 'accepted');
@@ -47,8 +59,8 @@ class ExecutiveReportService
                     'quota' => $division->quota,
                     'total_applicants' => $items->count(),
                     'total_accepted' => $accepted->count(),
-                    'total_active' => $accepted->where('internship_status', 'in_progress')->count(),
-                    'total_completed' => $accepted->where('internship_status', 'completed')->count(),
+                    'total_active' => $accepted->filter(fn (InternApplication $application): bool => isset($activeApplicationIds[$application->id]))->count(),
+                    'total_completed' => $accepted->filter(fn (InternApplication $application): bool => $this->isCompleted($application, $today))->count(),
                     'average_final_score' => $accepted->pluck('evaluation.final_score')
                         ->filter(fn ($score): bool => $score !== null)
                         ->avg(),
@@ -66,8 +78,8 @@ class ExecutiveReportService
             'summary' => [
                 'total_applicants' => $applications->count(),
                 'total_accepted' => $accepted->count(),
-                'total_active' => $accepted->where('internship_status', 'in_progress')->count(),
-                'total_completed' => $accepted->where('internship_status', 'completed')->count(),
+                'total_active' => $accepted->filter(fn (InternApplication $application): bool => isset($activeApplicationIds[$application->id]))->count(),
+                'total_completed' => $completed->count(),
                 'average_attendance_percentage' => $evaluations
                     ->pluck('attendance_percentage')
                     ->filter(fn ($percentage): bool => $percentage !== null)
@@ -83,12 +95,44 @@ class ExecutiveReportService
                 'start_date' => $application->start_date?->toDateString(),
                 'end_date' => $application->end_date?->toDateString(),
                 'internship_status' => $application->internship_status,
+                'participant_status' => $this->participantStatus($application, $activeApplicationIds, $today),
                 'final_status' => $application->final_status,
                 'attendance_percentage' => $application->evaluation?->attendance_percentage,
                 'final_score' => $application->evaluation?->final_score,
                 'grade_letter' => $application->evaluation?->grade_letter,
             ])->values(),
         ];
+    }
+
+    private function isCompleted(InternApplication $application, string $today): bool
+    {
+        return in_array($application->internship_status, ['completed', 'selesai'], true)
+            || $application->certificate !== null
+            || ($application->end_date !== null && $application->end_date->toDateString() < $today);
+    }
+
+    /**
+     * @param  array<int|string, true>  $activeApplicationIds
+     */
+    private function participantStatus(InternApplication $application, array $activeApplicationIds, string $today): string
+    {
+        if ($application->final_status === 'rejected' || in_array($application->internship_status, ['rejected', 'ditolak'], true)) {
+            return 'rejected';
+        }
+
+        if ($application->user?->isExpired() || in_array($application->internship_status, ['expired', 'kedaluwarsa'], true)) {
+            return 'expired';
+        }
+
+        if ($this->isCompleted($application, $today)) {
+            return 'completed';
+        }
+
+        if (isset($activeApplicationIds[$application->id])) {
+            return 'active';
+        }
+
+        return 'pending';
     }
 
     /**

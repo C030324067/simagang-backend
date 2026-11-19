@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import AutoDismissNotice from './AutoDismissNotice';
 
 const stages = [
   { key: 'submitted', title: 'Pengajuan Terkirim', description: 'Formulir dan seluruh berkas berhasil dikirim ke sistem.' },
@@ -93,9 +94,9 @@ export default function ApplicationStatus({ trackingCode, onLogin, onReapply, on
           >
             ← Kembali ke Beranda
           </button>
-          <p className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-xs text-rose-900" role="alert">
+          <AutoDismissNotice as="p" watch={error} className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-xs text-rose-900" role="alert">
             {error || 'Status pengajuan tidak ditemukan.'}
-          </p>
+          </AutoDismissNotice>
           <button
             className="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
             onClick={onChangeTrackingCode}

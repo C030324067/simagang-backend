@@ -2,6 +2,7 @@ import React from 'react';
 import useKepegawaianDashboard from '../hooks/useKepegawaianDashboard';
 import { apiRequest, downloadAcceptanceLetter, getToken } from '../api';
 import InternshipPeriodSettings from '../components/InternshipPeriodSettings';
+import AutoDismissNotice from '../components/AutoDismissNotice';
 import { 
   Clock, 
   FileText, 
@@ -145,7 +146,8 @@ export default function KepegawaianDashboard() {
 
         {/* Alert Notification */}
         {msg.text && (
-          <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
+          <AutoDismissNotice watch={msg}>
+            <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
             msg.type === 'success' 
               ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
               : 'bg-rose-50 border-rose-200 text-rose-900'
@@ -164,7 +166,8 @@ export default function KepegawaianDashboard() {
             >
               <X className="w-4 h-4" />
             </button>
-          </div>
+            </div>
+          </AutoDismissNotice>
         )}
 
         <nav

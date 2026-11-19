@@ -2,6 +2,7 @@ import React from 'react';
 import useMentorDashboard from '../hooks/useMentorDashboard';
 import MentorAttendanceReview from '../components/MentorAttendanceReview';
 import MentorFinalEvaluation from '../components/MentorFinalEvaluation';
+import AutoDismissNotice from '../components/AutoDismissNotice';
 import { apiRequest } from '../api';
 import { 
   Users, 
@@ -145,7 +146,8 @@ export default function MentorDashboard() {
 
       {/* Alert Notification */}
       {msg.text && (
-        <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
+        <AutoDismissNotice watch={msg}>
+          <div className={`p-4 rounded-2xl text-xs sm:text-sm border shadow-xs flex items-center justify-between gap-3 transition-all ${
           msg.type === 'success' 
             ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
             : 'bg-rose-50 border-rose-200 text-rose-900'
@@ -165,7 +167,8 @@ export default function MentorDashboard() {
           >
             <X className="w-4 h-4" />
           </button>
-        </div>
+          </div>
+        </AutoDismissNotice>
       )}
 
       {/* Navigation Tabs - Modern Pill Style */}

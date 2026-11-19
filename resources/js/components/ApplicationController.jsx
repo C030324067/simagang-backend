@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ApplicationStatus from './ApplicationStatus';
 import RegisterApplicationPage from '../pages/RegisterApplicationPage';
+import AutoDismissNotice from './AutoDismissNotice';
 
 const TRACKING_STORAGE_KEY = 'intern_tracking_code';
 const trackingNotFoundMessage = 'Kode tracking tidak ditemukan. Silakan periksa kembali kode Anda.';
@@ -78,9 +79,9 @@ export default function ApplicationController({ onLogin, onBack, lookupOnly = fa
         />
       </div>
       {lookupError && (
-        <p className="rounded-xl border border-rose-100 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
+        <AutoDismissNotice as="p" watch={lookupError} className="rounded-xl border border-rose-100 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
           {lookupError}
-        </p>
+        </AutoDismissNotice>
       )}
       <button
         type="submit"
