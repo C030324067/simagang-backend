@@ -249,7 +249,7 @@
             </tbody>
         </table>
 
-        @if ($isSmk)
+        @if ($technical_scores !== [])
             <p class="section-title">B. NILAI TEKNIS</p>
             <table class="score-table">
                 <thead><tr><th class="number">NO.</th><th>KRITERIA PENILAIAN</th><th class="score">NILAI</th></tr></thead>

@@ -430,11 +430,16 @@ Body untuk menyimpan evaluasi:
   "score_quality": 85,
   "score_initiative": 88,
   "score_teamwork": 92,
+  "score_softskill": 90,
+  "technical_scores": [
+    { "criteria": "Analisis Sistem", "score": 90 },
+    { "criteria": "Dokumentasi Teknis", "score": 85 }
+  ],
   "notes": "Menunjukkan perkembangan yang baik."
 }
 ```
 
-Setiap skor wajib 1–100; `notes` opsional, maksimal 2000 karakter. Mentor hanya dapat membaca metrik, mengisi evaluasi, dan menerbitkan sertifikat untuk peserta dengan pengajuan accepted yang `mentor_id`-nya sama dengan ID akun login; kesamaan bidang tidak memberikan akses. Akun Kabid harus memilih mode `mentor` melalui header `X-Active-Role`. Evaluasi hanya dapat disimpan setelah tanggal akhir magang. Nilai akhir merupakan rata-rata kriteria berbobot sama; server mengembalikan nilai akhir, predikat, ringkasan, serta metrik. Endpoint `/evaluations/metrics/{intern}` memberi `total_tasks`, `completed_tasks`, `in_progress_tasks`, `revision_tasks`, `filled_working_days`, `total_working_days`, `logbook_completion_percentage`, dan `attendance_percentage`. Penghitungan hari kerja mencakup hari kerja efektif sampai hari ini dalam periode magang.
+Lima skor keterampilan (`score_discipline`, `score_quality`, `score_initiative`, `score_teamwork`, `score_softskill`) wajib bernilai 0–100. `technical_scores` wajib berisi 1–7 aspek untuk jenjang SMK maupun Mahasiswa/Kuliah; setiap item memiliki `criteria` (wajib, unik, maksimal 255 karakter) dan `score` (0–100). Nilai akhir adalah rata-rata sederhana seluruh lima aspek keterampilan dan semua aspek teknis, dengan bobot sama. `notes` opsional, maksimal 2000 karakter. Mentor hanya dapat membaca metrik, mengisi evaluasi, dan menerbitkan sertifikat untuk peserta dengan pengajuan accepted yang `mentor_id`-nya sama dengan ID akun login; kesamaan bidang tidak memberikan akses. Akun Kabid harus memilih mode `mentor` melalui header `X-Active-Role`. Evaluasi hanya dapat disimpan setelah tanggal akhir magang. Respons evaluasi memuat `technical_scores`, nilai akhir, predikat, ringkasan, serta metrik. Rincian teknis disertakan pada endpoint verifikasi sertifikat dan PDF lembar nilai. Endpoint `/evaluations/metrics/{intern}` memberi `total_tasks`, `completed_tasks`, `in_progress_tasks`, `revision_tasks`, `filled_working_days`, `total_working_days`, `logbook_completion_percentage`, dan `attendance_percentage`. Penghitungan hari kerja mencakup hari kerja efektif sampai hari ini dalam periode magang.
 
 ## Sertifikat
 

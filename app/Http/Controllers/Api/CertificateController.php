@@ -104,6 +104,7 @@ class CertificateController extends Controller
                 'score_discipline' => $evaluation->score_discipline,
                 'score_quality' => $evaluation->score_quality,
                 'score_softskill' => $evaluation->score_softskill,
+                'technical_scores' => $evaluation->technical_scores ?? [],
                 'final_score' => $evaluation->final_score,
                 'mentor_name' => $evaluation->mentor?->name ?? 'Pembimbing Lapangan',
             ] : null,

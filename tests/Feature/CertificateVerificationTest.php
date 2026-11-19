@@ -53,8 +53,17 @@ class CertificateVerificationTest extends TestCase
         ]);
     }
 
-    public function test_mentor_evaluates_and_generates_verifiable_certificate(): void
+    public function test_mentor_evaluates_university_intern_with_technical_scores_and_generates_verifiable_certificate(): void
     {
+        $this->actingAs($this->mentor, 'sanctum')->postJson('/api/evaluations', [
+            'intern_id' => $this->intern->id,
+            'score_discipline' => 90,
+            'score_quality' => 85,
+            'score_initiative' => 80,
+            'score_teamwork' => 85,
+            'score_softskill' => 85,
+        ])->assertUnprocessable()->assertJsonValidationErrors('technical_scores');
+
         $evalResponse = $this->actingAs($this->mentor, 'sanctum')->postJson('/api/evaluations', [
             'intern_id' => $this->intern->id,
             'score_discipline' => 90,
@@ -62,6 +71,10 @@ class CertificateVerificationTest extends TestCase
             'score_initiative' => 80,
             'score_teamwork' => 85,
             'score_softskill' => 85,
+            'technical_scores' => [
+                ['criteria' => 'Analisis Sistem', 'score' => 85],
+                ['criteria' => 'Dokumentasi Teknis', 'score' => 85],
+            ],
             'notes' => 'Kinerja sangat memuaskan.',
         ]);
 
@@ -69,7 +82,8 @@ class CertificateVerificationTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.final_score', '85.00')
             ->assertJsonPath('data.grade_letter', 'B')
-            ->assertJsonPath('data.grade_description', 'BAIK');
+            ->assertJsonPath('data.grade_description', 'BAIK')
+            ->assertJsonPath('data.technical_scores.0.criteria', 'Analisis Sistem');
 
         $evaluationId = $evalResponse->json('data.id');
         $certResponse = $this->actingAs($this->mentor, 'sanctum')
@@ -90,6 +104,7 @@ class CertificateVerificationTest extends TestCase
             ->assertJsonPath('data.intern.name', $this->intern->name)
             ->assertJsonPath('data.intern.division', 'Bidang Aplikasi Informatika')
             ->assertJsonPath('data.evaluation.final_score', '85.00');
+        $publicVerifyResponse->assertJsonPath('data.evaluation.technical_scores.0.criteria', 'Analisis Sistem');
 
         $pdfResponse = $this->actingAs($this->mentor, 'sanctum')
             ->get('/api/certificates/'.$certResponse->json('data.id').'/download');

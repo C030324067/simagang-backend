@@ -13,7 +13,7 @@ const rubric = [
 ];
 
 const initialTechnicalScores = () => Array.from({ length: 5 }, (_, index) => ({
-  criteria: `Kompetensi Kejuruan ${index + 1}`,
+  criteria: `Aspek Teknis ${index + 1}`,
   score: 85,
 }));
 
@@ -82,10 +82,8 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
   }, [internId, evaluations]);
 
   const skillTotal = rubric.reduce((total, [key]) => total + (Number(scores[key]) || 0), 0);
-  const technicalTotal = isSmk
-    ? technicalScores.reduce((total, item) => total + (Number(item.score) || 0), 0)
-    : 0;
-  const itemCount = rubric.length + (isSmk ? technicalScores.length : 0);
+  const technicalTotal = technicalScores.reduce((total, item) => total + (Number(item.score) || 0), 0);
+  const itemCount = rubric.length + technicalScores.length;
   const scoreTotal = skillTotal + technicalTotal;
   const estimatedScore = itemCount ? Math.round((scoreTotal / itemCount) * 100) / 100 : 0;
   const [estimatedGrade, estimatedDescription] = gradeFor(estimatedScore);
@@ -100,9 +98,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
         body: JSON.stringify({
           intern_id: internId,
           ...scores,
-          technical_scores: isSmk
-            ? technicalScores.map((item) => ({ ...item, score: Number(item.score) }))
-            : [],
+          technical_scores: technicalScores.map((item) => ({ ...item, score: Number(item.score) })),
         }),
       });
       setMessage(response.success ? response.message || 'Evaluasi tersimpan.' : apiErrorMessage(response, 'Evaluasi gagal disimpan.'));
@@ -117,7 +113,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">Evaluasi akhir</p>
         <h2 className="mt-1 text-xl font-extrabold text-slate-900">Penilaian Akhir Peserta Magang</h2>
-        <p className="mt-1 text-sm text-slate-500">Nilai keterampilan menggunakan standar Diskominfo. Peserta SMK juga dinilai berdasarkan kompetensi kejuruan.</p>
+        <p className="mt-1 text-sm text-slate-500">Nilai akhir merata-ratakan lima aspek keterampilan Diskominfo dan aspek teknis yang dipilih mentor.</p>
       </div>
       {message && <AutoDismissNotice as="p" watch={message} role="status" className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">{message}</AutoDismissNotice>}
 
@@ -174,7 +170,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
           <form onSubmit={submit} className="space-y-5">
             <section className="space-y-3">
               <div>
-                <h3 className="font-bold text-slate-900">{isSmk ? 'A. Keterampilan (Penilaian Tetap Diskominfo)' : 'Keterampilan (Penilaian Tetap Diskominfo)'}</h3>
+                <h3 className="font-bold text-slate-900">A. Keterampilan (Penilaian Tetap Diskominfo)</h3>
                 <p className="mt-1 text-xs text-slate-500">Beri nilai 0–100 pada setiap aspek.</p>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
@@ -196,12 +192,11 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
               </div>
             </section>
 
-            {isSmk && (
-              <section className="space-y-3 rounded-2xl border border-violet-100 bg-violet-50/50 p-4">
+            <section className="space-y-3 rounded-2xl border border-violet-100 bg-violet-50/50 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 className="font-bold text-slate-900">B. Nilai Teknis (Khusus SMK)</h3>
-                    <p className="mt-1 text-xs text-slate-500">Sesuaikan nama kompetensi kejuruan dengan jurusan peserta (maksimal 7 aspek).</p>
+                    <h3 className="font-bold text-slate-900">B. Penilaian Teknis</h3>
+                    <p className="mt-1 text-xs text-slate-500">Sesuaikan nama aspek teknis dengan kompetensi peserta (maksimal 7 aspek).</p>
                   </div>
                   <button
                     type="button"
@@ -219,7 +214,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
                         required
                         maxLength={255}
                         aria-label={`Kriteria teknis ${index + 1}`}
-                        placeholder={`Kriteria kompetensi kejuruan ${index + 1}`}
+                        placeholder={`Kriteria teknis ${index + 1}`}
                         value={item.criteria}
                         onChange={(event) => setTechnicalScores((previous) => previous.map((row, rowIndex) => rowIndex === index ? { ...row, criteria: event.target.value } : row))}
                         className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
@@ -247,8 +242,7 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
                     </div>
                   ))}
                 </div>
-              </section>
-            )}
+            </section>
 
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-50 p-4">
               <div className="grid grid-cols-2 gap-x-5 gap-y-1 text-sm text-emerald-950 sm:grid-cols-4">

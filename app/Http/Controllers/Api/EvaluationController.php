@@ -133,16 +133,10 @@ class EvaluationController extends Controller
             return $this->errorResponse('Peserta belum memiliki periode magang yang disetujui.', 422);
         }
 
-        $isSmk = $application->educationLevel() === 'SMK';
         $technicalScores = $validated['technical_scores'] ?? [];
-        if ($isSmk && count($technicalScores) === 0) {
+        if (count($technicalScores) === 0) {
             throw ValidationException::withMessages([
-                'technical_scores' => 'Peserta SMK wajib memiliki minimal satu nilai teknis.',
-            ]);
-        }
-        if (! $isSmk && count($technicalScores) > 0) {
-            throw ValidationException::withMessages([
-                'technical_scores' => 'Nilai teknis hanya digunakan untuk peserta SMK.',
+                'technical_scores' => 'Peserta wajib memiliki minimal satu nilai teknis.',
             ]);
         }
 

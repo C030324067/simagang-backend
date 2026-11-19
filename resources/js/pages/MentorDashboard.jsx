@@ -530,6 +530,11 @@ export default function MentorDashboard() {
                         <td className="py-4 px-2">
                           <strong className="text-[#0F172A] font-bold">{evaluation.intern?.name || '—'}</strong>
                           <p className="text-slate-400 text-[11px] mt-0.5">{evaluation.intern?.email || ''}</p>
+                          {evaluation.technical_scores?.length > 0 && (
+                            <p className="mt-1 text-[11px] text-slate-500">
+                              Teknis: {evaluation.technical_scores.map((item) => `${item.criteria} ${Number(item.score).toFixed(2)}`).join(' · ')}
+                            </p>
+                          )}
                         </td>
                         <td className="py-4 px-2 font-medium text-slate-700">{evaluation.intern?.division?.name || '—'}</td>
                         <td className="py-4 px-2 font-medium text-slate-700">{evaluation.score_discipline ?? evaluation.discipline_score ?? '—'}</td>
