@@ -175,10 +175,13 @@ class InternApplication extends Model
     public function scopeActiveInternships(Builder $query): Builder
     {
         return $query->where('final_status', 'accepted')
+            ->whereIn('internship_status', ['in_progress', 'active'])
             ->whereDate('end_date', '>=', now(config('app.timezone'))->toDateString())
+            ->whereDoesntHave('certificate', fn (Builder $certificates) => $certificates->whereNotNull('issued_at'))
             ->whereHas('user', fn ($users) => $users
                 ->where('role', 'intern')
-                ->where('is_active', true));
+                ->where('is_active', true)
+                ->where('status_akun', '!=', 'expired'));
     }
 
     public function scopeCountsTowardsQuota(Builder $query): Builder

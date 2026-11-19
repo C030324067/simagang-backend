@@ -333,6 +333,20 @@ class ApplicationController extends Controller
         return $this->successResponse($applications, 'Daftar pemagang aktif bidang berhasil dimuat.');
     }
 
+    public function kadisActiveInterns(Request $request): JsonResponse
+    {
+        $applications = InternApplication::query()
+            ->activeInternships()
+            ->with([
+                'division:id,name',
+                'user:id,name,email,no_hp,division_id,is_active,status_akun',
+            ])
+            ->latest()
+            ->paginate($this->perPage($request));
+
+        return $this->successResponse($applications, 'Daftar pemagang aktif dinas berhasil dimuat.');
+    }
+
     public function mentors(Request $request, InternApplication $application): JsonResponse
     {
         $kabid = $request->user();

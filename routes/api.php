@@ -93,6 +93,7 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
         Route::get('/kabid', [ApplicationController::class, 'kabid'])->middleware('role:kabid');
         Route::get('/{application}/mentors', [ApplicationController::class, 'mentors'])->middleware('role:kabid');
         Route::get('/kadis', [ApplicationController::class, 'kadis'])->middleware('role:kadis');
+        Route::get('/active', [ApplicationController::class, 'kadisActiveInterns'])->middleware('role:kadis');
         Route::put('/{application}/status', [ApplicationController::class, 'updateStatus'])
             ->middleware('role:admin_kepegawaian,kadis');
         Route::post('/{id}/surat-balasan', [ApplicationController::class, 'generateSuratBalasan'])

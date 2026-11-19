@@ -17,8 +17,9 @@ use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CertificateController extends Controller
 {
@@ -216,21 +217,30 @@ class CertificateController extends Controller
 
         $existing = Certificate::query()->where('intern_application_id', $application->id)->first();
         if ($existing) {
-            if ($requestedNumber !== null && $existing->certificate_number !== $requestedNumber) {
-                $existing->update(['certificate_number' => $requestedNumber]);
-            }
+            DB::transaction(function () use ($existing, $requestedNumber, $application): void {
+                if ($requestedNumber !== null && $existing->certificate_number !== $requestedNumber) {
+                    $existing->update(['certificate_number' => $requestedNumber]);
+                }
+                $application->update(['internship_status' => 'completed']);
+            });
+            $existing->refresh();
             $existing->load(['intern.division', 'internApplication']);
 
             return $this->successResponse($existing, 'Sertifikat magang telah diterbitkan.');
         }
 
         $certificateNumber = $requestedNumber ?? $this->defaultCertificateNumber($application->id);
-        $certificate = Certificate::create([
-            'intern_application_id' => $application->id,
-            'certificate_number' => $certificateNumber,
-            'qr_hash' => hash('sha256', $intern->id.'-'.now()->timestamp.'-'.Str::random(16)),
-            'issued_at' => now(),
-        ]);
+        $certificate = DB::transaction(function () use ($application, $certificateNumber, $intern): Certificate {
+            $certificate = Certificate::create([
+                'intern_application_id' => $application->id,
+                'certificate_number' => $certificateNumber,
+                'qr_hash' => hash('sha256', $intern->id.'-'.now()->timestamp.'-'.Str::random(16)),
+                'issued_at' => now(),
+            ]);
+            $application->update(['internship_status' => 'completed']);
+
+            return $certificate;
+        });
         $certificate->load(['intern.division', 'internApplication']);
 
         return $this->successResponse($certificate, 'Sertifikat magang digital dengan kode QR berhasil diterbitkan.', 201);

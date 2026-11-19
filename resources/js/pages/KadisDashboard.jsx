@@ -112,6 +112,7 @@ export default function KadisDashboard() {
   });
 
   const [activeInterns, setActiveInterns] = useState([]);
+  const [activeInternsTotal, setActiveInternsTotal] = useState(0);
   const [activeLoading, setActiveLoading] = useState(false);
   const [isActiveModalOpen, setIsActiveModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,7 +141,7 @@ export default function KadisDashboard() {
         throw new Error('Token autentikasi tidak ditemukan. Silakan masuk kembali.');
       }
 
-      const response = await fetch('/api/applications?final_status=accepted&per_page=100', {
+      const response = await fetch('/api/applications/active?per_page=100', {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
@@ -151,7 +152,9 @@ export default function KadisDashboard() {
         throw new Error(data?.message || `Gagal memuat pemagang aktif (HTTP ${response.status}).`);
       }
 
-      setActiveInterns(extractApplications(data));
+      const applications = extractApplications(data);
+      setActiveInterns(applications);
+      setActiveInternsTotal(Number(data?.data?.total ?? applications.length));
     } catch (error) {
       console.error('Gagal memuat daftar pemagang aktif:', error);
       setMsg({ type: 'error', text: error?.message || 'Gagal memuat daftar pemagang aktif.' });
@@ -338,7 +341,7 @@ export default function KadisDashboard() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-semibold text-slate-500">Pemagang Aktif Dinas</p>
-                    <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{activeLoading ? '…' : safeActiveInterns.length}</p>
+                    <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{activeLoading ? '…' : activeInternsTotal}</p>
                     <button
                       type="button"
                       onClick={() => setIsActiveModalOpen(true)}
@@ -911,7 +914,7 @@ export default function KadisDashboard() {
             <header className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <h2 id="active-interns-title" className="text-lg font-extrabold tracking-tight text-slate-900">Pemagang Aktif Dinas</h2>
-                <p className="mt-1 text-xs text-slate-500">{safeActiveInterns.length} pemagang aktif di dinas saat ini.</p>
+                <p className="mt-1 text-xs text-slate-500">{activeInternsTotal} pemagang aktif di dinas saat ini.</p>
               </div>
               <button type="button" onClick={() => { setIsActiveModalOpen(false); setSearchTerm(''); }} className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100" aria-label="Tutup daftar pemagang">
                 <X className="h-5 w-5" />

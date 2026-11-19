@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Certificate;
 use App\Models\Division;
 use App\Models\InternApplication;
 use App\Models\InternApplicationHistory;
@@ -71,6 +72,39 @@ class KabidDashboardTest extends TestCase
         $this->createTestApplication($second, $this->division, 'accepted', 'accepted');
         $this->createTestApplication($outside, $this->otherDivision, 'accepted', 'accepted');
 
+        $completed = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+        $completed->update(['internship_status' => 'completed']);
+
+        $certified = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+        Certificate::query()->create([
+            'intern_application_id' => $certified->id,
+            'certificate_number' => 'CERT-KABID-1',
+            'qr_hash' => 'kabid-certified-hash',
+            'issued_at' => now(),
+        ]);
+
+        $expiredUser = $this->createUser('intern', $this->division, true);
+        $expiredUser->update(['status_akun' => 'expired']);
+        $this->createTestApplication($expiredUser, $this->division, 'accepted', 'accepted');
+
+        $pastEndDate = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+        $pastEndDate->update(['end_date' => now()->subDay()->toDateString()]);
+
         $this->actingAs($this->kabid, 'sanctum')
             ->getJson('/api/kabid/interns?division_id='.$this->otherDivision->id.'&per_page=1&page=2')
             ->assertOk()
@@ -83,6 +117,67 @@ class KabidDashboardTest extends TestCase
             ->assertJsonPath('data.data.0.user.phone', '08123456789')
             ->assertJsonPath('data.data.0.user.email', 'second-intern@example.test')
             ->assertJsonPath('data.data.0.department', 'Teknik Informatika');
+    }
+
+    public function test_kadis_active_intern_list_excludes_completed_expired_past_and_certified_applications(): void
+    {
+        $kadis = User::factory()->create([
+            'role' => 'kadis',
+            'status_akun' => 'approved',
+            'is_active' => true,
+        ]);
+        $active = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+
+        $completed = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+        $completed->update(['internship_status' => 'completed']);
+
+        $certified = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+        Certificate::query()->create([
+            'intern_application_id' => $certified->id,
+            'certificate_number' => 'CERT-KADIS-1',
+            'qr_hash' => 'kadis-certified-hash',
+            'issued_at' => now(),
+        ]);
+
+        $expiredUser = $this->createUser('intern', $this->division, true);
+        $expiredUser->update(['status_akun' => 'expired']);
+        $this->createTestApplication($expiredUser, $this->division, 'accepted', 'accepted');
+
+        $pastEndDate = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+        $pastEndDate->update(['end_date' => now()->subDay()->toDateString()]);
+
+        $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'rejected',
+            'rejected',
+        );
+
+        $this->actingAs($kadis, 'sanctum')
+            ->getJson('/api/applications/active?per_page=100')
+            ->assertOk()
+            ->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.data.0.id', $active->id);
     }
 
     public function test_kabid_queue_contains_only_pending_kabid_items_in_their_division(): void
