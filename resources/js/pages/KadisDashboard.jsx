@@ -4,18 +4,12 @@ import { apiRequest, getToken } from '../api';
 import AutoDismissNotice from '../components/AutoDismissNotice';
 import {
   AlertCircle,
-  BriefcaseBusiness,
-  Building2,
   CalendarDays,
   CheckCircle2,
-  ChartNoAxesCombined,
   ExternalLink,
-  FileDown,
   FileSignature,
   FileText,
-  Filter,
   GraduationCap,
-  RotateCcw,
   Search,
   ShieldCheck,
   Users,
@@ -77,27 +71,13 @@ const ProgressBar = ({ value, color = 'bg-blue-600' }) => {
   );
 };
 
-const StatCard = ({ label, value, suffix, icon: Icon, tone = 'blue', children }) => {
-  const colors = {
-    blue: 'bg-blue-50 text-blue-700',
-    amber: 'bg-amber-50 text-amber-700',
-    emerald: 'bg-emerald-50 text-emerald-700',
-    violet: 'bg-violet-50 text-violet-700',
-  };
-
+const StatCard = ({ label, value, suffix, children }) => {
   return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-slate-500">{label}</p>
-          <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{value}</p>
-          {suffix && <p className="mt-1 text-[11px] text-slate-400">{suffix}</p>}
-        </div>
-        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${colors[tone]}`}>
-          <Icon className="h-5 w-5" />
-        </span>
-      </div>
-      {children}
+    <article className="flex min-h-[136px] flex-col items-center rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-sm">
+      <p className="text-xs font-medium text-slate-600">{label}</p>
+      <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">{value}</p>
+      {suffix && <p className="mt-1 text-[11px] text-slate-400">{suffix}</p>}
+      {children && <div className="mt-auto w-full pt-4">{children}</div>}
     </article>
   );
 };
@@ -331,7 +311,6 @@ export default function KadisDashboard() {
         <section className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-600">
-              <Building2 className="h-3.5 w-3.5" />
               Dinas Komunikasi dan Informatika
             </span>
             <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Dashboard Kepala Dinas</h1>
@@ -339,36 +318,22 @@ export default function KadisDashboard() {
               Otorisasi akhir permohonan magang dan pantau capaian pelaksanaan magang di seluruh bidang.
             </p>
           </div>
-          <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-[520px]">
-              <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-500">Pemagang Aktif Dinas</p>
-                    <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{activeLoading ? '…' : activeInternsTotal}</p>
-                    <button
-                      type="button"
-                      onClick={() => setIsActiveModalOpen(true)}
-                      className="mt-1 text-xs font-bold text-blue-700 transition hover:text-blue-800"
-                    >
-                      Lihat daftar <span aria-hidden="true">→</span>
-                    </button>
-                  </div>
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
-                    <GraduationCap className="h-5 w-5" />
-                  </span>
-                </div>
+          <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-[420px]">
+              <article className="flex min-h-[92px] flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white p-3 text-center shadow-sm">
+                <p className="text-[11px] font-medium text-slate-600">Pemagang Aktif Dinas</p>
+                <p className="mt-1 text-2xl font-extrabold leading-none text-slate-950">{activeLoading ? '…' : activeInternsTotal}</p>
+                <button
+                  type="button"
+                  onClick={() => setIsActiveModalOpen(true)}
+                  className="mt-1 text-[10px] font-semibold text-blue-600 transition hover:text-blue-700"
+                >
+                  Lihat daftar
+                </button>
               </article>
-              <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-500">Menunggu Otorisasi Kadis</p>
-                    <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{safePendingApps.length}</p>
-                    <p className="mt-1 text-[11px] text-slate-400">permohonan dalam antrean</p>
-                  </div>
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700">
-                    <FileSignature className="h-5 w-5" />
-                  </span>
-                </div>
+              <article className="flex min-h-[92px] flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white p-3 text-center shadow-sm">
+                <p className="text-[11px] font-medium text-slate-600">Menunggu Otorisasi Kadis</p>
+                <p className="mt-1 text-2xl font-extrabold leading-none text-slate-950">{safePendingApps.length}</p>
+                <p className="mt-1 text-[10px] text-slate-400">permohonan dalam antrean</p>
               </article>
           </div>
         </section>
@@ -424,8 +389,7 @@ export default function KadisDashboard() {
             <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="flex items-center gap-2 font-bold text-slate-900">
-                    <Filter className="h-4 w-4 text-blue-600" />
+                  <h2 className="font-bold text-slate-900">
                     Filter Laporan
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">Pilih bidang dan rentang periode yang ingin ditinjau.</p>
@@ -436,7 +400,6 @@ export default function KadisDashboard() {
                   disabled={reportDownloading}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <FileDown className="h-4 w-4" />
                   {reportDownloading ? 'Menyiapkan PDF...' : 'Unduh Laporan PDF'}
                 </button>
               </div>
@@ -472,11 +435,9 @@ export default function KadisDashboard() {
                   />
                 </label>
                 <button type="submit" className="inline-flex items-end justify-center gap-2 self-end rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-700">
-                  <Filter className="h-3.5 w-3.5" />
                   Terapkan Filter
                 </button>
                 <button type="button" onClick={resetReportFilters} className="inline-flex items-end justify-center gap-2 self-end rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50">
-                  <RotateCcw className="h-3.5 w-3.5" />
                   Reset
                 </button>
               </form>
@@ -511,21 +472,17 @@ export default function KadisDashboard() {
                     ? null
                     : Number(summary.average_attendance_percentage);
                   const stats = [
-                    { label: 'Total Pendaftar', value: summary.total_applicants ?? 0, icon: Users, tone: 'blue', suffix: 'peserta terdaftar' },
-                    { label: 'Peserta Diterima', value: summary.total_accepted ?? 0, icon: CheckCircle2, tone: 'emerald', suffix: `${summary.total_active ?? 0} peserta aktif` },
-                    { label: 'Rata-rata Kehadiran', value: attendance == null ? '—' : `${attendance.toFixed(1)}%`, icon: ChartNoAxesCombined, tone: 'emerald', suffix: 'persentase kehadiran dinas', progress: attendance, progressColor: 'bg-emerald-500' },
-                    { label: 'Tingkat Penyelesaian', value: `${completionRate.toFixed(1)}%`, icon: GraduationCap, tone: 'violet', suffix: `${completed} dari ${accepted} peserta diterima selesai`, progress: completionRate, progressColor: 'bg-blue-600' },
+                    { label: 'Total Pendaftar', value: summary.total_applicants ?? 0, suffix: 'peserta terdaftar' },
+                    { label: 'Peserta Diterima', value: summary.total_accepted ?? 0, suffix: `${summary.total_active ?? 0} peserta aktif` },
+                    { label: 'Rata-rata Kehadiran', value: attendance == null ? '—' : `${attendance.toFixed(1)}%`, suffix: 'persentase kehadiran dinas', progress: attendance },
+                    { label: 'Tingkat Penyelesaian', value: `${completionRate.toFixed(1)}%`, suffix: `${completed} dari ${accepted} peserta diterima selesai` },
                   ];
 
                   return (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                      {stats.map(({ label, value, icon, tone, suffix, progress, progressColor }) => (
-                        <StatCard key={label} label={label} value={value} suffix={suffix} icon={icon} tone={tone}>
-                          {progress !== undefined && (
-                            <div className="mt-3">
-                              <ProgressBar value={progress} color={progressColor} />
-                            </div>
-                          )}
+                      {stats.map(({ label, value, suffix, progress }) => (
+                        <StatCard key={label} label={label} value={value} suffix={suffix}>
+                          {progress !== undefined && <ProgressBar value={progress} color="bg-blue-600" />}
                         </StatCard>
                       ))}
                     </div>
@@ -534,8 +491,7 @@ export default function KadisDashboard() {
 
                 <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
                   <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
-                    <h2 className="flex items-center gap-2 font-bold text-slate-900">
-                      <BriefcaseBusiness className="h-4 w-4 text-blue-600" />
+                    <h2 className="font-bold text-slate-900">
                       Rekapitulasi Per Bidang
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">Ringkasan kuota, status peserta, dan rata-rata nilai akhir.</p>
@@ -546,11 +502,11 @@ export default function KadisDashboard() {
                         <tr>
                           <th className="px-5 py-3.5 font-bold">Nama Bidang</th>
                           <th className="w-48 px-4 py-3.5 font-bold">Kuota</th>
-                          <th className="px-4 py-3.5 text-right font-bold">Total Pendaftar</th>
-                          <th className="px-4 py-3.5 text-right font-bold">Diterima</th>
-                          <th className="px-4 py-3.5 text-right font-bold">Aktif</th>
-                          <th className="px-4 py-3.5 text-right font-bold">Lulus</th>
-                          <th className="px-5 py-3.5 text-right font-bold">Rata-rata Nilai</th>
+                          <th className="px-4 py-3.5 text-center font-bold">Total Pendaftar</th>
+                          <th className="px-4 py-3.5 text-center font-bold">Diterima</th>
+                          <th className="px-4 py-3.5 text-center font-bold">Aktif</th>
+                          <th className="px-4 py-3.5 text-center font-bold">Lulus</th>
+                          <th className="px-5 py-3.5 text-center font-bold">Rata-rata Nilai</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -568,12 +524,12 @@ export default function KadisDashboard() {
                                 </div>
                                 <div className="mt-2"><ProgressBar value={quotaUsage} color="bg-blue-500" /></div>
                               </td>
-                              <td className="px-4 py-4 text-right">{division.total_applicants ?? 0}</td>
-                              <td className="px-4 py-4 text-right">{division.total_accepted ?? 0}</td>
-                              <td className="px-4 py-4 text-right">{division.total_active ?? 0}</td>
-                              <td className="px-4 py-4 text-right">{division.total_completed ?? 0}</td>
-                              <td className="px-5 py-4 text-right">
-                                <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 font-bold text-amber-700">
+                              <td className="px-4 py-4 text-center">{division.total_applicants ?? 0}</td>
+                              <td className="px-4 py-4 text-center">{division.total_accepted ?? 0}</td>
+                              <td className="px-4 py-4 text-center">{division.total_active ?? 0}</td>
+                              <td className="px-4 py-4 text-center">{division.total_completed ?? 0}</td>
+                              <td className="px-5 py-4 text-center">
+                                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-50 px-1.5 text-[10px] font-bold text-amber-700">
                                   {division.average_final_score == null ? '—' : Number(division.average_final_score).toFixed(2)}
                                 </span>
                               </td>
@@ -590,8 +546,7 @@ export default function KadisDashboard() {
 
                 <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
                   <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
-                    <h2 className="flex items-center gap-2 font-bold text-slate-900">
-                      <Users className="h-4 w-4 text-blue-600" />
+                    <h2 className="font-bold text-slate-900">
                       Daftar Peserta Magang
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">{(reportData.participants || []).length} peserta sesuai filter aktif.</p>
@@ -632,7 +587,7 @@ export default function KadisDashboard() {
                               <tr key={participant.application_id ?? index} className="text-slate-600 transition hover:bg-slate-50/70">
                                 <td className="px-5 py-4">
                                   <div className="flex items-center gap-3">
-                                    <Avatar name={participant.participant_name} tone="indigo" />
+                                    <Avatar name={participant.participant_name} tone="indigo" size="h-8 w-8" />
                                     <div>
                                       <p className="font-bold text-slate-900">{participant.participant_name || '—'}</p>
                                       <p className="mt-0.5 text-[11px] text-slate-400">{participant.major || 'Peserta magang'}</p>
@@ -652,14 +607,8 @@ export default function KadisDashboard() {
                                   </span>
                                 </td>
                                 <td className="px-4 py-4">
-                                  {attendance == null ? (
-                                    <span className="text-slate-400">—</span>
-                                  ) : (
-                                    <>
-                                      <div className="text-[11px] font-semibold text-slate-700">{attendance.toFixed(1)}%</div>
-                                      <div className="mt-2"><ProgressBar value={attendance} color="bg-emerald-500" /></div>
-                                    </>
-                                  )}
+                                  <div className="text-[11px] font-semibold text-slate-700">{attendance == null ? '—' : `${attendance.toFixed(1)}%`}</div>
+                                  <div className="mt-2"><ProgressBar value={attendance} color="bg-emerald-500" /></div>
                                 </td>
                                 <td className="px-5 py-4 text-right">
                                   <span className="font-bold text-slate-900">{participant.final_score == null ? '—' : Number(participant.final_score).toFixed(2)}</span>
@@ -673,7 +622,6 @@ export default function KadisDashboard() {
                         <tbody>
                           <tr>
                             <td colSpan="7" className="px-5 py-14 text-center">
-                              <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400"><Users className="h-5 w-5" /></span>
                               <p className="mt-3 font-bold text-slate-700">Belum ada data peserta</p>
                               <p className="mt-1 text-xs text-slate-400">Sesuaikan filter bidang atau periode untuk melihat laporan.</p>
                             </td>
