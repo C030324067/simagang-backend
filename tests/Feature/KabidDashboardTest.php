@@ -151,12 +151,17 @@ class KabidDashboardTest extends TestCase
             'intern_application_id' => $certified->id,
             'certificate_number' => 'CERT-KADIS-1',
             'qr_hash' => 'kadis-certified-hash',
-            'issued_at' => now(),
+            'issued_at' => null,
         ]);
 
         $expiredUser = $this->createUser('intern', $this->division, true);
         $expiredUser->update(['status_akun' => 'expired']);
         $this->createTestApplication($expiredUser, $this->division, 'accepted', 'accepted');
+
+        $expiredByLoginUser = $this->createUser('intern', $this->division, true);
+        $currentApplication = $this->createTestApplication($expiredByLoginUser, $this->division, 'accepted', 'accepted');
+        $latestExpiredApplication = $this->createTestApplication($expiredByLoginUser, $this->division, 'accepted', 'accepted');
+        $latestExpiredApplication->update(['end_date' => now()->subDays(8)->toDateString()]);
 
         $pastEndDate = $this->createTestApplication(
             $this->createUser('intern', $this->division, true),
@@ -178,6 +183,56 @@ class KabidDashboardTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.data.0.id', $active->id);
+
+        $this->assertSame('in_progress', $currentApplication->fresh()->internship_status);
+    }
+
+    public function test_status_sync_command_completes_certified_past_and_login_expired_internships(): void
+    {
+        $certifiedApplication = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+        Certificate::query()->create([
+            'intern_application_id' => $certifiedApplication->id,
+            'certificate_number' => 'CERT-SYNC-1',
+            'qr_hash' => 'sync-certified-hash',
+            'issued_at' => null,
+        ]);
+
+        $pastEndDateApplication = $this->createTestApplication(
+            $this->createUser('intern', $this->division, true),
+            $this->division,
+            'accepted',
+            'accepted',
+        );
+        $pastEndDateApplication->update(['end_date' => now()->subDay()->toDateString()]);
+
+        $expiredUser = $this->createUser('intern', $this->division, true);
+        $expiredApplication = $this->createTestApplication($expiredUser, $this->division, 'accepted', 'accepted');
+        $expiredApplication->update(['end_date' => now()->subDays(8)->toDateString()]);
+
+        $this->artisan('app:sync-completed-internships')->assertExitCode(0);
+
+        $this->assertDatabaseHas('intern_applications', [
+            'id' => $certifiedApplication->id,
+            'internship_status' => 'completed',
+        ]);
+        $this->assertDatabaseHas('intern_applications', [
+            'id' => $pastEndDateApplication->id,
+            'internship_status' => 'completed',
+        ]);
+        $this->assertDatabaseHas('intern_applications', [
+            'id' => $expiredApplication->id,
+            'internship_status' => 'completed',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'id' => $expiredUser->id,
+            'status_akun' => 'expired',
+            'is_active' => false,
+        ]);
     }
 
     public function test_kabid_queue_contains_only_pending_kabid_items_in_their_division(): void

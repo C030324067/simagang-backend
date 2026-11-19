@@ -27,7 +27,9 @@ class DeactivateExpiredInterns extends Command
 
                     DB::transaction(function () use ($user): void {
                         $user->forceFill(['status_akun' => 'expired', 'is_active' => false])->save();
-                        $user->internApplication?->update(['internship_status' => 'completed']);
+                        $user->applications()
+                            ->where('final_status', 'accepted')
+                            ->update(['internship_status' => 'completed']);
                         $user->tokens()->delete();
                     });
                     $deactivatedCount++;

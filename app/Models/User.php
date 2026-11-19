@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,6 +16,8 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    public const ACCOUNT_EXPIRATION_GRACE_DAYS = 7;
+
     public const ACCOUNT_EXPIRATION_ROLES = ['intern', 'peserta', 'pemohon'];
 
     public const INTERNAL_ROLES = [
@@ -120,7 +123,28 @@ class User extends Authenticatable
     {
         $endDate = $this->getAttribute('end_date') ?? $this->internApplication?->end_date;
 
-        return $endDate ? Carbon::parse($endDate)->addDays(7)->endOfDay() : null;
+        return $endDate
+            ? Carbon::parse($endDate)->addDays(self::ACCOUNT_EXPIRATION_GRACE_DAYS)->endOfDay()
+            : null;
+    }
+
+    public static function accountExpirationCutoffDate(): string
+    {
+        return now(config('app.timezone'))
+            ->subDays(self::ACCOUNT_EXPIRATION_GRACE_DAYS)
+            ->toDateString();
+    }
+
+    public function scopeNotExpiredParticipant(Builder $query): Builder
+    {
+        return $query
+            ->whereIn('role', self::ACCOUNT_EXPIRATION_ROLES)
+            ->where(function (Builder $users): void {
+                $users->whereNull('status_akun')->orWhere('status_akun', '!=', 'expired');
+            })
+            ->whereHas('internApplication', fn (Builder $applications) => $applications
+                ->whereNotNull('end_date')
+                ->whereDate('end_date', '>=', self::accountExpirationCutoffDate()));
     }
 
     public function isExpired(): bool

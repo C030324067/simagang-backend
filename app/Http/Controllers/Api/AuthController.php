@@ -72,7 +72,9 @@ class AuthController extends Controller
 
         if ($user->isIntern() && ! in_array($user->role, User::INTERNAL_ROLES, true) && $user->isExpired()) {
             $user->forceFill(['status_akun' => 'expired', 'is_active' => false])->save();
-            $user->internApplication?->update(['internship_status' => 'completed']);
+            $user->applications()
+                ->where('final_status', 'accepted')
+                ->update(['internship_status' => 'completed']);
             $user->tokens()->delete();
             $gracePeriodUntil = $user->gracePeriodEnd();
             $message = $gracePeriodUntil
