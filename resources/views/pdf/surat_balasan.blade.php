@@ -21,29 +21,30 @@
             text-align: justify;
         }
 
-        /* Kop Surat - Rata Tengah */
+        /* Kop Surat */
         .letterhead {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 4pt;
             font-family: Arial, sans-serif;
         }
 
         .letterhead-logo {
-            width: 12%;
+            width: 13%;
             vertical-align: middle;
-            text-align: center;
+            text-align: left;
         }
 
         .letterhead-logo img {
-            width: 75px;
-            height: auto;
+            height: 68px;
+            width: auto;
         }
 
         .letterhead-copy {
-            width: 88%;
+            width: 87%;
             vertical-align: middle;
             text-align: center !important;
+            padding-right: 45px;
+            box-sizing: border-box;
         }
 
         .letterhead-copy p {
@@ -52,27 +53,39 @@
         }
 
         .government {
-            font-size: 14pt;
-            text-transform: uppercase;
-        }
-
-        .department {
-            font-size: 22pt;
+            font-size: 13pt;
             font-weight: bold;
             text-transform: uppercase;
         }
 
-        .address, .contact {
-            font-size: 12pt;
+        .department {
+            font-size: 15pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .address {
+            font-size: 9.5pt;
             line-height: 1.2;
         }
 
+        .contact {
+            font-size: 9.5pt;
+            line-height: 1.2;
+        }
+
+        .letterhead-email {
+            font-size: 9pt;
+            white-space: nowrap;
+        }
+
         .divider {
-            border-top: 3px solid #000;
+            border-top: 2px solid #000;
             border-bottom: 1px solid #000;
             height: 2px;
-            margin-top: 4pt;
-            margin-bottom: 14pt;
+            margin-top: 2px;
+            margin-bottom: 18px;
         }
 
         /* Metadata & Tanggal */
@@ -189,9 +202,9 @@
             <td class="letterhead-copy">
                 <p class="government">PEMERINTAH KABUPATEN TABALONG</p>
                 <p class="department">DINAS KOMUNIKASI DAN INFORMATIKA</p>
-                <p class="address">Jl. Cempaka No. 38 Tanjung, Tabalong, Kalimantan Selatan 71513</p>
+                <p class="address">Jalan Cempaka No. 38 Tanjung, Tabalong, Kalimantan Selatan 71513</p>
                 <p class="contact">Telepon (0526) 2023169</p>
-                <p class="contact">Laman : https://diskominfo.tabalongkab.go.id Pos-el : diskominfo@tabalongkab.go.id</p>
+                <p class="letterhead-email">Laman: https://diskominfo.tabalongkab.go.id, Pos-el: diskominfo@tabalongkab.go.id</p>
             </td>
         </tr>
     </table>
