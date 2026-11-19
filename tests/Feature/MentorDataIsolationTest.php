@@ -193,11 +193,21 @@ class MentorDataIsolationTest extends TestCase
 
         $activeA = $this->createAcceptedApplication($division, $mentorA, 'Aktif Mentor A');
         $this->createAcceptedApplication($division, $mentorB, 'Aktif Mentor B');
+        $activeAttendance = $this->createAttendance($activeA);
+        $activeLogbook = $this->createLogbook($activeA);
+        $activeTask = $this->createTask($activeA, $mentorA);
         $completed = $this->createAcceptedApplication($division, $mentorA, 'Sudah Selesai');
         $completed->update(['internship_status' => 'completed']);
         $completedEvaluation = $this->createEvaluation($completed, $mentorA);
+        $completedAttendance = $this->createAttendance($completed);
+        $completedLogbook = $this->createLogbook($completed);
+        $completedTask = $this->createTask($completed, $mentorA);
         $ended = $this->createAcceptedApplication($division, $mentorA, 'Periode Lewat');
         $ended->update(['end_date' => now(config('app.timezone'))->subDay()->toDateString()]);
+        $endedEvaluation = $this->createEvaluation($ended, $mentorA);
+        $endedAttendance = $this->createAttendance($ended);
+        $endedLogbook = $this->createLogbook($ended);
+        $endedTask = $this->createTask($ended, $mentorA);
 
         $this->asMentor($mentorA)
             ->getJson('/api/applications?per_page=100')
@@ -214,8 +224,40 @@ class MentorDataIsolationTest extends TestCase
         $this->asMentor($mentorA)
             ->getJson('/api/evaluations?per_page=100')
             ->assertOk()
+            ->assertJsonCount(2, 'data.data')
+            ->assertJsonFragment(['id' => $completedEvaluation->id])
+            ->assertJsonFragment(['id' => $endedEvaluation->id]);
+
+        $this->asMentor($mentorA)
+            ->getJson('/api/attendances?per_page=100')
+            ->assertOk()
             ->assertJsonCount(1, 'data.data')
-            ->assertJsonPath('data.data.0.id', $completedEvaluation->id);
+            ->assertJsonPath('data.data.0.id', $activeAttendance->id);
+        $this->asMentor($mentorA)
+            ->getJson('/api/attendances/pending-approval')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $activeAttendance->id);
+        $this->asMentor($mentorA)
+            ->getJson('/api/logbooks?per_page=100')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data')
+            ->assertJsonPath('data.data.0.id', $activeLogbook->id);
+        $this->asMentor($mentorA)
+            ->getJson('/api/tasks?per_page=100')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data')
+            ->assertJsonPath('data.data.0.id', $activeTask->id);
+
+        foreach ([$completedAttendance, $endedAttendance] as $hiddenAttendance) {
+            $this->assertDatabaseHas('attendances', ['id' => $hiddenAttendance->id]);
+        }
+        foreach ([$completedLogbook, $endedLogbook] as $hiddenLogbook) {
+            $this->assertDatabaseHas('logbooks', ['id' => $hiddenLogbook->id]);
+        }
+        foreach ([$completedTask, $endedTask] as $hiddenTask) {
+            $this->assertDatabaseHas('tasks', ['id' => $hiddenTask->id]);
+        }
     }
 
     private function asMentor(User $user): self

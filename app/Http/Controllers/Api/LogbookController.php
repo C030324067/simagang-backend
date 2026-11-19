@@ -33,7 +33,9 @@ class LogbookController extends Controller
                 return $this->errorResponse('Akun ini tidak memiliki akses pembimbing.', 403);
             }
 
-            $query->whereHas('internApplication', fn ($q) => $q->forMentor((int) $user->id));
+            $query->whereHas('internApplication', fn ($applications) => $applications
+                ->forMentor((int) $user->id)
+                ->activeInternships());
         } elseif ($request->filled('user_id')) {
             $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $request->input('user_id')));
         }

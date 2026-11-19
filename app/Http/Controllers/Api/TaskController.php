@@ -33,7 +33,9 @@ class TaskController extends Controller
         } elseif ($role === 'mentor') {
             abort_unless($user->isMentorContext(), 403, 'Akun ini tidak memiliki akses pembimbing.');
             $query->where('created_by', $user->id)
-                ->whereHas('assignedUser.applications', fn ($applications) => $applications->forMentor((int) $user->id));
+                ->whereHas('assignedUser.applications', fn ($applications) => $applications
+                    ->forMentor((int) $user->id)
+                    ->activeInternships());
         } elseif ($user->role === 'kabid') {
             return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
         }

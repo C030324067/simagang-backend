@@ -35,7 +35,9 @@ class AttendanceController extends Controller
             $query->whereHas('internApplication', fn ($q) => $q->where('user_id', $user->id));
         } elseif ($activeRole === 'mentor') {
             abort_unless($user->isMentorContext(), 403, 'Akun ini tidak memiliki akses pembimbing.');
-            $query->whereHas('internApplication', fn ($applications) => $applications->forMentor((int) $user->id));
+            $query->whereHas('internApplication', fn ($applications) => $applications
+                ->forMentor((int) $user->id)
+                ->activeInternships());
         } elseif ($user->role === 'kabid') {
             return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
         } elseif ($request->filled('user_id')) {
@@ -294,7 +296,9 @@ class AttendanceController extends Controller
                 $query->select('users.id', 'users.name', 'users.email', 'users.division_id');
             }])
             ->where('approval_status', 'pending_approval')
-            ->whereHas('internApplication', fn ($query) => $query->forMentor((int) $mentor->id))
+            ->whereHas('internApplication', fn ($query) => $query
+                ->forMentor((int) $mentor->id)
+                ->activeInternships())
             ->latest('date')
             ->latest('id')
             ->get();
