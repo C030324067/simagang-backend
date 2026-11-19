@@ -234,19 +234,9 @@
         </table>
 
         @if ($isSmk)
-            <p class="section-title">A. NILAI TEKNIS</p>
-            <table class="score-table">
-                <thead><tr><th class="number">NO.</th><th>KRITERIA PENILAIAN</th><th class="score">NILAI</th></tr></thead>
-                <tbody>
-                    @foreach ($technical_scores as $index => $item)
-                        <tr><td class="number">{{ $index + 1 }}</td><td>{{ $item['criteria'] ?? 'Aspek Teknis' }}</td><td class="score">{{ number_format((float) ($item['score'] ?? 0), 2) }}</td></tr>
-                    @endforeach
-                    <tr class="total-row"><td colspan="2">Jumlah Nilai Teknis</td><td class="score">{{ number_format($technicalTotal, 2) }}</td></tr>
-                </tbody>
-            </table>
-            <p class="section-title">B. KETERAMPILAN (PENILAIAN TETAP DISKOMINFO)</p>
+            <p class="section-title">A. KETERAMPILAN (PENILAIAN TETAP DISKOMINFO)</p>
         @else
-            <p class="section-title">PENILAIAN KETERAMPILAN (STANDAR DISKOMINFO)</p>
+            <p class="section-title">KETERAMPILAN (PENILAIAN TETAP DISKOMINFO)</p>
         @endif
 
         <table class="score-table">
@@ -258,6 +248,19 @@
                 <tr class="total-row"><td colspan="2">Jumlah Nilai Keterampilan</td><td class="score">{{ number_format($skillTotal, 2) }}</td></tr>
             </tbody>
         </table>
+
+        @if ($isSmk)
+            <p class="section-title">B. NILAI TEKNIS</p>
+            <table class="score-table">
+                <thead><tr><th class="number">NO.</th><th>KRITERIA PENILAIAN</th><th class="score">NILAI</th></tr></thead>
+                <tbody>
+                    @foreach ($technical_scores as $index => $item)
+                        <tr><td class="number">{{ $index + 1 }}</td><td>{{ $item['criteria'] ?? 'Aspek Teknis' }}</td><td class="score">{{ number_format((float) ($item['score'] ?? 0), 2) }}</td></tr>
+                    @endforeach
+                    <tr class="total-row"><td colspan="2">Jumlah Nilai Teknis</td><td class="score">{{ number_format($technicalTotal, 2) }}</td></tr>
+                </tbody>
+            </table>
+        @endif
 
         <div class="summary">
             Nilai Akhir: {{ number_format((float) ($evaluation?->final_score ?? 0), 2) }} ({{ $grade_letter }})

@@ -37,7 +37,6 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
   const [metrics, setMetrics] = useState(null);
   const [scores, setScores] = useState(Object.fromEntries(rubric.map(([key]) => [key, 85])));
   const [technicalScores, setTechnicalScores] = useState(initialTechnicalScores);
-  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -79,7 +78,6 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
     setTechnicalScores(evaluation?.technical_scores?.length
       ? evaluation.technical_scores.map((item) => ({ criteria: item.criteria, score: item.score }))
       : initialTechnicalScores());
-    setNotes(evaluation?.notes || '');
   }, [internId, evaluations]);
 
   const skillTotal = rubric.reduce((total, [key]) => total + (Number(scores[key]) || 0), 0);
@@ -101,7 +99,6 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
         body: JSON.stringify({
           intern_id: internId,
           ...scores,
-          notes,
           technical_scores: isSmk
             ? technicalScores.map((item) => ({ ...item, score: Number(item.score) }))
             : [],
@@ -174,11 +171,35 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
           </div>
 
           <form onSubmit={submit} className="space-y-5">
+            <section className="space-y-3">
+              <div>
+                <h3 className="font-bold text-slate-900">{isSmk ? 'A. Keterampilan (Penilaian Tetap Diskominfo)' : 'Keterampilan (Penilaian Tetap Diskominfo)'}</h3>
+                <p className="mt-1 text-xs text-slate-500">Beri nilai 0–100 pada setiap aspek.</p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {rubric.map(([key, label]) => (
+                  <label key={key} className="block">
+                    <span className="mb-1 block text-xs font-bold text-slate-700">{label}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      required
+                      value={scores[key]}
+                      onChange={(event) => setScores((previous) => ({ ...previous, [key]: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    />
+                  </label>
+                ))}
+              </div>
+            </section>
+
             {isSmk && (
               <section className="space-y-3 rounded-2xl border border-violet-100 bg-violet-50/50 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 className="font-bold text-slate-900">A. Nilai Teknis (Khusus SMK)</h3>
+                    <h3 className="font-bold text-slate-900">B. Nilai Teknis (Khusus SMK)</h3>
                     <p className="mt-1 text-xs text-slate-500">Sesuaikan nama kompetensi kejuruan dengan jurusan peserta (maksimal 7 aspek).</p>
                   </div>
                   <button
@@ -227,35 +248,6 @@ export default function MentorFinalEvaluation({ interns, evaluations, onSaved })
                 </div>
               </section>
             )}
-
-            <section className="space-y-3">
-              <div>
-                <h3 className="font-bold text-slate-900">{isSmk ? 'B. Keterampilan (Penilaian Tetap Diskominfo)' : 'Penilaian Keterampilan (Standar Diskominfo)'}</h3>
-                <p className="mt-1 text-xs text-slate-500">Beri nilai 0–100 pada setiap aspek.</p>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                {rubric.map(([key, label]) => (
-                  <label key={key} className="block">
-                    <span className="mb-1 block text-xs font-bold text-slate-700">{label}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      required
-                      value={scores[key]}
-                      onChange={(event) => setScores((previous) => ({ ...previous, [key]: event.target.value }))}
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                    />
-                  </label>
-                ))}
-              </div>
-            </section>
-
-            <label className="block">
-              <span className="mb-1 block text-xs font-bold text-slate-700">Catatan Evaluasi</span>
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows="3" maxLength="2000" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
-            </label>
 
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-50 p-4">
               <div className="grid grid-cols-2 gap-x-5 gap-y-1 text-sm text-emerald-950 sm:grid-cols-4">
