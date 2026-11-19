@@ -3,7 +3,6 @@ import useMentorDashboard from '../hooks/useMentorDashboard';
 import MentorAttendanceReview from '../components/MentorAttendanceReview';
 import MentorFinalEvaluation from '../components/MentorFinalEvaluation';
 import AutoDismissNotice from '../components/AutoDismissNotice';
-import { apiRequest } from '../api';
 import { 
   Users, 
   BookOpen, 
@@ -19,7 +18,6 @@ import {
   X,
   FileText,
   RefreshCw,
-  Megaphone,
 } from 'lucide-react';
 
 export default function MentorDashboard() {
@@ -28,7 +26,6 @@ export default function MentorDashboard() {
   const [revisionFile, setRevisionFile] = React.useState(null);
   const [savingRevision, setSavingRevision] = React.useState(false);
   const [taskStatusSelections, setTaskStatusSelections] = React.useState({});
-  const [announcements, setAnnouncements] = React.useState([]);
   const {
     activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg, generatingCertificateId,
     selectedApplication, setSelectedApplication,
@@ -37,12 +34,6 @@ export default function MentorDashboard() {
     handleCreateTask, handleDownloadTaskFile,
   } = useMentorDashboard();
 
-  const loadAnnouncements = React.useCallback(async () => {
-    const response = await apiRequest('/announcements');
-    if (response.success) setAnnouncements(Array.isArray(response.data) ? response.data : response.data?.data || []);
-  }, []);
-
-  React.useEffect(() => { void loadAnnouncements(); }, [loadAnnouncements]);
 
   const today = new Date();
   const minimumTaskDeadline = [
@@ -206,38 +197,10 @@ export default function MentorDashboard() {
           Penilaian Akhir ({evaluations.length})
         </button>
 
-        <button
-          onClick={() => { setActiveTab('announcements'); void loadAnnouncements(); }}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
-            activeTab === 'announcements'
-              ? 'bg-[#4F46E5] text-white shadow-xs'
-              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
-          }`}
-        >
-          <Megaphone className="w-4 h-4" />
-          Pengumuman ({announcements.length})
-        </button>
       </div>
 
       {/* TAB: PRESENSI */}
       {activeTab === 'attendance' && <MentorAttendanceReview />}
-
-      {activeTab === 'announcements' && (
-        <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-xs">
-          <h2 className="text-sm font-bold text-slate-900">Pengumuman Bidang</h2>
-          {announcements.length ? announcements.map((announcement) => (
-            <article key={announcement.id} className="rounded-2xl border border-slate-200 p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-bold text-slate-900">{announcement.title}</h3>
-                  <p className="mt-1 text-xs text-slate-500">{announcement.division?.name || 'Bidang'} · {new Date(announcement.created_at).toLocaleString('id-ID')}</p>
-                </div>
-              </div>
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{announcement.content}</p>
-            </article>
-          )) : <p className="rounded-xl bg-slate-50 p-5 text-sm text-slate-500">Belum ada pengumuman untuk bidang ini.</p>}
-        </section>
-      )}
 
       {/* TAB: PERMOHONAN / PESERTA MAGANG */}
       {activeTab === 'interns' && (
