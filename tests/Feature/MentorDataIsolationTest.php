@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\Announcement;
 use App\Models\Division;
 use App\Models\Evaluation;
 use App\Models\InternApplication;
@@ -258,6 +259,85 @@ class MentorDataIsolationTest extends TestCase
         foreach ([$completedTask, $endedTask] as $hiddenTask) {
             $this->assertDatabaseHas('tasks', ['id' => $hiddenTask->id]);
         }
+    }
+
+    public function test_kabid_manages_division_announcements_while_mentors_and_interns_only_read_them(): void
+    {
+        $division = Division::create(['name' => 'Bidang Informasi', 'code' => 'info', 'quota' => 10]);
+        $otherDivision = Division::create(['name' => 'Bidang Lain', 'code' => 'lain', 'quota' => 10]);
+        $kabid = User::factory()->create([
+            'role' => 'kabid', 'status_akun' => 'approved', 'division_id' => $division->id,
+        ]);
+        $mentor = User::factory()->create([
+            'role' => 'mentor', 'status_akun' => 'approved', 'division_id' => $division->id,
+        ]);
+        $otherKabid = User::factory()->create([
+            'role' => 'kabid', 'status_akun' => 'approved', 'division_id' => $otherDivision->id,
+        ]);
+        $this->createAcceptedApplication($division, $kabid, 'Intern Bimbingan Kabid');
+        $application = $this->createAcceptedApplication($division, $mentor, 'Pembaca Intern');
+
+        $created = $this->actingAs($kabid, 'sanctum')->postJson('/api/announcements', [
+            'title' => 'Jadwal Briefing',
+            'content' => 'Briefing bidang dilaksanakan hari Senin.',
+        ])->assertCreated()->assertJsonPath('data.division_id', $division->id);
+        $announcementId = $created->json('data.id');
+
+        $this->asMentor($mentor)
+            ->getJson('/api/announcements')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $announcementId);
+        $this->actingAs($application->user, 'sanctum')
+            ->getJson('/api/announcements')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $announcementId);
+
+        $admin = User::factory()->create([
+            'role' => 'admin_kepegawaian', 'status_akun' => 'approved',
+        ]);
+        $generalAnnouncement = $this->actingAs($admin, 'sanctum')->postJson('/api/announcements', [
+            'title' => 'Informasi Dinas', 'content' => 'Pengumuman umum.',
+        ])->assertCreated()->assertJsonPath('data.division_id', null);
+        $generalAnnouncementId = $generalAnnouncement->json('data.id');
+
+        $this->asMentor($mentor)->getJson('/api/announcements')
+            ->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $generalAnnouncementId]);
+        $this->asMentor($kabid)->getJson('/api/announcements')
+            ->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $announcementId]);
+        $this->actingAs($application->user, 'sanctum')->getJson('/api/announcements')
+            ->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $generalAnnouncementId]);
+
+        $this->asMentor($mentor)->postJson('/api/announcements', [
+            'title' => 'Tidak boleh', 'content' => 'Mentor read-only.',
+        ])->assertForbidden();
+        $this->asMentor($kabid)->postJson('/api/announcements', [
+            'title' => 'Mode mentor', 'content' => 'Kabid sedang dalam mode mentor.',
+        ])->assertForbidden();
+        $this->asMentor($mentor)->putJson("/api/announcements/{$announcementId}", [
+            'title' => 'Ubah', 'content' => 'Tidak boleh.',
+        ])->assertForbidden();
+        $this->asMentor($mentor)->deleteJson("/api/announcements/{$announcementId}")->assertForbidden();
+        $this->actingAs($kabid, 'sanctum')->withHeader('X-Active-Role', 'kabid')->patchJson("/api/announcements/{$announcementId}", [
+            'title' => 'Jadwal Briefing Terbaru',
+        ])->assertOk()->assertJsonPath('data.title', 'Jadwal Briefing Terbaru');
+
+        $otherAnnouncement = Announcement::query()->create([
+            'mentor_id' => $otherKabid->id,
+            'division_id' => $otherDivision->id,
+            'title' => 'Pengumuman bidang lain',
+            'content' => 'Tidak terlihat.',
+        ]);
+        $this->actingAs($kabid, 'sanctum')->withHeader('X-Active-Role', 'kabid')
+            ->getJson('/api/announcements')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonMissing(['id' => $otherAnnouncement->id]);
+        $this->actingAs($kabid, 'sanctum')->withHeader('X-Active-Role', 'kabid')->deleteJson("/api/announcements/{$announcementId}")->assertOk();
     }
 
     private function asMentor(User $user): self

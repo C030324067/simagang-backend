@@ -66,11 +66,13 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
         ->middleware('throttle:5,1');
 
     Route::get('/announcements', [AnnouncementController::class, 'index'])
-        ->middleware('role:mentor,intern');
+        ->middleware('role:kabid,mentor,intern,admin,admin_kepegawaian');
     Route::post('/announcements', [AnnouncementController::class, 'store'])
-        ->middleware('role:mentor');
+        ->middleware('role:kabid,admin,admin_kepegawaian');
+    Route::match(['put', 'patch'], '/announcements/{announcement}', [AnnouncementController::class, 'update'])
+        ->middleware('role:kabid,admin,admin_kepegawaian');
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])
-        ->middleware('role:mentor');
+        ->middleware('role:kabid,admin,admin_kepegawaian');
 
     Route::post('/users/{user}/approve', [UserApprovalController::class, 'approve'])
         ->middleware('role:admin_kepegawaian,kadis');

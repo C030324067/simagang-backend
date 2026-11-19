@@ -43,6 +43,17 @@ Validasi Laravel dapat mengembalikan HTTP `422` dengan bentuk standar Laravel (`
 
 Pengecualian: pendaftaran publik `/applications/register` memakai field `status` (bukan `success`) dan mengembalikan `tracking_code` di level teratas serta di dalam `data`. Kode tracking yang tidak ditemukan mengembalikan JSON `404` dengan field `message` tanpa envelope `success`/`data`.
 
+## Pengumuman
+
+| Method | Endpoint | Akses | Keterangan |
+|---|---|---|---|
+| GET | `/announcements` | Kabid, Mentor, Intern, Admin | Kabid melihat pengumuman bidangnya; Mentor (termasuk Kabid mode Mentor) dan Intern hanya membaca pengumuman bidang terkait serta pengumuman umum dinas (`division_id: null`); Admin melihat pengumuman umum dinas |
+| POST | `/announcements` | Kabid, Admin | Kabid otomatis menerbitkan untuk `division_id` miliknya; Admin menerbitkan pengumuman umum dinas |
+| PUT/PATCH | `/announcements/{announcement}` | Kabid, Admin | Kabid hanya dapat mengubah pengumuman bidangnya; Admin mengelola pengumuman umum dinas |
+| DELETE | `/announcements/{announcement}` | Kabid, Admin | Kabid hanya dapat menghapus pengumuman bidangnya; Admin menghapus pengumuman umum dinas |
+
+Pembuatan atau pengelolaan dari Mentor selalu ditolak dengan `403`, termasuk akun Kabid saat memakai `X-Active-Role: mentor`. Mentor dalam mode tersebut hanya dapat membaca semua pengumuman pada bidangnya serta pengumuman umum dinas; daftar baca tidak dibatasi oleh pembuat pengumuman. Admin (`admin` atau `admin_kepegawaian`) hanya mengelola pengumuman umum dinas. Body buat/perbarui berisi `title` (wajib, maksimal 200 karakter) dan `content` (wajib untuk POST/PUT; opsional parsial untuk PATCH). Pengumuman bidang mengirim notifikasi kepada peserta aktif pada bidang tersebut.
+
 ## Autentikasi
 
 | Method | Endpoint | Akses | Keterangan |
