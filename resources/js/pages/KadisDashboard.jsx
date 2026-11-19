@@ -310,10 +310,7 @@ export default function KadisDashboard() {
       <main className="mx-auto max-w-[1440px] space-y-6 px-4 py-7 sm:px-6 lg:px-8">
         <section className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-600">
-              Dinas Komunikasi dan Informatika
-            </span>
-            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Dashboard Kepala Dinas</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Dashboard Kepala Dinas</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Otorisasi akhir permohonan magang dan pantau capaian pelaksanaan magang di seluruh bidang.
             </p>
@@ -568,6 +565,7 @@ export default function KadisDashboard() {
                         <tbody className="divide-y divide-slate-100">
                           {reportData.participants.map((participant, index) => {
                             const status = participant.participant_status || 'pending';
+                            const divisionName = String(participant.division_name || '—').replace(/\s+\(IKP\)$/i, '');
                             const statusStyles = {
                               active: 'bg-blue-50 text-blue-700',
                               completed: 'bg-emerald-50 text-emerald-700',
@@ -596,7 +594,7 @@ export default function KadisDashboard() {
                                 </td>
                                 <td className="px-4 py-4 font-medium text-slate-700">{participant.institution_name || '—'}</td>
                                 <td className="px-4 py-4">
-                                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">{participant.division_name || '—'}</span>
+                                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">{divisionName}</span>
                                 </td>
                                 <td className="whitespace-nowrap px-4 py-4 text-slate-500">{formatDate(participant.start_date)} – {formatDate(participant.end_date)}</td>
                                 <td className="px-4 py-4">
