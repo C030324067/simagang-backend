@@ -23,6 +23,7 @@
         $institutionName = $application?->institution_name ?? '-';
         $major = $application?->major ?? '-';
         $divisionName = $application?->division?->name ?? $intern?->division?->name ?? '-';
+        $divisionName = preg_replace('/^Bidang\s+/i', '', $divisionName);
         $issuedDateText = \Carbon\Carbon::parse($issued_date)->locale('id')->translatedFormat('d F Y');
         $startDateText = $application?->start_date
             ? \Carbon\Carbon::parse($application->start_date)->locale('id')->translatedFormat('d F Y')
@@ -34,92 +35,82 @@
         $skillTotal = collect($skill_scores)->sum(fn ($item) => (float) ($item['score'] ?? 0));
     @endphp
     <style>
-        @page { size: 297mm 210mm; margin: 0; }
-        * { box-sizing: border-box; }
-        html, body { width: 297mm; height: 210mm; margin: 0; padding: 0; color: #111827; background: #ffffff; font-family: "DejaVu Sans", Arial, sans-serif; }
-        .page { position: relative; width: 297mm; height: 210mm; margin: 0; padding: 0; overflow: hidden; page-break-inside: avoid; background: #ffffff; }
-
-        /* Halaman 1: sertifikat */
-        .certificate-frame { position: absolute; z-index: 0; top: 7mm; right: 7mm; bottom: 7mm; left: 7mm; border: 4px solid #0f2c59; }
-        .certificate-frame:before { position: absolute; content: ""; top: 3px; right: 3px; bottom: 3px; left: 3px; border: 1.5px solid #b59449; }
-        .certificate-content { position: absolute; z-index: 1; top: 7mm; right: 7mm; bottom: 7mm; left: 7mm; padding: 14px 36px; }
+        @page { size: A4 landscape; margin: 0; }
+        * { box-sizing: border-box; color: #000000 !important; }
+        html, body { margin: 0; padding: 0; background: #ffffff; color: #000000; font-family: 'DejaVu Sans', Arial, sans-serif; }
         table { border-collapse: collapse; }
+        p { padding: 0; }
+
+        .certificate-page { padding: 6mm; }
+        .certificate-frame { border: 4px solid #0f2c59; padding: 2px; }
+        .certificate-inner { border: 1.5px solid #b59449; padding: 10px 26px 8px; }
         .letterhead { width: 100%; table-layout: fixed; }
         .letterhead td { vertical-align: middle; }
-        .letterhead-left, .letterhead-right { width: 13%; }
+        .letterhead-left, .letterhead-right { width: 12%; }
         .letterhead-left { text-align: left; }
         .letterhead-right { text-align: right; }
-        .letterhead-left img { width: 58px; height: 58px; object-fit: contain; }
-        .letterhead-right img { width: 58px; height: 58px; object-fit: contain; }
-        .letterhead-center { width: 74%; text-align: center; }
-        .government { margin: 0; color: #111827; font-size: 14pt; font-weight: bold; }
-        .department { margin: 2px 0; color: #0f2c59; font-size: 19pt; font-weight: bold; }
-        .address { margin: 0; color: #374151; font-size: 9pt; }
-        .contact { margin: 2px 0 0; color: #374151; font-size: 8.5pt; }
-        .gold-divider { height: 1.5px; margin: 6px 0 10px; background: #b59449; }
-        .certificate-title { margin: 0; color: #0f2c59; font-family: "DejaVu Serif", "Times New Roman", serif; font-size: 30pt; font-weight: bold; letter-spacing: 2px; text-align: center; }
-        .certificate-number { margin: 2px 0 12px; color: #111827; font-size: 10.5pt; font-weight: bold; text-align: center; }
-        .recipient-layout { width: 70%; margin: 8px auto 10px; }
-        .recipient-photo-cell { width: 125px; vertical-align: middle; }
-        .recipient-info { padding-left: 10px; vertical-align: middle; }
-        .photo-frame { width: 92px; height: 122px; border: 1.5px solid #0f2c59; text-align: center; }
-        .photo-frame img { display: block; width: 90px; height: 120px; }
-        .photo-fallback { color: #0f2c59; font-size: 8pt; font-weight: bold; line-height: 120px; }
-        .recipient-label { margin: 0 0 5px; color: #374151; font-size: 10pt; font-style: italic; }
-        .biodata { width: 100%; font-size: 10.5pt; line-height: 1.4; }
-        .biodata td { padding: 2px 0; vertical-align: top; }
-        .biodata .label { width: 100px; color: #4b5563; }
+        .letterhead-left img, .letterhead-right img { width: 52px; height: 52px; object-fit: contain; }
+        .letterhead-center { width: 76%; text-align: center; }
+        .government { margin: 0; font-size: 13.5pt; font-weight: bold; }
+        .department { margin: 2px 0; font-size: 18pt; font-weight: bold; }
+        .address { margin: 0; font-size: 8.5pt; }
+        .contact { margin: 2px 0 0; font-size: 8pt; }
+        .gold-divider { height: 0; margin: 5px 0 8px; border-bottom: 1.5px solid #b59449; }
+        .certificate-title { margin: 0; font-family: 'DejaVu Serif', serif; font-size: 26pt; font-weight: bold; letter-spacing: 2px; text-align: center; }
+        .certificate-number { margin: 2px 0 10px; font-size: 10pt; font-weight: bold; text-align: center; }
+        .recipient-layout { width: 68%; margin: 0 auto; }
+        .recipient-photo-cell { width: 115px; vertical-align: top; }
+        .recipient-info { padding-left: 10px; vertical-align: top; }
+        .photo-frame { width: 84px; height: 112px; border: 1.5px solid #000000; text-align: center; }
+        .photo-frame img { display: block; width: 81px; height: 109px; }
+        .photo-fallback { font-size: 7.5pt; line-height: 110px; }
+        .recipient-label { margin: 0 0 4px; font-size: 9.5pt; font-style: italic; }
+        .biodata { width: 100%; font-size: 10pt; line-height: 1.35; }
+        .biodata td { padding: 1px 0; vertical-align: top; }
+        .biodata .label { width: 100px; }
         .biodata .colon { width: 12px; text-align: center; }
-        .biodata .value { color: #111827; }
         .intern-name { font-weight: bold; text-transform: uppercase; }
-        .description { max-width: 82%; margin: 12px auto 10px; color: #111827; font-size: 12pt; line-height: 1.4; text-align: center; }
-        .result-badge { width: 290px; margin: 0 auto; padding: 8px 18px; border: 2px solid #b59449; color: #0f2c59; font-size: 15pt; font-weight: bold; text-align: center; }
-        .certificate-footer { position: absolute; right: 36px; bottom: 28px; left: 36px; width: auto; }
+        .description { width: 82%; margin: 10px auto 8px; font-size: 11pt; line-height: 1.35; text-align: center; }
+        .result-badge { width: 270px; margin: 0 auto; padding: 6px 14px; border: 1.5px solid #b59449; font-size: 13.5pt; font-weight: bold; text-align: center; }
+        .certificate-footer { width: 100%; margin-top: 10px; table-layout: fixed; }
         .certificate-footer td { vertical-align: bottom; }
-        .qr-cell { width: 50%; }
-        .qr-box { width: 92px; height: 92px; border: 1px solid #d1d5db; text-align: center; vertical-align: middle; }
-        .qr-box img { width: 70px; height: 70px; }
-        .qr-fallback-title { color: #0f2c59; font-size: 10pt; font-weight: bold; }
-        .qr-fallback-copy { margin-top: 5px; color: #6b7280; font-size: 7.5pt; }
-        .qr-caption { margin-top: 3px; color: #6b7280; font-size: 7.5pt; }
-        .signature-kadis { width: 50%; text-align: right; color: #111827; font-size: 10pt; line-height: 1.35; }
-        .signature-space { height: 44px; }
+        .qr-cell { width: 40%; }
+        .qr-box { width: 78px; height: 78px; border: 1px solid #000000; text-align: center; vertical-align: middle; }
+        .qr-box img { width: 68px; height: 68px; }
+        .qr-caption { margin-top: 3px; font-size: 7pt; }
+        .signature-kadis { width: 60%; font-size: 9.5pt; line-height: 1.3; text-align: right; }
+        .signature-space { height: 36px; }
         .signature-name { font-weight: bold; text-decoration: underline; }
-        .page-count { position: absolute; right: 13mm; bottom: 9mm; z-index: 2; margin: 0; color: #6b7280; font-size: 7.5pt; }
+        .page-count { margin: 4px 0 0; font-size: 7pt; text-align: right; }
 
-        /* Halaman 2: transkrip */
-        .transcript-page { page-break-before: auto; padding: 10mm 16mm 8mm; }
-        .certificate-page { page-break-after: always; }
-        .transcript-title { margin: 0; color: #0f2c59; font-size: 18pt; font-weight: bold; text-align: center; }
-        .transcript-divider { height: 1.5px; margin: 5px 0 10px; background: #b59449; }
-        .section-title { margin: 0 0 4px; color: #0f2c59; font-size: 9.5pt; font-weight: bold; }
-        .technical-section { margin-top: 10px; }
-        .score-table { width: 100%; border-collapse: collapse; border: 1px solid #9ca3af; font-size: 9pt; }
-        .score-table th, .score-table td { padding: 4px 8px; border: 1px solid #9ca3af; }
-        .score-table th { color: #111827; background: #e5e7eb; font-weight: bold; text-transform: none; }
-        .score-table .number { width: 45px; text-align: center; }
+        .transcript-page { width: auto; padding: 10mm 14mm 8mm; background: #ffffff; }
+        .transcript-title { margin: 0; font-size: 16pt; font-weight: bold; text-align: center; }
+        .transcript-divider { height: 0; margin: 4px 0 8px; border-bottom: 1.5px solid #000000; }
+        .section-title { margin: 0 0 3px; font-size: 9pt; font-weight: bold; }
+        .technical-section { margin-top: 8px; }
+        .score-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 8.5pt; background: #ffffff; }
+        .score-table th, .score-table td { padding: 3.5px 6px; border: 1px solid #000000; color: #000000 !important; background: #ffffff; }
+        .score-table .number { width: 38px; text-align: center; }
         .score-table .criteria { text-align: left; }
-        .score-table .score { width: 95px; text-align: center; }
-        .score-table .total-row td { background: #f3f4f6; font-weight: bold; }
-        .summary { margin: 8px 0; color: #111827; font-size: 10pt; font-weight: bold; }
+        .score-table .score { width: 75px; text-align: center; }
+        .score-table .total-row td { font-weight: bold; }
+        .summary { margin: 6px 0; font-size: 9.5pt; font-weight: bold; }
         .summary-grade { padding-left: 18px; }
-        .bottom-layout { width: 100%; margin-top: 8px; }
+        .bottom-layout { width: 100%; margin-top: 6px; table-layout: fixed; }
         .bottom-layout td { vertical-align: top; }
-        .scale-cell { width: 42%; }
-        .scale-title { margin: 0 0 3px; color: #0f2c59; font-size: 8.5pt; font-weight: bold; }
-        .scale-table { width: 100%; border-collapse: collapse; border: 1px solid #9ca3af; font-size: 8pt; text-align: center; }
-        .scale-table th, .scale-table td { padding: 3px 6px; border: 1px solid #9ca3af; }
-        .scale-table th { background: #e5e7eb; font-weight: bold; }
-        .mentor-signature { width: 58%; padding-top: 14px; color: #111827; font-size: 10pt; line-height: 1.4; text-align: right; }
-        .mentor-signature-space { height: 48px; }
-        .transcript-page-count { position: absolute; right: 16mm; bottom: 4mm; margin: 0; color: #6b7280; font-size: 7.5pt; }
+        .scale-cell { width: 44%; }
+        .scale-title { margin: 0 0 3px; font-size: 8pt; font-weight: bold; }
+        .scale-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; text-align: center; background: #ffffff; }
+        .scale-table th, .scale-table td { padding: 2.5px 4px; border: 1px solid #000000; color: #000000 !important; background: #ffffff; }
+        .mentor-signature { width: 56%; padding-top: 10px; font-size: 9.5pt; line-height: 1.35; text-align: right; }
+        .mentor-signature-space { height: 44px; }
+        .transcript-page-count { margin: 6px 0 0; font-size: 7pt; text-align: right; }
     </style>
 </head>
 <body>
-    <section class="page certificate-page">
-        <div class="certificate-frame"></div>
-        <div class="bottom-accent"></div>
-        <div class="certificate-content">
+    <div class="certificate-page">
+        <div class="certificate-frame">
+            <div class="certificate-inner">
             <table class="letterhead">
                 <tr>
                     <td class="letterhead-left">@if ($logoTabalong)<img src="{{ $logoTabalong }}" alt="Logo Kabupaten Tabalong">@endif</td>
@@ -143,7 +134,7 @@
                             @if ($photoData)
                                 <img src="{{ $photoData }}" alt="Pas foto peserta">
                             @else
-                                <div class="photo-fallback">PAS FOTO</div>
+                                <div class="photo-fallback">PAS FOTO 3x4</div>
                             @endif
                         </div>
                     </td>
@@ -161,20 +152,17 @@
 
             <p class="description">Telah mengikuti program magang selama {{ $duration_months }} bulan terhitung dari tanggal {{ $startDateText }} s/d {{ $endDateText }} dengan hasil:</p>
             <div class="result-badge">{{ $grade_description }}</div>
-        </div>
-
         <table class="certificate-footer">
             <tr>
                 <td class="qr-cell">
                     <table class="qr-box"><tr><td>
                         @if (! empty($qr_code_data_uri))
                             <img src="{{ $qr_code_data_uri }}" alt="QR code verifikasi sertifikat">
-                            <div class="qr-caption">Pindai untuk verifikasi sertifikat</div>
                         @else
-                            <div class="qr-fallback-title">QR CODE</div>
-                            <div class="qr-fallback-copy">Pindai untuk verifikasi sertifikat</div>
+                            <span>QR CODE</span>
                         @endif
                     </td></tr></table>
+                    <div class="qr-caption">Pindai untuk verifikasi sertifikat</div>
                 </td>
                 <td class="signature-kadis">
                     <div>Tanjung, {{ $issuedDateText }}</div>
@@ -187,9 +175,13 @@
             </tr>
         </table>
         <p class="page-count">Halaman 1 dari 2</p>
-    </section>
+            </div>
+        </div>
+    </div>
 
-    <section class="page transcript-page">
+    <div style="page-break-before: always;"></div>
+
+    <div class="transcript-page">
         <h1 class="transcript-title">DAFTAR NILAI</h1>
         <div class="transcript-divider"></div>
 
@@ -246,6 +238,6 @@
             </tr>
         </table>
         <p class="transcript-page-count">Halaman 2 dari 2</p>
-    </section>
+    </div>
 </body>
 </html>
