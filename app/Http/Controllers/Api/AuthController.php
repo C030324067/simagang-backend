@@ -210,7 +210,7 @@ class AuthController extends Controller
             return $this->errorResponse('Password saat ini tidak sesuai.', 422);
         }
 
-        $newPhotoPath = $request->file('profile_photo')?->store('profile-photos', 'public');
+        $newPhotoPath = $request->file('profile_photo')?->store('avatars', 'public');
         $oldPhotoPath = $user->profile_photo_path;
 
         $user->name = $validated['name'];

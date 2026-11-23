@@ -204,19 +204,6 @@
             text-align: center;
         }
         .recipient-layout { width: 94%; margin: 1.5mm auto 0; }
-        .photo-cell { width: 42mm; padding: 1.5mm 6mm 1.5mm 1mm; text-align: center; vertical-align: middle; }
-        .photo-frame {
-            width: 29mm;
-            height: 38mm;
-            margin: 0 auto;
-            padding: .5mm;
-            border: .65mm solid #1e3a8a;
-            outline: .3mm solid #c9a45c;
-            background: #f8fafc;
-        }
-        .recipient-photo { width: 27.5mm; height: 36.5mm; object-fit: cover; }
-        .photo-initials { color: #1e3a8a; font-size: 21pt; font-weight: bold; line-height: 36.5mm; }
-        .photo-caption { margin-top: 1.5mm; color: #475569; font-size: 5.8pt; font-weight: bold; }
         .recipient-info { vertical-align: middle; }
         .recipient-label { margin: 0 0 1mm; color: #475569; font-size: 8.8pt; font-style: italic; }
         .biodata { width: 100%; font-size: 8.8pt; }
@@ -253,7 +240,7 @@
         .qr-block {
             position: absolute;
             bottom: 45px;
-            left: 65px;
+            left: 175px;
             width: 52mm;
             padding: 1.5mm;
             border: .3mm solid #cbd5e1;
@@ -264,6 +251,29 @@
         }
         .qr-block img { width: 15.5mm; height: 15.5mm; }
         .qr-label { margin: .8mm 0 0; color: #334155; font-size: 5.3pt; font-weight: bold; }
+        .certificate-photo {
+            position: absolute;
+            left: 65px;
+            bottom: 45px;
+            width: 100px;
+            text-align: center;
+            z-index: 2;
+        }
+        .certificate-photo img, .photo-placeholder {
+            display: block;
+            width: 90px;
+            height: 120px;
+            border: 1px solid #1e3a8a;
+        }
+        .certificate-photo img { object-fit: cover; }
+        .photo-placeholder {
+            padding: 34px 5px;
+            background: #fff;
+            color: #475569;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .photo-caption { margin: 3px 0 0; color: #475569; font-size: 5.8pt; font-weight: bold; }
 
         /* Halaman 2 - Daftar Nilai */
         .transcript-page {
@@ -345,16 +355,6 @@
 
             <table class="recipient-layout">
                 <tr>
-                    <td class="photo-cell">
-                        <div class="photo-frame">
-                            @if ($photoData)
-                                <img src="{{ $photoData }}" class="recipient-photo" alt="Pas foto peserta">
-                            @else
-                                <div class="photo-initials">{{ $initials }}</div>
-                            @endif
-                        </div>
-                        <p class="photo-caption">PAS FOTO PESERTA</p>
-                    </td>
                     <td class="recipient-info">
                         <p class="recipient-label">Diberikan kepada:</p>
                         <table class="biodata">
@@ -375,6 +375,14 @@
             <div class="result-badge">{{ $grade_description }}</div>
         </div>
 
+        <div class="certificate-photo">
+            @if ($photoData)
+                <img src="{{ $photoData }}" alt="Pas foto peserta">
+            @else
+                <div class="photo-placeholder">Pas Foto<br>3x4</div>
+            @endif
+            <p class="photo-caption">PAS FOTO 3x4</p>
+        </div>
         <div class="qr-block">
             @if (! empty($qr_code_data_uri))
                 <img src="{{ $qr_code_data_uri }}" alt="QR verifikasi sertifikat">
