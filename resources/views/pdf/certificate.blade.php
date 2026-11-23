@@ -5,469 +5,248 @@
     <title>Sertifikat Magang - {{ $intern->name ?? 'Peserta' }}</title>
     @php
         $tabalongPath = public_path('images/logo-tabalong.png');
-        $diskominfoPath = public_path('images/logo/diskominfo.png');$canvaBgPath = public_path('images/certificate-template.png');
-
+        $diskominfoPath = public_path('images/logo/diskominfo.png');
         $logoTabalong = is_file($tabalongPath)
             ? 'data:image/png;base64,'.base64_encode(file_get_contents($tabalongPath))
             : null;
         $logoDiskominfo = is_file($diskominfoPath)
             ? 'data:image/png;base64,'.base64_encode(file_get_contents($diskominfoPath))
             : null;
-        $canvaBg = is_file($canvaBgPath)
-            ? $canvaBgPath
+        $photoPath = $intern?->profile_photo_path
+            ? storage_path('app/public/'.$intern->profile_photo_path)
             : null;
-
-        $watermark =$logoTabalong;
-        $photoPath = $intern?->profile_photo_path ? storage_path('app/public/'.$intern->profile_photo_path) : null;
         $photoData = $photoPath && is_file($photoPath)
             ? 'data:'.(mime_content_type($photoPath) ?: 'image/jpeg').';base64,'.base64_encode(file_get_contents($photoPath))
             : null;
-
-        $initials = collect(preg_split('/\s+/', trim((string) ($intern->name ?? 'Peserta'))))
-            ->filter()
-            ->take(2)
-            ->map(fn ($part) => mb_substr($part, 0, 1))
-            ->implode('');
-
-        $isSmk =$education_level === 'SMK';
-        $studentNumberLabel =$isSmk ? 'NISN' : 'NIM';
-        $institutionLabel =$isSmk ? 'Sekolah' : 'Perguruan Tinggi';
-        $institutionName =$application?->institution_name ?? '-';
-        $major =$application?->major ?? '-';
+        $isSmk = $education_level === 'SMK';
+        $studentNumberLabel = $isSmk ? 'NISN' : 'NIM';
+        $institutionName = $application?->institution_name ?? '-';
+        $major = $application?->major ?? '-';
+        $divisionName = $application?->division?->name ?? $intern?->division?->name ?? '-';
         $issuedDateText = \Carbon\Carbon::parse($issued_date)->locale('id')->translatedFormat('d F Y');
-        $startDateText =$application?->start_date
+        $startDateText = $application?->start_date
             ? \Carbon\Carbon::parse($application->start_date)->locale('id')->translatedFormat('d F Y')
             : '-';
-        $endDateText =$application?->end_date
+        $endDateText = $application?->end_date
             ? \Carbon\Carbon::parse($application->end_date)->locale('id')->translatedFormat('d F Y')
             : '-';
-
         $technicalTotal = collect($technical_scores)->sum(fn ($item) => (float) ($item['score'] ?? 0));
         $skillTotal = collect($skill_scores)->sum(fn ($item) => (float) ($item['score'] ?? 0));
-
-        $cornerTopRightSvg = 'data:image/svg+xml;base64,'.base64_encode('
-            <svg xmlns="http://www.w3.org/2000/svg" width="220" height="160" viewBox="0 0 220 160">
-                <polygon points="75,0 220,0 220,115" fill="#d4af37"/>
-                <polygon points="88,0 220,0 220,104" fill="#1e3a8a"/>
-                <polygon points="118,0 220,0 220,80" fill="#172554"/>
-                <polygon points="126,0 135,0 220,66 220,73" fill="#e5c158"/>
-                <polygon points="154,0 220,0 220,50" fill="#0f172a"/>
-            </svg>
-        ');
-
-        $cornerBottomLeftSvg = 'data:image/svg+xml;base64,'.base64_encode('
-            <svg xmlns="http://www.w3.org/2000/svg" width="220" height="160" viewBox="0 0 220 160">
-                <polygon points="0,45 145,160 0,160" fill="#d4af37"/>
-                <polygon points="0,56 132,160 0,160" fill="#1e3a8a"/>
-                <polygon points="0,80 102,160 0,160" fill="#172554"/>
-                <polygon points="0,87 0,94 85,160 94,160" fill="#e5c158"/>
-                <polygon points="0,110 66,160 0,160" fill="#0f172a"/>
-            </svg>
-        ');
-
-        $filigreeCornerSvg = 'data:image/svg+xml;base64,'.base64_encode('
-            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
-                <path d="M2,58 L2,14 Q2,2 14,2 L58,2" fill="none" stroke="#c9a45c" stroke-width="2.2"/>
-                <path d="M7,50 L7,17 Q7,7 17,7 L50,7" fill="none" stroke="#1e3a8a" stroke-width="1"/>
-                <circle cx="11" cy="11" r="3" fill="#c9a45c"/>
-                <path d="M16,11 L26,11 M11,16 L11,26" stroke="#c9a45c" stroke-width="1.5"/>
-            </svg>
-        ');
-
-        $dividerOrnamentSvg = 'data:image/svg+xml;base64,'.base64_encode('
-            <svg xmlns="http://www.w3.org/2000/svg" width="340" height="16" viewBox="0 0 340 16">
-                <line x1="10" y1="8" x2="145" y2="8" stroke="#c9a45c" stroke-width="1.3"/>
-                <line x1="195" y1="8" x2="330" y2="8" stroke="#c9a45c" stroke-width="1.3"/>
-                <polygon points="170,2 178,8 170,14 162,8" fill="#1e3a8a" stroke="#c9a45c" stroke-width="1.2"/>
-                <circle cx="152" cy="8" r="2.2" fill="#c9a45c"/>
-                <circle cx="188" cy="8" r="2.2" fill="#c9a45c"/>
-            </svg>
-        ');
-
-        $bgWaveSvg = 'data:image/svg+xml;base64,'.base64_encode('
-            <svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
-                <path d="M0,420 C220,340 520,480 800,320 L800,500 L0,500 Z" fill="#eff6ff" opacity="0.65"/>
-                <path d="M0,0 L800,0 L800,110 C560,190 280,60 0,150 Z" fill="#f8fafc" opacity="0.85"/>
-                <circle cx="400" cy="250" r="165" fill="none" stroke="#dbeafe" stroke-width="1.5" stroke-dasharray="6,6"/>
-                <circle cx="400" cy="250" r="145" fill="none" stroke="#fef3c7" stroke-width="1.2"/>
-            </svg>
-        ');
     @endphp
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 0;
-        }
+        @page { size: A4 landscape; margin: 0; }
         * { box-sizing: border-box; }
-        html, body {
-            margin: 0;
-            padding: 0;
-            color: #172033;
-            background: #fff;
-            font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
-        }
-        .page {
-            position: relative;
-            width: 297mm;
-            height: 210mm;
-            margin: 0;
-            padding: 45px 65px;
-            overflow: hidden;
-            page-break-inside: avoid;
-        }
-        .certificate-page {
-            page-break-after: always;
-        }
-        .certificate-page:before {
-            position: absolute;
-            z-index: 1;
-            top: 2.2mm;
-            right: 2.2mm;
-            bottom: 2.2mm;
-            left: 2.2mm;
-            border: .45mm solid #c9a45c;
-            content: "";
-        }
-        .canva-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-        .bg-wave, .ribbon-tr, .ribbon-bl, .filigree { display: none; }
-        .ribbon-tr {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 44mm;
-            height: 32mm;
-            z-index: 0;
-        }
-        .ribbon-bl {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 46mm;
-            height: 33mm;
-            z-index: 0;
-        }
-        .filigree {
-            position: absolute;
-            width: 13mm;
-            height: 13mm;
-            z-index: 1;
-        }
-        .filigree-tl { top: 3mm; left: 3mm; }
-        .filigree-br { right: 3mm; bottom: 3mm; transform: rotate(180deg); }
-        .watermark {
-            position: absolute;
-            top: 48mm;
-            left: 106mm;
-            width: 68mm;
-            height: 68mm;
-            opacity: .065;
-            z-index: 0;
-        }
-        .page-content { position: relative; z-index: 2; }
-        table { border-collapse: collapse; }
-        .letterhead { width: 100%; height: 19mm; }
-        .letterhead td { vertical-align: middle; }
-        .letterhead-logo { width: 22mm; text-align: center; }
-        .letterhead-logo img { width: 16.5mm; height: 16.5mm; }
-        .letterhead-diskominfo { width: 28mm; text-align: center; padding-right: 4mm; }
-        .letterhead-diskominfo img { max-width: 21mm; max-height: 14.5mm; }
-        .government { margin: 0; font-size: 9.5pt; font-weight: bold; letter-spacing: .45pt; color: #1e293b; }
-        .department { margin: .8mm 0; color: #1e3a8a; font-size: 11.5pt; font-weight: bold; letter-spacing: .5pt; }
-        .address, .contact { margin: .4mm 0 0; color: #475569; font-size: 6.3pt; }
-        .gold-divider { height: .65mm; margin: 1mm 0 2mm; background: #c9a45c; }
-        .certificate-title {
-            margin: .5mm 0 0;
-            color: #1e3a8a;
-            font-size: 22pt;
-            font-weight: bold;
-            letter-spacing: 3pt;
-            text-align: center;
-        }
-        .title-ornament {
-            display: block;
-            width: 82mm;
-            height: 4mm;
-            margin: .5mm auto 0;
-        }
-        .certificate-number {
-            margin: .5mm 0 1.5mm;
-            color: #334155;
-            font-size: 8.5pt;
-            font-weight: bold;
-            text-align: center;
-        }
-        .recipient-layout { width: 94%; margin: 1.5mm auto 0; }
-        .recipient-info { vertical-align: middle; }
-        .recipient-label { margin: 0 0 1mm; color: #475569; font-size: 8.8pt; font-style: italic; }
-        .biodata { width: 100%; font-size: 8.8pt; }
-        .biodata td { padding: 1.2mm 1mm; vertical-align: top; }
-        .biodata .label { width: 31mm; color: #475569; }
-        .biodata .colon { width: 5mm; text-align: center; }
-        .intern-name {
-            color: #0f172a;
-            font-size: 13pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            border-bottom: .35mm solid #c9a45c;
-            padding-bottom: .6mm;
-        }
-        .description { width: 84%; margin: 2.5mm auto 2mm; color: #334155; font-size: 8.3pt; line-height: 1.42; text-align: center; }
-        .result-badge {
-            width: 78mm;
-            margin: 0 auto;
-            padding: 1.8mm 4mm;
-            border: .5mm solid #c9a45c;
-            border-radius: 2mm;
-            background: #fffbeb;
-            color: #1e3a8a;
-            font-size: 11.5pt;
-            font-weight: bold;
-            letter-spacing: 1.2pt;
-            text-align: center;
-        }
-        .signature-kadis { position: absolute; right: 65px; bottom: 45px; width: 76mm; text-align: center; z-index: 2; }
-        .signature-kadis .caption { font-size: 7.5pt; line-height: 1.35; }
-        .signature-space { height: 15mm; }
-        .signature-name { font-size: 8pt; font-weight: bold; text-decoration: underline; }
-        .signature-title { margin-top: .8mm; font-size: 7pt; }
-        .qr-block {
-            position: absolute;
-            bottom: 45px;
-            left: 175px;
-            width: 52mm;
-            padding: 1.5mm;
-            border: .3mm solid #cbd5e1;
-            border-radius: 1.5mm;
-            background: rgba(255, 255, 255, 0.92);
-            text-align: center;
-            z-index: 2;
-        }
-        .qr-block img { width: 15.5mm; height: 15.5mm; }
-        .qr-label { margin: .8mm 0 0; color: #334155; font-size: 5.3pt; font-weight: bold; }
-        .certificate-photo {
-            position: absolute;
-            left: 65px;
-            bottom: 45px;
-            width: 100px;
-            text-align: center;
-            z-index: 2;
-        }
-        .certificate-photo img, .photo-placeholder {
-            display: block;
-            width: 90px;
-            height: 120px;
-            border: 1px solid #1e3a8a;
-        }
-        .certificate-photo img { object-fit: cover; }
-        .photo-placeholder {
-            padding: 34px 5px;
-            background: #fff;
-            color: #475569;
-            font-size: 8pt;
-            font-weight: bold;
-        }
-        .photo-caption { margin: 3px 0 0; color: #475569; font-size: 5.8pt; font-weight: bold; }
+        html, body { margin: 0; padding: 0; color: #111827; background: #fff; font-family: DejaVu Sans, Helvetica, Arial, sans-serif; }
+        .page { position: relative; width: 297mm; height: 210mm; margin: 0; overflow: hidden; page-break-inside: avoid; background: #fff; }
 
-        /* Halaman 2 - Daftar Nilai */
-        .transcript-page {
-            padding: 45px 65px;
-        }
-        .transcript-page:before {
-            position: absolute;
-            z-index: 0;
-            top: 1.8mm;
-            right: 1.8mm;
-            bottom: 1.8mm;
-            left: 1.8mm;
-            border: .3mm solid #c9a45c;
-            content: "";
-        }
-        .transcript-header { padding-bottom: 1.8mm; border-bottom: .6mm solid #c9a45c; }
-        .transcript-title { margin: 0 0 .8mm; color: #1e3a8a; font-size: 16pt; font-weight: bold; letter-spacing: 1.5pt; text-align: center; }
-        .transcript-number { margin: 0; color: #475569; font-size: 7pt; text-align: center; font-weight: bold; }
-        .transcript-biodata { width: 100%; margin: 1.8mm 0; font-size: 7pt; background: #f8fafc; border: .25mm solid #e2e8f0; }
-        .transcript-biodata td { padding: 1mm 2mm; }
-        .transcript-biodata .label { color: #64748b; width: 24mm; }
-        .section-title { margin: 1.6mm 0 .7mm; color: #1e3a8a; font-size: 7.4pt; font-weight: bold; }
-        .score-table { width: 100%; font-size: 6.9pt; }
-        .score-table th, .score-table td { padding: .95mm 1.5mm; border: .25mm solid #cbd5e1; }
-        .score-table th { background: #1e3a8a; color: #ffffff; font-size: 6.4pt; text-align: left; }
-        .score-table .number { width: 12mm; text-align: center; }
-        .score-table .score { width: 25mm; text-align: center; }
-        .score-table .total-row { background: #eff6ff; font-weight: bold; color: #1e3a8a; }
-        .summary { margin: 1.8mm 0; padding: 1.8mm 3mm; border: .35mm solid #c9a45c; background: #fffbeb; color: #1e3a8a; font-size: 7.8pt; font-weight: bold; }
-        .bottom-layout { width: 100%; margin-top: 1.5mm; }
-        .bottom-layout td { width: 50%; vertical-align: top; }
-        .scale-table { width: 92%; font-size: 6pt; }
-        .scale-table th, .scale-table td { padding: .9mm 1.5mm; border: .25mm solid #cbd5e1; }
-        .scale-table th { background: #f1f5f9; color: #1e3a8a; text-align: left; }
-        .mentor-signature { padding-left: 12mm; text-align: center; font-size: 7pt; }
-        .mentor-signature .role { min-height: 7.5mm; }
-        .mentor-signature .space { height: 11mm; }
-        .mentor-signature .name { font-weight: bold; text-decoration: underline; text-transform: uppercase; }
-        .page-count { position: absolute; right: 10mm; bottom: 4mm; color: #64748b; font-size: 5.5pt; z-index: 2; }
+        /* Halaman 1: sertifikat */
+        .certificate-frame { position: absolute; z-index: 0; top: 7px; right: 7px; bottom: 7px; left: 7px; border: 5px solid #163868; }
+        .certificate-frame:before { position: absolute; content: ""; top: 5px; right: 5px; bottom: 5px; left: 5px; border: 1.5px solid #b69648; }
+        .certificate-frame:after { position: absolute; content: ""; left: 0; right: 0; bottom: 1px; height: 3px; background: #163868; }
+        .bottom-accent { position: absolute; z-index: 0; left: 14px; right: 14px; bottom: 15px; height: 2px; background: #3b82f6; }
+        .certificate-content { position: relative; z-index: 1; height: 100%; padding: 22px 45px 18px; }
+        table { border-collapse: collapse; }
+        .letterhead { width: 100%; table-layout: fixed; }
+        .letterhead td { vertical-align: middle; }
+        .letterhead-left, .letterhead-right { width: 13%; }
+        .letterhead-left { text-align: left; }
+        .letterhead-right { text-align: right; }
+        .letterhead-left img { width: 82px; height: 88px; object-fit: contain; }
+        .letterhead-right img { width: 82px; height: 82px; object-fit: contain; }
+        .letterhead-center { width: 74%; text-align: center; }
+        .government { margin: 0; color: #111827; font-size: 15pt; font-weight: bold; }
+        .department { margin: 2px 0; color: #163868; font-size: 20pt; font-weight: bold; }
+        .address { margin: 0; color: #374151; font-size: 9.5pt; }
+        .contact { margin: 2px 0 0; color: #374151; font-size: 9pt; }
+        .gold-divider { height: 1.5px; margin: 8px 0; background: #b69648; }
+        .certificate-title { margin: 0; color: #163868; font-size: 28pt; font-weight: bold; letter-spacing: 1px; text-align: center; }
+        .certificate-number { margin: 2px 0 0; color: #1e293b; font-size: 11pt; font-weight: bold; text-align: center; }
+        .recipient-layout { width: 68%; margin: 16px auto; }
+        .recipient-photo-cell { width: 135px; vertical-align: middle; }
+        .recipient-info { padding-left: 10px; vertical-align: middle; }
+        .photo-frame { width: 96px; height: 128px; border: 1.5px solid #163868; text-align: center; }
+        .photo-frame img { display: block; width: 94px; height: 126px; object-fit: cover; }
+        .photo-fallback { color: #163868; font-size: 10pt; font-weight: bold; line-height: 126px; }
+        .recipient-label { margin: 0 0 6px; color: #4b5563; font-size: 10.5pt; font-style: italic; }
+        .biodata { width: 100%; font-size: 11pt; }
+        .biodata td { padding: 2px 0; vertical-align: top; }
+        .biodata .label { width: 115px; color: #4b5563; }
+        .biodata .colon { width: 12px; text-align: center; }
+        .biodata .value { color: #111827; }
+        .intern-name { font-weight: bold; text-transform: uppercase; }
+        .description { max-width: 82%; margin: 0 auto; color: #111827; font-size: 13.5pt; line-height: 1.45; text-align: center; }
+        .result-badge { width: 310px; margin: 12px auto 0; padding: 9px 20px; border: 1.5px solid #b69648; border-radius: 6px; color: #163868; font-size: 14pt; font-weight: bold; text-align: center; }
+        .certificate-footer { position: absolute; right: 45px; bottom: 40px; left: 45px; width: auto; }
+        .certificate-footer td { vertical-align: bottom; }
+        .qr-cell { width: 50%; }
+        .qr-box { width: 130px; height: 110px; border: 1px solid #d1d5db; border-radius: 8px; text-align: center; vertical-align: middle; }
+        .qr-box img { width: 70px; height: 70px; }
+        .qr-fallback-title { color: #163868; font-size: 10pt; font-weight: bold; }
+        .qr-fallback-copy { margin-top: 5px; color: #6b7280; font-size: 7.5pt; }
+        .qr-caption { margin-top: 3px; color: #6b7280; font-size: 7.5pt; }
+        .signature-kadis { width: 50%; text-align: right; color: #111827; font-size: 10.5pt; line-height: 1.35; }
+        .signature-space { height: 52px; }
+        .signature-name { font-weight: bold; }
+        .page-count { position: absolute; right: 24px; bottom: 20px; z-index: 2; margin: 0; color: #6b7280; font-size: 7.5pt; }
+
+        /* Halaman 2: transkrip */
+        .transcript-page { page-break-before: always; padding: 28px 45px 20px; }
+        .transcript-title { margin: 0; color: #163868; font-size: 20pt; font-weight: bold; text-align: center; }
+        .transcript-divider { height: 1.5px; margin: 6px 0 14px; background: #b69648; }
+        .section-title { margin: 0 0 5px; color: #111827; font-size: 10pt; font-weight: bold; }
+        .technical-section { margin-top: 14px; }
+        .score-table { width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; font-size: 9.5pt; }
+        .score-table th, .score-table td { padding: 5px 10px; border: 1px solid #e5e7eb; }
+        .score-table th { color: #111827; font-weight: bold; text-transform: uppercase; }
+        .score-table .number { width: 60px; text-align: center; }
+        .score-table .criteria { text-align: left; }
+        .score-table .score { width: 110px; text-align: center; }
+        .score-table .total-row td { font-weight: bold; }
+        .summary { margin-top: 10px; color: #111827; font-size: 10.5pt; font-weight: bold; }
+        .summary-grade { padding-left: 34px; }
+        .bottom-layout { width: 100%; margin-top: 12px; }
+        .bottom-layout td { vertical-align: top; }
+        .scale-cell { width: 55%; }
+        .scale-title { margin: 0 0 4px; color: #111827; font-size: 9pt; font-weight: bold; }
+        .scale-table { width: 80%; border-collapse: collapse; border: 1px solid #e5e7eb; font-size: 8.5pt; text-align: center; }
+        .scale-table th, .scale-table td { padding: 4px 8px; border: 1px solid #e5e7eb; }
+        .scale-table th { font-weight: bold; }
+        .mentor-signature { width: 45%; padding-top: 18px; color: #111827; font-size: 10.5pt; line-height: 1.4; text-align: right; }
+        .mentor-signature-space { height: 55px; }
+        .transcript-page-count { position: absolute; right: 45px; bottom: 20px; margin: 0; color: #6b7280; font-size: 7.5pt; }
     </style>
 </head>
 <body>
     <section class="page certificate-page">
-        @if ($canvaBg)
-            <img class="canva-bg" src="{{ public_path('images/certificate-template.png') }}" alt="">
-        @else
-            <img class="bg-wave" src="{{ $bgWaveSvg }}" alt="">
-            <img class="ribbon-tr" src="{{ $cornerTopRightSvg }}" alt="">
-            <img class="ribbon-bl" src="{{ $cornerBottomLeftSvg }}" alt="">
-            <img class="filigree filigree-tl" src="{{ $filigreeCornerSvg }}" alt="">
-            <img class="filigree filigree-br" src="{{ $filigreeCornerSvg }}" alt="">
-        @endif
-
-        @if ($watermark)
-            <img class="watermark" src="{{ $watermark }}" alt="">
-        @endif
-
-        <div class="page-content">
+        <div class="certificate-frame"></div>
+        <div class="bottom-accent"></div>
+        <div class="certificate-content">
             <table class="letterhead">
                 <tr>
-                    <td class="letterhead-logo">
-                        @if ($logoTabalong)<img src="{{ $logoTabalong }}" alt="Logo Kabupaten Tabalong">@endif
-                    </td>
-                    <td style="text-align:center">
+                    <td class="letterhead-left">@if ($logoTabalong)<img src="{{ $logoTabalong }}" alt="Logo Kabupaten Tabalong">@endif</td>
+                    <td class="letterhead-center">
                         <p class="government">PEMERINTAH KABUPATEN TABALONG</p>
                         <p class="department">DINAS KOMUNIKASI DAN INFORMATIKA</p>
                         <p class="address">Jl. Cempaka No. 38 Tanjung, Tabalong, Kalimantan Selatan 71513</p>
                         <p class="contact">Telepon (0526) 2023169 · diskominfo.tabalongkab.go.id · diskominfo@tabalongkab.go.id</p>
                     </td>
-                    <td class="letterhead-diskominfo">
-                        @if ($logoDiskominfo)<img src="{{ $logoDiskominfo }}" alt="Logo Diskominfo">@endif
-                    </td>
+                    <td class="letterhead-right">@if ($logoDiskominfo)<img src="{{ $logoDiskominfo }}" alt="Logo Diskominfo">@endif</td>
                 </tr>
             </table>
             <div class="gold-divider"></div>
             <h1 class="certificate-title">SERTIFIKAT</h1>
-            <img class="title-ornament" src="{{ $dividerOrnamentSvg }}" alt="">
             <p class="certificate-number">Nomor : {{ $certificate->certificate_number ?? '-' }}</p>
 
             <table class="recipient-layout">
                 <tr>
+                    <td class="recipient-photo-cell">
+                        <div class="photo-frame">
+                            @if ($photoData)
+                                <img src="{{ $photoData }}" alt="Pas foto peserta">
+                            @else
+                                <div class="photo-fallback">PAS FOTO</div>
+                            @endif
+                        </div>
+                    </td>
                     <td class="recipient-info">
                         <p class="recipient-label">Diberikan kepada:</p>
                         <table class="biodata">
-                            <tr><td class="label">Nama</td><td class="colon">:</td><td class="intern-name">{{ $intern->name ?? 'Peserta Magang' }}</td></tr>
-                            <tr><td class="label">{{ $studentNumberLabel }}</td><td class="colon">:</td><td>{{ $application?->student_number ?? '-' }}</td></tr>
-                            <tr><td class="label">Jurusan</td><td class="colon">:</td><td>{{ $major }}</td></tr>
-                            <tr><td class="label">{{ $institutionLabel }}</td><td class="colon">:</td><td>{{ $institutionName }}</td></tr>
+                            <tr><td class="label">Nama</td><td class="colon">:</td><td class="value intern-name">{{ $intern->name ?? 'Peserta Magang' }}</td></tr>
+                            <tr><td class="label">{{ $studentNumberLabel }}</td><td class="colon">:</td><td class="value">{{ $application?->student_number ?? '-' }}</td></tr>
+                            <tr><td class="label">Jurusan</td><td class="colon">:</td><td class="value">{{ $major }}</td></tr>
+                            <tr><td class="label">Asal Institusi</td><td class="colon">:</td><td class="value">{{ $institutionName }}</td></tr>
                         </table>
                     </td>
                 </tr>
             </table>
 
-            <p class="description">
-                Telah mengikuti {{ $isSmk ? 'praktik kerja lapangan (PKL)' : 'program magang' }}
-                selama {{ $duration_months }} bulan terhitung dari tanggal {{ $startDateText }} s/d {{$endDateText }}
-                dengan hasil:
-            </p>
+            <p class="description">Telah mengikuti program magang selama {{ $duration_months }} bulan terhitung dari tanggal {{ $startDateText }} s/d {{ $endDateText }} dengan hasil:</p>
             <div class="result-badge">{{ $grade_description }}</div>
         </div>
 
-        <div class="certificate-photo">
-            @if ($photoData)
-                <img src="{{ $photoData }}" alt="Pas foto peserta">
-            @else
-                <div class="photo-placeholder">Pas Foto<br>3x4</div>
-            @endif
-            <p class="photo-caption">PAS FOTO 3x4</p>
-        </div>
-        <div class="qr-block">
-            @if (! empty($qr_code_data_uri))
-                <img src="{{ $qr_code_data_uri }}" alt="QR verifikasi sertifikat">
-            @endif
-            <p class="qr-label">Pindai untuk verifikasi sertifikat</p>
-        </div>
-        <div class="signature-kadis">
-            <div class="caption">Tanjung, {{ $issuedDateText }}<br>Kepala Dinas Komunikasi dan Informatika,</div>
-            <div class="signature-space"></div>
-            <div class="signature-name">Eddy Suryani, S.Sos, MA</div>
-            <div class="signature-title">Pembina Tk. I/(IV/b)<br>NIP 197412231994031004</div>
-        </div>
+        <table class="certificate-footer">
+            <tr>
+                <td class="qr-cell">
+                    <table class="qr-box"><tr><td>
+                        @if (! empty($qr_code_data_uri))
+                            <img src="{{ $qr_code_data_uri }}" alt="QR code verifikasi sertifikat">
+                            <div class="qr-caption">Pindai untuk verifikasi sertifikat</div>
+                        @else
+                            <div class="qr-fallback-title">QR CODE</div>
+                            <div class="qr-fallback-copy">Pindai untuk verifikasi sertifikat</div>
+                        @endif
+                    </td></tr></table>
+                </td>
+                <td class="signature-kadis">
+                    <div>Tanjung, {{ $issuedDateText }}</div>
+                    <div>Kepala Dinas Komunikasi dan Informatika,</div>
+                    <div class="signature-space"></div>
+                    <div class="signature-name">Eddy Suryani, S.Sos, MA</div>
+                    <div>Pembina Tk. I/(IV/b)</div>
+                    <div>NIP 197412231994031004</div>
+                </td>
+            </tr>
+        </table>
         <p class="page-count">Halaman 1 dari 2</p>
     </section>
 
     <section class="page transcript-page">
-        <div class="page-content">
-            <div class="transcript-header">
-                <h1 class="transcript-title">DAFTAR NILAI</h1>
-                <p class="transcript-number">Nomor Sertifikat: {{ $certificate->certificate_number ?? '-' }}</p>
-            </div>
-            <table class="transcript-biodata">
-                <tr>
-                    <td class="label">Nama</td><td><strong>{{ $intern->name ?? '-' }}</strong></td>
-                    <td class="label">{{ $studentNumberLabel }}</td><td>{{$application?->student_number ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Jurusan</td><td>{{ $major }}</td>
-                    <td class="label">{{ $institutionLabel }}</td><td>{{$institutionName }}</td>
-                </tr>
-            </table>
+        <h1 class="transcript-title">DAFTAR NILAI</h1>
+        <div class="transcript-divider"></div>
 
-            <p class="section-title">A. KETERAMPILAN (PENILAIAN TETAP DISKOMINFO)</p>
+        <p class="section-title">NILAI KETERAMPILAN</p>
+        <table class="score-table">
+            <thead><tr><th class="number">NO.</th><th class="criteria">KRITERIA PENILAIAN</th><th class="score">NILAI</th></tr></thead>
+            <tbody>
+                @foreach ($skill_scores as $index => $item)
+                    <tr><td class="number">{{ $index + 1 }}</td><td class="criteria">{{ $item['criteria'] }}</td><td class="score">{{ is_numeric($item['score']) ? number_format((float) $item['score'], 2) : '—' }}</td></tr>
+                @endforeach
+                <tr class="total-row"><td class="number"></td><td>Jumlah Nilai Keterampilan</td><td class="score">{{ number_format($skillTotal, 2) }}</td></tr>
+            </tbody>
+        </table>
+
+        <div class="technical-section">
+            <p class="section-title">NILAI TEKNIS</p>
             <table class="score-table">
-                <thead><tr><th class="number">NO.</th><th>KRITERIA PENILAIAN</th><th class="score">NILAI</th></tr></thead>
+                <thead><tr><th class="number">NO.</th><th class="criteria">KRITERIA PENILAIAN</th><th class="score">NILAI</th></tr></thead>
                 <tbody>
-                    @foreach ($skill_scores as $index =>$item)
-                        <tr><td class="number">{{ $index + 1 }}</td><td>{{$item['criteria'] }}</td><td class="score">{{ is_numeric($item['score']) ? number_format((float) $item['score'], 2) : '—' }}</td></tr>
-                    @endforeach
-                    <tr class="total-row"><td colspan="2">Jumlah Nilai Keterampilan</td><td class="score">{{ number_format($skillTotal, 2) }}</td></tr>
+                    @forelse ($technical_scores as $index => $item)
+                        <tr><td class="number">{{ $index + 1 }}</td><td class="criteria">{{ $item['criteria'] ?? 'Aspek Teknis' }}</td><td class="score">{{ is_numeric($item['score'] ?? null) ? number_format((float) $item['score'], 2) : '—' }}</td></tr>
+                    @empty
+                        <tr><td class="number">-</td><td class="criteria">Belum ada nilai teknis</td><td class="score">—</td></tr>
+                    @endforelse
+                    <tr class="total-row"><td class="number"></td><td>Jumlah Nilai Teknis</td><td class="score">{{ number_format($technicalTotal, 2) }}</td></tr>
                 </tbody>
             </table>
-
-            @if ($technical_scores !== [])
-                <p class="section-title">B. NILAI TEKNIS</p>
-                <table class="score-table">
-                    <thead><tr><th class="number">NO.</th><th>KRITERIA PENILAIAN</th><th class="score">NILAI</th></tr></thead>
-                    <tbody>
-                        @foreach ($technical_scores as $index =>$item)
-                            <tr><td class="number">{{ $index + 1 }}</td><td>{{$item['criteria'] ?? 'Aspek Teknis' }}</td><td class="score">{{ number_format((float) ($item['score'] ?? 0), 2) }}</td></tr>
-                        @endforeach
-                        <tr class="total-row"><td colspan="2">Jumlah Nilai Teknis</td><td class="score">{{ number_format($technicalTotal, 2) }}</td></tr>
-                    </tbody>
-                </table>
-            @endif
-
-            <div class="summary">
-                Nilai Akhir: {{ number_format((float) ($evaluation?->final_score ?? 0), 2) }} ({{ $grade_letter }})
-                <span style="padding-left:12mm">Sebutan: {{ $grade_description }}</span>
-            </div>
-
-            <table class="bottom-layout">
-                <tr>
-                    <td>
-                        <p class="section-title">KETERANGAN NILAI</p>
-                        <table class="scale-table">
-                            <thead><tr><th>RENTANG</th><th>MUTU</th><th>SEBUTAN</th></tr></thead>
-                            <tbody>
-                                <tr><td>90 - 100</td><td>A</td><td>SANGAT BAIK</td></tr>
-                                <tr><td>75 - 89</td><td>B</td><td>BAIK</td></tr>
-                                <tr><td>60 - 74</td><td>C</td><td>CUKUP</td></tr>
-                                <tr><td>00 - 59</td><td>D</td><td>KURANG</td></tr>
-                            </tbody>
-                        </table>
-                    </td>
-                    <td class="mentor-signature">
-                        <div class="role">Tanjung, {{ $issuedDateText }}<br>{{$mentor_position ?: 'Pembimbing Lapangan,' }}</div>
-                        <div class="space"></div>
-                        <div class="name">{{ $evaluation?->mentor?->name ?? 'PEMBIMBING LAPANGAN' }}</div>
-                        <div>NIP {{ $mentor_nip ?: '-' }}</div>
-                    </td>
-                </tr>
-            </table>
         </div>
-        <p class="page-count">Halaman 2 dari 2</p>
+
+        <div class="summary">
+            Nilai Akhir: {{ number_format((float) ($evaluation?->final_score ?? 0), 2) }} ({{ $grade_letter }})
+            <span class="summary-grade">Sebutan: {{ mb_strtoupper($grade_description) }}</span>
+        </div>
+
+        <table class="bottom-layout">
+            <tr>
+                <td class="scale-cell">
+                    <p class="scale-title">KETERANGAN NILAI</p>
+                    <table class="scale-table">
+                        <thead><tr><th>RENTANG</th><th>MUTU</th><th>SEBUTAN</th></tr></thead>
+                        <tbody>
+                            <tr><td>90 - 100</td><td>A</td><td>SANGAT BAIK</td></tr>
+                            <tr><td>80 - 89</td><td>B</td><td>BAIK</td></tr>
+                            <tr><td>60 - 79</td><td>C</td><td>CUKUP</td></tr>
+                            <tr><td>00 - 59</td><td>D</td><td>KURANG</td></tr>
+                        </tbody>
+                    </table>
+                </td>
+                <td class="mentor-signature">
+                    <div>Tanjung, {{ $issuedDateText }}</div>
+                    <div>Kabid {{ $divisionName }}</div>
+                    <div class="mentor-signature-space"></div>
+                </td>
+            </tr>
+        </table>
+        <p class="transcript-page-count">Halaman 2 dari 2</p>
     </section>
 </body>
 </html>

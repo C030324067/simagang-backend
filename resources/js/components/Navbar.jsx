@@ -487,7 +487,6 @@ export default function Navbar({ currentTab, setCurrentTab, onNavigateLogin }) {
                 </button>
                 {announcementDropdownOpen && (
                   <section aria-label="Pengumuman terbaru" className="absolute right-0 top-full z-[70] mt-2 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-                    <div className="border-b border-slate-100 px-4 py-3"><h2 className="text-sm font-extrabold text-slate-900">Pengumuman Bidang</h2><p className="mt-0.5 text-xs text-slate-500">Informasi terbaru dari mentor bidangmu</p></div>
                     <div className="max-h-[min(60vh,420px)] overflow-y-auto">
                       {announcementItems.length ? announcementItems.slice(0, 8).map((announcement, index) => (
                         <button key={announcement.id} type="button" onClick={() => openAnnouncement(announcement)} className={`block w-full px-4 py-3 text-left transition hover:bg-slate-50 ${index ? 'border-t border-slate-100' : ''}`}>
