@@ -151,12 +151,21 @@ class CertificateController extends Controller
         $evaluation?->load('mentor');
         $educationLevel = $application?->educationLevel() ?? 'Kuliah';
         $technicalScores = $evaluation?->technical_scores ?? [];
-        if ($educationLevel === 'SMK' && $technicalScores === []) {
-            $technicalScores = $application?->penilaianSmk()
-                ->orderBy('aspek')
-                ->get()
-                ->map(fn ($item): array => ['criteria' => $item->aspek, 'score' => (float) $item->nilai])
-                ->all() ?? [];
+        if ($technicalScores === []) {
+            if ($educationLevel === 'SMK') {
+                $technicalScores = $application?->penilaianSmk()
+                    ->orderBy('aspek')
+                    ->get()
+                    ->map(fn ($item): array => ['criteria' => $item->aspek, 'score' => (float) $item->nilai])
+                    ->all() ?? [];
+            } elseif ($application) {
+                $technicalScores = DB::table('penilaian_kuliah')
+                    ->where('intern_application_id', $application->id)
+                    ->orderBy('id')
+                    ->get()
+                    ->map(fn ($item): array => ['criteria' => $item->aspek, 'score' => (float) $item->nilai])
+                    ->all();
+            }
         }
         $skillScores = [
             ['criteria' => 'Disiplin', 'score' => $evaluation?->score_discipline],

@@ -3,6 +3,7 @@ import useMentorDashboard from '../hooks/useMentorDashboard';
 import MentorAttendanceReview from '../components/MentorAttendanceReview';
 import MentorFinalEvaluation from '../components/MentorFinalEvaluation';
 import AutoDismissNotice from '../components/AutoDismissNotice';
+import { apiRequest, getToken } from '../api';
 import { 
   Users, 
   BookOpen, 
@@ -20,12 +21,31 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
+const skillAverage = (evaluation) => {
+  const values = [
+    evaluation?.score_discipline,
+    evaluation?.score_quality,
+    evaluation?.score_initiative,
+    evaluation?.score_teamwork,
+    evaluation?.score_softskill,
+  ].map(Number).filter((value) => Number.isFinite(value));
+  return values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
+};
+
+const technicalAverage = (evaluation) => {
+  const values = (evaluation?.technical_scores || []).map((item) => Number(item.score)).filter((value) => Number.isFinite(value));
+  return values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
+};
+
 export default function MentorDashboard() {
   const [taskToRevise, setTaskToRevise] = React.useState(null);
   const [revisionNote, setRevisionNote] = React.useState('');
   const [revisionFile, setRevisionFile] = React.useState(null);
   const [savingRevision, setSavingRevision] = React.useState(false);
   const [taskStatusSelections, setTaskStatusSelections] = React.useState({});
+  const [detailEvaluation, setDetailEvaluation] = React.useState(null);
+  const [issuingCertificateId, setIssuingCertificateId] = React.useState(null);
+  const [downloadingCertificateId, setDownloadingCertificateId] = React.useState(null);
   const {
     activeTab, setActiveTab, logbooks, tasks, evaluations, interns, loading, msg, setMsg, generatingCertificateId,
     selectedApplication, setSelectedApplication,
@@ -78,6 +98,62 @@ export default function MentorDashboard() {
     void updateTaskStatus(task, selectedStatus);
   };
 
+  const issueCertificate = async (evaluation) => {
+    setIssuingCertificateId(evaluation.id);
+    try {
+      const response = await apiRequest(`/evaluations/${evaluation.id}/generate-certificate`, { method: 'POST' });
+      setMsg({
+        type: response.success ? 'success' : 'error',
+        text: response.success ? response.message || 'Sertifikat berhasil diterbitkan.' : response.message || 'Penerbitan sertifikat gagal.',
+      });
+      if (response.success) {
+        await loadData();
+        setDetailEvaluation((current) => current ? {
+          ...current,
+          internApplication: {
+            ...(current.internApplication || {}),
+            certificate: response.data,
+          },
+        } : current);
+      }
+    } finally {
+      setIssuingCertificateId(null);
+    }
+  };
+
+  const downloadCertificate = async (certificate) => {
+    if (!certificate?.id) return;
+    setDownloadingCertificateId(certificate.id);
+    try {
+      const response = await fetch(`/api/certificates/${certificate.id}/download`, {
+        headers: {
+          Accept: 'application/pdf, application/json',
+          Authorization: `Bearer ${getToken()}`,
+          'X-Active-Role': localStorage.getItem('simagang_active_role') || '',
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        setMsg({ type: 'error', text: error.message || 'Sertifikat PDF gagal diunduh.' });
+        return;
+      }
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      const disposition = response.headers.get('Content-Disposition') || '';
+      link.href = objectUrl;
+      link.download = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'Sertifikat-Magang.pdf';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      setMsg({ type: 'success', text: 'Sertifikat PDF berhasil diunduh.' });
+    } catch (error) {
+      setMsg({ type: 'error', text: error.message || 'Sertifikat PDF gagal diunduh.' });
+    } finally {
+      setDownloadingCertificateId(null);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6 font-sans text-slate-800 bg-[#F8FAFC] min-h-screen">
       
@@ -93,6 +169,17 @@ export default function MentorDashboard() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('evaluations');
+              window.setTimeout(() => document.getElementById('mentor-evaluation-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+            }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl font-bold text-xs transition active:scale-95 cursor-pointer"
+          >
+            <span aria-hidden="true">☆</span>
+            Beri Nilai Akhir
+          </button>
           <button
             onClick={() => setShowTaskModal(true)}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 cursor-pointer"
@@ -131,22 +218,22 @@ export default function MentorDashboard() {
       )}
 
       {/* Navigation Tabs - Modern Pill Style */}
-      <div className="flex items-center gap-2 pb-1 overflow-x-auto">
+      <div className="flex w-full items-center justify-between gap-2 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5">
         <button
           onClick={() => setActiveTab('interns')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+          className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-center text-xs font-bold transition cursor-pointer ${
             activeTab === 'interns'
               ? 'bg-[#4F46E5] text-white shadow-xs'
               : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
           }`}
         >
           <Users className="w-4 h-4" />
-          Permohonan ( {interns.length} )
+          Daftar Intern Bimbingan ( {interns.length} )
         </button>
 
         <button
           onClick={() => setActiveTab('logbooks')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+          className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-center text-xs font-bold transition cursor-pointer ${
             activeTab === 'logbooks'
               ? 'bg-[#4F46E5] text-white shadow-xs'
               : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
@@ -158,7 +245,7 @@ export default function MentorDashboard() {
 
         <button
           onClick={() => { setActiveTab('tasks'); void loadData(); }}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+          className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-center text-xs font-bold transition cursor-pointer ${
             activeTab === 'tasks'
               ? 'bg-[#4F46E5] text-white shadow-xs'
               : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
@@ -175,7 +262,7 @@ export default function MentorDashboard() {
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+          className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-center text-xs font-bold transition cursor-pointer ${
             activeTab === 'attendance' 
               ? 'bg-[#4F46E5] text-white shadow-xs' 
               : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
@@ -187,7 +274,7 @@ export default function MentorDashboard() {
 
         <button
           onClick={() => setActiveTab('evaluations')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+          className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-center text-xs font-bold transition cursor-pointer ${
             activeTab === 'evaluations'
               ? 'bg-[#4F46E5] text-white shadow-xs'
               : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
@@ -456,60 +543,51 @@ export default function MentorDashboard() {
       {activeTab === 'evaluations' && (
         <div className="space-y-6">
           <MentorFinalEvaluation interns={interns} evaluations={evaluations} onSaved={loadData} />
-          
-          <section className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xs p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#0F172A]">
-                <Award className="w-4 h-4 text-slate-700" />
-                <h3 className="text-sm font-bold">Daftar Evaluasi Kinerja</h3>
-              </div>
-              <button 
-                onClick={() => {
-                  document.getElementById('mentor-evaluation-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  document.getElementById('mentor-evaluation-intern')?.focus({ preventScroll: true });
-                }}
-                className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold transition"
-              >
-                + Input Nilai Magang
-              </button>
-            </div>
 
+          <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs sm:p-6">
+            <h3 className="mb-5 text-lg font-extrabold text-[#0F2942]">Rekap Penilaian dan Status Magang</h3>
             <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-[620px] text-left text-xs border-collapse">
+              <table className="w-full min-w-[760px] border-collapse text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 text-slate-500 font-bold">
+                  <tr className="border-b border-slate-200/80 font-bold text-slate-500">
                     <th className="py-3 px-2">Nama Anak Magang</th>
                     <th className="py-3 px-2">Divisi</th>
-                    <th className="py-3 px-2">Skor Kedisiplinan</th>
-                    <th className="py-3 px-2">Skor Tugas</th>
-                    <th className="py-3 px-2">Nilai Akhir</th>
+                    <th className="py-3 px-2">Nilai Keterampilan</th>
+                    <th className="py-3 px-2">Nilai Teknis</th>
+                    <th className="py-3 px-2">Nilai Rata-rata</th>
                     <th className="py-3 px-2 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {evaluations.length ? (
-                    evaluations.map((evaluation) => (
-                      <tr key={evaluation.id} className="hover:bg-slate-50/50 transition">
-                        <td className="py-4 px-2">
-                          <strong className="text-[#0F172A] font-bold">{evaluation.intern?.name || '—'}</strong>
-                          <p className="text-slate-400 text-[11px] mt-0.5">{evaluation.intern?.email || ''}</p>
-                          {evaluation.technical_scores?.length > 0 && (
-                            <p className="mt-1 text-[11px] text-slate-500">
-                              Teknis: {evaluation.technical_scores.map((item) => `${item.criteria} ${Number(item.score).toFixed(2)}`).join(' · ')}
-                            </p>
-                          )}
-                        </td>
-                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.intern?.division?.name || '—'}</td>
-                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.score_discipline ?? evaluation.discipline_score ?? '—'}</td>
-                        <td className="py-4 px-2 font-medium text-slate-700">{evaluation.task_average ?? '—'}</td>
-                        <td className="py-4 px-2">
-                          <span className="rounded-full bg-emerald-100 px-3 py-1 font-bold text-emerald-700 text-xs">
-                            {evaluation.final_score ?? '—'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-2 text-right text-slate-500">Nilai tersimpan</td>
-                      </tr>
-                    ))
+                    evaluations.map((evaluation) => {
+                      const skill = skillAverage(evaluation);
+                      const technical = technicalAverage(evaluation);
+                      return (
+                        <tr key={evaluation.id} className="transition hover:bg-slate-50/50">
+                          <td className="px-2 py-4">
+                            <strong className="font-bold text-[#0F2942]">{evaluation.intern?.name || '—'}</strong>
+                          </td>
+                          <td className="px-2 py-4 font-medium text-slate-700">{evaluation.intern?.division?.name || '—'}</td>
+                          <td className="px-2 py-4 font-medium text-slate-700">{skill === null ? '-' : skill.toFixed(2)}</td>
+                          <td className="px-2 py-4 font-medium text-slate-700">{technical === null ? '-' : technical.toFixed(2)}</td>
+                          <td className="px-2 py-4">
+                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                              {evaluation.final_score !== null && evaluation.final_score !== undefined ? Number(evaluation.final_score).toFixed(2) : '-'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setDetailEvaluation(evaluation)}
+                              className="rounded-lg bg-[#4F46E5] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#4338CA]"
+                            >
+                              Lihat rincian
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan="6" className="py-8 text-center text-slate-400 font-medium">Belum ada evaluasi akhir tersimpan.</td>
@@ -685,6 +763,82 @@ export default function MentorDashboard() {
                 </button>
               </div>
             </form>
+          </section>
+        </div>
+      )}
+
+      {detailEvaluation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <section role="dialog" aria-modal="true" aria-labelledby="evaluation-detail-title" className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">Rincian nilai</p>
+                <h3 id="evaluation-detail-title" className="mt-1 text-lg font-extrabold text-[#0F2942]">{detailEvaluation.intern?.name || 'Peserta Magang'}</h3>
+              </div>
+              <button type="button" onClick={() => setDetailEvaluation(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100" aria-label="Tutup rincian nilai">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {[
+                ['Disiplin', detailEvaluation.score_discipline],
+                ['Perilaku dan Sopan Santun', detailEvaluation.score_quality],
+                ['Inisiatif', detailEvaluation.score_initiative],
+                ['Motivasi', detailEvaluation.score_teamwork],
+                ['Komunikasi dan Kerja Sama', detailEvaluation.score_softskill],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between rounded-xl border border-slate-200/80 px-4 py-3">
+                  <span className="text-xs text-slate-600">{label}</span>
+                  <strong className="text-sm text-[#0F2942]">{value !== null && value !== undefined ? Number(value).toFixed(2) : '-'}</strong>
+                </div>
+              ))}
+            </div>
+
+            {(detailEvaluation.technical_scores || []).length > 0 && (
+              <div className="mt-4 space-y-2 rounded-xl border border-slate-200/80 p-4">
+                <p className="text-xs font-bold text-[#0F2942]">Penilaian Teknis</p>
+                {detailEvaluation.technical_scores.map((item, index) => (
+                  <div key={`${item.criteria}-${index}`} className="flex items-center justify-between border-b border-slate-100 py-2 text-xs last:border-0">
+                    <span className="text-slate-600">{item.criteria}</span>
+                    <strong className="text-[#0F2942]">{Number(item.score).toFixed(2)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3">
+              <span className="text-xs font-bold text-emerald-800">Nilai Rata-rata</span>
+              <strong className="rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-700">
+                {detailEvaluation.final_score !== null && detailEvaluation.final_score !== undefined ? Number(detailEvaluation.final_score).toFixed(2) : '-'}
+              </strong>
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-200/80 pt-4">
+              {(() => {
+                const certificate = detailEvaluation.internApplication?.certificate || detailEvaluation.certificate;
+                return certificate?.id ? (
+                  <button
+                    type="button"
+                    onClick={() => downloadCertificate(certificate)}
+                    disabled={downloadingCertificateId === certificate.id}
+                    className="rounded-xl bg-[#4F46E5] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#4338CA] disabled:opacity-50"
+                  >
+                    {downloadingCertificateId === certificate.id ? 'Menyiapkan PDF...' : 'Unduh Sertifikat'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => issueCertificate(detailEvaluation)}
+                    disabled={issuingCertificateId === detailEvaluation.id}
+                    className="rounded-xl bg-[#4F46E5] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#4338CA] disabled:opacity-50"
+                  >
+                    {issuingCertificateId === detailEvaluation.id ? 'Menerbitkan...' : 'Terbitkan Sertifikat'}
+                  </button>
+                );
+              })()}
+              <button type="button" onClick={() => setDetailEvaluation(null)} className="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200">Tutup</button>
+            </div>
           </section>
         </div>
       )}
