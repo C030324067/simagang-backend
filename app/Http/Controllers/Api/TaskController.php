@@ -32,12 +32,23 @@ class TaskController extends Controller
                 ->where('assigned_to', $user->id);
         } elseif ($role === 'mentor') {
             abort_unless($user->isMentorContext(), 403, 'Akun ini tidak memiliki akses pembimbing.');
-            $query->where('created_by', $user->id)
-                ->whereHas('assignedUser.applications', fn ($applications) => $applications
+            $query->where(function ($tasks) use ($user): void {
+                $tasks->whereHas('assignedUser.applications', fn ($applications) => $applications
                     ->forMentor((int) $user->id)
                     ->activeInternships());
-        } elseif ($user->role === 'kabid') {
-            return $this->errorResponse('Pilih mode Mentor untuk mengakses data bimbingan.', 403);
+
+                if ($user->role === 'kabid' && $user->division_id !== null) {
+                    $tasks->orWhere(function ($divisionTasks) use ($user): void {
+                        $divisionTasks->where('division_id', $user->division_id)
+                            ->whereHas('assignedUser.applications', fn ($applications) => $applications
+                                ->where('division_id', $user->division_id));
+                    });
+                }
+            });
+        } elseif ($role === 'kabid') {
+            $query->where('division_id', $user->division_id)
+                ->whereHas('assignedUser.applications', fn ($applications) => $applications
+                    ->where('division_id', $user->division_id));
         }
 
         if ($request->filled('status')) {
@@ -124,7 +135,7 @@ class TaskController extends Controller
         }
 
         if ($role === 'mentor'
-            && ! $this->mentorCanAccessTask($user, $task)) {
+            && ! $this->mentorCanUpdateTask($user, $task)) {
             return $this->errorResponse('Anda tidak berhak memperbarui tugas ini.', 403);
         }
 
@@ -195,7 +206,9 @@ class TaskController extends Controller
         $canDownloadTask = match ($role) {
             'intern' => (int) $task->assigned_to === (int) $user->id
                 && (int) $task->division_id === (int) $user->division_id,
-            'mentor' => $this->mentorCanAccessTask($user, $task),
+            'mentor' => $this->mentorCanAccessTask($user, $task)
+                || $this->kabidCanAccessTask($user, $task),
+            'kabid' => $this->kabidCanAccessTask($user, $task),
             default => false,
         };
 
@@ -237,10 +250,30 @@ class TaskController extends Controller
         $intern = $task->assignedUser;
 
         return $mentor->isMentorContext()
-            && (int) $task->created_by === (int) $mentor->id
             && $intern !== null
+            && $task->division_id !== null
             && $intern->applications()
                 ->forMentor((int) $mentor->id)
+                ->where('division_id', $task->division_id)
+                ->exists();
+    }
+
+    private function mentorCanUpdateTask(User $mentor, Task $task): bool
+    {
+        return (int) $task->created_by === (int) $mentor->id
+            && $this->mentorCanAccessTask($mentor, $task);
+    }
+
+    private function kabidCanAccessTask(User $kabid, Task $task): bool
+    {
+        $intern = $task->assignedUser;
+
+        return $kabid->role === 'kabid'
+            && $kabid->division_id !== null
+            && (int) $task->division_id === (int) $kabid->division_id
+            && $intern !== null
+            && $intern->applications()
+                ->where('division_id', $kabid->division_id)
                 ->exists();
     }
 }

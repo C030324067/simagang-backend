@@ -13,6 +13,7 @@ export async function downloadTaskFile(task, kind = 'submission') {
       headers: {
         Accept: 'application/octet-stream, application/json',
         Authorization: `Bearer ${getToken()}`,
+        'X-Active-Role': localStorage.getItem('simagang_active_role') || '',
       },
     });
 

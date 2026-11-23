@@ -170,13 +170,13 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
     // Task Management Endpoints
     Route::prefix('tasks')->group(function () {
         Route::get('/', [TaskController::class, 'index']);
-        Route::middleware('role:intern,mentor')->get('/{task}/submission', [TaskController::class, 'downloadSubmission']);
+        Route::middleware('role:intern,mentor,kabid')->get('/{task}/submission', [TaskController::class, 'downloadSubmission']);
 
         Route::middleware('role:mentor')->group(function () {
             Route::post('/', [TaskController::class, 'store']);
         });
 
-        Route::middleware('role:intern,mentor')->group(function () {
+        Route::middleware('role:intern,mentor,kabid')->group(function () {
             Route::get('/{task}/attachment', [TaskController::class, 'downloadAttachment']);
             Route::get('/{task}/revision-file', [TaskController::class, 'downloadRevisionFile']);
         });
