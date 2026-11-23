@@ -5,7 +5,7 @@
     <title>Sertifikat Magang - {{ $intern->name ?? 'Peserta' }}</title>
     @php
         $tabalongPath = public_path('images/logo-tabalong.png');
-        $diskominfoPath = public_path('images/logo/diskominfo.png');$canvaBgPath = public_path('images/template-sertifikat.png');
+        $diskominfoPath = public_path('images/logo/diskominfo.png');$canvaBgPath = public_path('images/certificate-template.png');
 
         $logoTabalong = is_file($tabalongPath)
             ? 'data:image/png;base64,'.base64_encode(file_get_contents($tabalongPath))
@@ -14,7 +14,7 @@
             ? 'data:image/png;base64,'.base64_encode(file_get_contents($diskominfoPath))
             : null;
         $canvaBg = is_file($canvaBgPath)
-            ? 'data:image/png;base64,'.base64_encode(file_get_contents($canvaBgPath))
+            ? $canvaBgPath
             : null;
 
         $watermark =$logoTabalong;
@@ -96,7 +96,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 7mm;
+            margin: 0;
         }
         * { box-sizing: border-box; }
         html, body {
@@ -108,15 +108,14 @@
         }
         .page {
             position: relative;
-            width: auto;
-            height: 176mm;
-            margin: 0 auto;
-            padding: 8mm 11mm;
+            width: 297mm;
+            height: 210mm;
+            margin: 0;
+            padding: 45px 65px;
             overflow: hidden;
             page-break-inside: avoid;
         }
         .certificate-page {
-            border: 1.2mm solid #1e3a8a;
             page-break-after: always;
         }
         .certificate-page:before {
@@ -129,14 +128,15 @@
             border: .45mm solid #c9a45c;
             content: "";
         }
-        .canva-bg, .bg-wave {
-            position: absolute;
+        .canva-bg {
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 0;
+            z-index: -1;
         }
+        .bg-wave, .ribbon-tr, .ribbon-bl, .filigree { display: none; }
         .ribbon-tr {
             position: absolute;
             top: 0;
@@ -245,15 +245,15 @@
             letter-spacing: 1.2pt;
             text-align: center;
         }
-        .signature-kadis { position: absolute; right: 14mm; bottom: 8.5mm; width: 76mm; text-align: center; z-index: 2; }
+        .signature-kadis { position: absolute; right: 65px; bottom: 45px; width: 76mm; text-align: center; z-index: 2; }
         .signature-kadis .caption { font-size: 7.5pt; line-height: 1.35; }
         .signature-space { height: 15mm; }
         .signature-name { font-size: 8pt; font-weight: bold; text-decoration: underline; }
         .signature-title { margin-top: .8mm; font-size: 7pt; }
         .qr-block {
             position: absolute;
-            bottom: 8.5mm;
-            left: 16mm;
+            bottom: 45px;
+            left: 65px;
             width: 52mm;
             padding: 1.5mm;
             border: .3mm solid #cbd5e1;
@@ -267,8 +267,7 @@
 
         /* Halaman 2 - Daftar Nilai */
         .transcript-page {
-            padding: 7mm 10mm;
-            border: .9mm solid #1e3a8a;
+            padding: 45px 65px;
         }
         .transcript-page:before {
             position: absolute;
@@ -309,7 +308,7 @@
 <body>
     <section class="page certificate-page">
         @if ($canvaBg)
-            <img class="canva-bg" src="{{ $canvaBg }}" alt="">
+            <img class="canva-bg" src="{{ public_path('images/certificate-template.png') }}" alt="">
         @else
             <img class="bg-wave" src="{{ $bgWaveSvg }}" alt="">
             <img class="ribbon-tr" src="{{ $cornerTopRightSvg }}" alt="">
