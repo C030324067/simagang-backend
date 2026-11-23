@@ -144,6 +144,15 @@ class CertificateController extends Controller
         }
 
         $application = $certificate->internApplication;
+        $divisionId = $application?->division_id ?? $certificate->intern?->division_id;
+        $kabid = $divisionId
+            ? User::query()
+                ->where('role', 'kabid')
+                ->where('division_id', $divisionId)
+                ->orderByRaw("CASE WHEN status_akun = 'approved' THEN 0 ELSE 1 END")
+                ->orderBy('id')
+                ->first()
+            : null;
         if ($request->user()->activeRole() === 'mentor') {
             abort_unless($request->user()->canMentorApplication($application), 404);
         }
@@ -202,6 +211,9 @@ class CertificateController extends Controller
             'issued_date' => $certificate->issued_at ?? now(),
             'mentor_nip' => $evaluation?->mentor?->nip,
             'mentor_position' => $evaluation?->mentor?->position,
+            'kabid_name' => $kabid?->name,
+            'kabid_nip' => $kabid?->nip,
+            'kabid_position' => $kabid?->position,
         ];
 
         $pdf = Pdf::loadView('pdf.certificate', $data)->setPaper('a4', 'landscape');

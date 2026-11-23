@@ -35,21 +35,25 @@
         $skillTotal = collect($skill_scores)->sum(fn ($item) => (float) ($item['score'] ?? 0));
     @endphp
     <style>
-        @page { size: A4 landscape; margin: 0; }
+        @page { size: A4 landscape; margin: 6mm; }
         * { box-sizing: border-box; color: #000000 !important; }
         html, body { margin: 0; padding: 0; background: #ffffff; color: #000000; font-family: 'DejaVu Sans', Arial, sans-serif; }
         table { border-collapse: collapse; }
         p { padding: 0; }
 
-        .certificate-page { padding: 6mm; }
-        .certificate-frame { border: 4px solid #0f2c59; padding: 2px; }
-        .certificate-inner { border: 1.5px solid #b59449; padding: 10px 26px 8px; }
+        .page-frame { height: 192mm; border: 4px solid #0f2c59; padding: 2px; }
+        .page-inner { height: 100%; border: 1.5px solid #b59449; padding: 12px 28px; }
+        .transcript-inner { padding: 10px 24px; }
+        .page-layout { width: 100%; height: 100%; table-layout: fixed; }
+        .page-layout > tbody > tr > td { padding: 0; }
+        .page-main { vertical-align: top; }
+        .page-footer { vertical-align: bottom; }
         .letterhead { width: 100%; table-layout: fixed; }
         .letterhead td { vertical-align: middle; }
         .letterhead-left, .letterhead-right { width: 12%; }
         .letterhead-left { text-align: left; }
         .letterhead-right { text-align: right; }
-        .letterhead-left img, .letterhead-right img { width: 52px; height: 52px; object-fit: contain; }
+        .letterhead-left img, .letterhead-right img { height: 68px; width: auto; }
         .letterhead-center { width: 76%; text-align: center; }
         .government { margin: 0; font-size: 13.5pt; font-weight: bold; }
         .department { margin: 2px 0; font-size: 18pt; font-weight: bold; }
@@ -61,9 +65,9 @@
         .recipient-layout { width: 68%; margin: 0 auto; }
         .recipient-photo-cell { width: 115px; vertical-align: top; }
         .recipient-info { padding-left: 10px; vertical-align: top; }
-        .photo-frame { width: 84px; height: 112px; border: 1.5px solid #000000; text-align: center; }
-        .photo-frame img { display: block; width: 81px; height: 109px; }
-        .photo-fallback { font-size: 7.5pt; line-height: 110px; }
+        .photo-frame { width: 96px; height: 126px; border: 1.5px solid #000000; text-align: center; vertical-align: middle; overflow: hidden; }
+        .photo-frame img { max-width: 94px; max-height: 124px; width: auto; height: auto; }
+        .photo-fallback { font-size: 7.5pt; line-height: 124px; }
         .recipient-label { margin: 0 0 4px; font-size: 9.5pt; font-style: italic; }
         .biodata { width: 100%; font-size: 10pt; line-height: 1.35; }
         .biodata td { padding: 1px 0; vertical-align: top; }
@@ -75,15 +79,13 @@
         .certificate-footer { width: 100%; margin-top: 10px; table-layout: fixed; }
         .certificate-footer td { vertical-align: bottom; }
         .qr-cell { width: 40%; }
-        .qr-box { width: 78px; height: 78px; border: 1px solid #000000; text-align: center; vertical-align: middle; }
-        .qr-box img { width: 68px; height: 68px; }
-        .qr-caption { margin-top: 3px; font-size: 7pt; }
+        .qr-box { width: 105px; height: 105px; padding: 3px; border: 1px solid #000000; text-align: center; vertical-align: middle; }
+        .qr-box img { width: 98px; height: 98px; }
+        .qr-caption { margin-top: 3px; font-size: 7.5pt; }
         .signature-kadis { width: 60%; font-size: 9.5pt; line-height: 1.3; text-align: right; }
-        .signature-space { height: 36px; }
+        .signature-space { height: 48px; }
         .signature-name { font-weight: bold; text-decoration: underline; }
-        .page-count { margin: 4px 0 0; font-size: 7pt; text-align: right; }
-
-        .transcript-page { width: auto; padding: 10mm 14mm 8mm; background: #ffffff; }
+        .transcript-page { background: #ffffff; }
         .transcript-title { margin: 0; font-size: 16pt; font-weight: bold; text-align: center; }
         .transcript-divider { height: 0; margin: 4px 0 8px; border-bottom: 1.5px solid #000000; }
         .section-title { margin: 0 0 3px; font-size: 9pt; font-weight: bold; }
@@ -103,14 +105,14 @@
         .scale-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; text-align: center; background: #ffffff; }
         .scale-table th, .scale-table td { padding: 2.5px 4px; border: 1px solid #000000; color: #000000 !important; background: #ffffff; }
         .mentor-signature { width: 56%; padding-top: 10px; font-size: 9.5pt; line-height: 1.35; text-align: right; }
-        .mentor-signature-space { height: 44px; }
-        .transcript-page-count { margin: 6px 0 0; font-size: 7pt; text-align: right; }
+        .mentor-signature-space { height: 46px; }
     </style>
 </head>
 <body>
-    <div class="certificate-page">
-        <div class="certificate-frame">
-            <div class="certificate-inner">
+    <div class="page-frame">
+        <div class="page-inner">
+            <table class="page-layout">
+                <tr><td class="page-main">
             <table class="letterhead">
                 <tr>
                     <td class="letterhead-left">@if ($logoTabalong)<img src="{{ $logoTabalong }}" alt="Logo Kabupaten Tabalong">@endif</td>
@@ -152,6 +154,8 @@
 
             <p class="description">Telah mengikuti program magang selama {{ $duration_months }} bulan terhitung dari tanggal {{ $startDateText }} s/d {{ $endDateText }} dengan hasil:</p>
             <div class="result-badge">{{ $grade_description }}</div>
+                </td></tr>
+                <tr><td class="page-footer">
         <table class="certificate-footer">
             <tr>
                 <td class="qr-cell">
@@ -174,14 +178,18 @@
                 </td>
             </tr>
         </table>
-        <p class="page-count">Halaman 1 dari 2</p>
+                </td></tr>
+            </table>
             </div>
         </div>
     </div>
 
     <div style="page-break-before: always;"></div>
 
-    <div class="transcript-page">
+    <div class="page-frame">
+        <div class="page-inner transcript-inner">
+            <table class="page-layout transcript-page">
+                <tr><td class="page-main">
         <h1 class="transcript-title">DAFTAR NILAI</h1>
         <div class="transcript-divider"></div>
 
@@ -216,6 +224,8 @@
             <span class="summary-grade">Sebutan: {{ mb_strtoupper($grade_description) }}</span>
         </div>
 
+                </td></tr>
+                <tr><td class="page-footer">
         <table class="bottom-layout">
             <tr>
                 <td class="scale-cell">
@@ -234,10 +244,19 @@
                     <div>Tanjung, {{ $issuedDateText }}</div>
                     <div>Kabid {{ $divisionName }}</div>
                     <div class="mentor-signature-space"></div>
+                    <div class="signature-name">{{ $kabid_name ?: 'Nama Kabid belum tersedia' }}</div>
+                    @if (! empty($kabid_position))
+                        <div>{{ $kabid_position }}</div>
+                    @endif
+                    @if (! empty($kabid_nip))
+                        <div>NIP {{ $kabid_nip }}</div>
+                    @endif
                 </td>
             </tr>
         </table>
-        <p class="transcript-page-count">Halaman 2 dari 2</p>
+                </td></tr>
+            </table>
+        </div>
     </div>
 </body>
 </html>
