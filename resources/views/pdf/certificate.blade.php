@@ -5,12 +5,12 @@
     <title>Sertifikat Magang - {{ $intern->name ?? 'Peserta' }}</title>
     @php
         $tabalongPath = public_path('images/logo-tabalong.png');
-        $diskominfoPath = public_path('images/logo/diskominfo.png');
+        $komdigiPath = public_path('images/logo-komdigi.png');
         $logoTabalong = is_file($tabalongPath)
             ? 'data:image/png;base64,'.base64_encode(file_get_contents($tabalongPath))
             : null;
-        $logoDiskominfo = is_file($diskominfoPath)
-            ? 'data:image/png;base64,'.base64_encode(file_get_contents($diskominfoPath))
+        $logoKomdigi = is_file($komdigiPath)
+            ? 'data:image/png;base64,'.base64_encode(file_get_contents($komdigiPath))
             : null;
         $photoPath = $intern?->profile_photo_path
             ? storage_path('app/public/'.$intern->profile_photo_path)
@@ -34,86 +34,85 @@
         $skillTotal = collect($skill_scores)->sum(fn ($item) => (float) ($item['score'] ?? 0));
     @endphp
     <style>
-        @page { size: A4 landscape; margin: 0; }
+        @page { size: 297mm 210mm; margin: 0; }
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; color: #111827; background: #fff; font-family: DejaVu Sans, Helvetica, Arial, sans-serif; }
-        .page { position: relative; width: 297mm; height: 210mm; margin: 0; overflow: hidden; page-break-inside: avoid; background: #fff; }
+        html, body { width: 297mm; height: 210mm; margin: 0; padding: 0; color: #111827; background: #ffffff; font-family: "DejaVu Sans", Arial, sans-serif; }
+        .page { position: relative; width: 297mm; height: 210mm; margin: 0; padding: 0; overflow: hidden; page-break-inside: avoid; background: #ffffff; }
 
         /* Halaman 1: sertifikat */
-        .certificate-frame { position: absolute; z-index: 0; top: 7px; right: 7px; bottom: 7px; left: 7px; border: 5px solid #163868; }
-        .certificate-frame:before { position: absolute; content: ""; top: 5px; right: 5px; bottom: 5px; left: 5px; border: 1.5px solid #b69648; }
-        .certificate-frame:after { position: absolute; content: ""; left: 0; right: 0; bottom: 1px; height: 3px; background: #163868; }
-        .bottom-accent { position: absolute; z-index: 0; left: 14px; right: 14px; bottom: 15px; height: 2px; background: #3b82f6; }
-        .certificate-content { position: relative; z-index: 1; height: 100%; padding: 22px 45px 18px; }
+        .certificate-frame { position: absolute; z-index: 0; top: 7mm; right: 7mm; bottom: 7mm; left: 7mm; border: 4px solid #0f2c59; }
+        .certificate-frame:before { position: absolute; content: ""; top: 3px; right: 3px; bottom: 3px; left: 3px; border: 1.5px solid #b59449; }
+        .certificate-content { position: absolute; z-index: 1; top: 7mm; right: 7mm; bottom: 7mm; left: 7mm; padding: 14px 36px; }
         table { border-collapse: collapse; }
         .letterhead { width: 100%; table-layout: fixed; }
         .letterhead td { vertical-align: middle; }
         .letterhead-left, .letterhead-right { width: 13%; }
         .letterhead-left { text-align: left; }
         .letterhead-right { text-align: right; }
-        .letterhead-left img { width: 82px; height: 88px; object-fit: contain; }
-        .letterhead-right img { width: 82px; height: 82px; object-fit: contain; }
+        .letterhead-left img { width: 58px; height: 58px; object-fit: contain; }
+        .letterhead-right img { width: 58px; height: 58px; object-fit: contain; }
         .letterhead-center { width: 74%; text-align: center; }
-        .government { margin: 0; color: #111827; font-size: 15pt; font-weight: bold; }
-        .department { margin: 2px 0; color: #163868; font-size: 20pt; font-weight: bold; }
-        .address { margin: 0; color: #374151; font-size: 9.5pt; }
-        .contact { margin: 2px 0 0; color: #374151; font-size: 9pt; }
-        .gold-divider { height: 1.5px; margin: 8px 0; background: #b69648; }
-        .certificate-title { margin: 0; color: #163868; font-size: 28pt; font-weight: bold; letter-spacing: 1px; text-align: center; }
-        .certificate-number { margin: 2px 0 0; color: #1e293b; font-size: 11pt; font-weight: bold; text-align: center; }
-        .recipient-layout { width: 68%; margin: 16px auto; }
-        .recipient-photo-cell { width: 135px; vertical-align: middle; }
+        .government { margin: 0; color: #111827; font-size: 14pt; font-weight: bold; }
+        .department { margin: 2px 0; color: #0f2c59; font-size: 19pt; font-weight: bold; }
+        .address { margin: 0; color: #374151; font-size: 9pt; }
+        .contact { margin: 2px 0 0; color: #374151; font-size: 8.5pt; }
+        .gold-divider { height: 1.5px; margin: 6px 0 10px; background: #b59449; }
+        .certificate-title { margin: 0; color: #0f2c59; font-family: "DejaVu Serif", "Times New Roman", serif; font-size: 30pt; font-weight: bold; letter-spacing: 2px; text-align: center; }
+        .certificate-number { margin: 2px 0 12px; color: #111827; font-size: 10.5pt; font-weight: bold; text-align: center; }
+        .recipient-layout { width: 70%; margin: 8px auto 10px; }
+        .recipient-photo-cell { width: 125px; vertical-align: middle; }
         .recipient-info { padding-left: 10px; vertical-align: middle; }
-        .photo-frame { width: 96px; height: 128px; border: 1.5px solid #163868; text-align: center; }
-        .photo-frame img { display: block; width: 94px; height: 126px; object-fit: cover; }
-        .photo-fallback { color: #163868; font-size: 10pt; font-weight: bold; line-height: 126px; }
-        .recipient-label { margin: 0 0 6px; color: #4b5563; font-size: 10.5pt; font-style: italic; }
-        .biodata { width: 100%; font-size: 11pt; }
+        .photo-frame { width: 92px; height: 122px; border: 1.5px solid #0f2c59; text-align: center; }
+        .photo-frame img { display: block; width: 90px; height: 120px; }
+        .photo-fallback { color: #0f2c59; font-size: 8pt; font-weight: bold; line-height: 120px; }
+        .recipient-label { margin: 0 0 5px; color: #374151; font-size: 10pt; font-style: italic; }
+        .biodata { width: 100%; font-size: 10.5pt; line-height: 1.4; }
         .biodata td { padding: 2px 0; vertical-align: top; }
-        .biodata .label { width: 115px; color: #4b5563; }
+        .biodata .label { width: 100px; color: #4b5563; }
         .biodata .colon { width: 12px; text-align: center; }
         .biodata .value { color: #111827; }
         .intern-name { font-weight: bold; text-transform: uppercase; }
-        .description { max-width: 82%; margin: 0 auto; color: #111827; font-size: 13.5pt; line-height: 1.45; text-align: center; }
-        .result-badge { width: 310px; margin: 12px auto 0; padding: 9px 20px; border: 1.5px solid #b69648; border-radius: 6px; color: #163868; font-size: 14pt; font-weight: bold; text-align: center; }
-        .certificate-footer { position: absolute; right: 45px; bottom: 40px; left: 45px; width: auto; }
+        .description { max-width: 82%; margin: 12px auto 10px; color: #111827; font-size: 12pt; line-height: 1.4; text-align: center; }
+        .result-badge { width: 290px; margin: 0 auto; padding: 8px 18px; border: 2px solid #b59449; color: #0f2c59; font-size: 15pt; font-weight: bold; text-align: center; }
+        .certificate-footer { position: absolute; right: 36px; bottom: 28px; left: 36px; width: auto; }
         .certificate-footer td { vertical-align: bottom; }
         .qr-cell { width: 50%; }
-        .qr-box { width: 130px; height: 110px; border: 1px solid #d1d5db; border-radius: 8px; text-align: center; vertical-align: middle; }
+        .qr-box { width: 92px; height: 92px; border: 1px solid #d1d5db; text-align: center; vertical-align: middle; }
         .qr-box img { width: 70px; height: 70px; }
-        .qr-fallback-title { color: #163868; font-size: 10pt; font-weight: bold; }
+        .qr-fallback-title { color: #0f2c59; font-size: 10pt; font-weight: bold; }
         .qr-fallback-copy { margin-top: 5px; color: #6b7280; font-size: 7.5pt; }
         .qr-caption { margin-top: 3px; color: #6b7280; font-size: 7.5pt; }
-        .signature-kadis { width: 50%; text-align: right; color: #111827; font-size: 10.5pt; line-height: 1.35; }
-        .signature-space { height: 52px; }
-        .signature-name { font-weight: bold; }
-        .page-count { position: absolute; right: 24px; bottom: 20px; z-index: 2; margin: 0; color: #6b7280; font-size: 7.5pt; }
+        .signature-kadis { width: 50%; text-align: right; color: #111827; font-size: 10pt; line-height: 1.35; }
+        .signature-space { height: 44px; }
+        .signature-name { font-weight: bold; text-decoration: underline; }
+        .page-count { position: absolute; right: 13mm; bottom: 9mm; z-index: 2; margin: 0; color: #6b7280; font-size: 7.5pt; }
 
         /* Halaman 2: transkrip */
-        .transcript-page { page-break-before: always; padding: 28px 45px 20px; }
-        .transcript-title { margin: 0; color: #163868; font-size: 20pt; font-weight: bold; text-align: center; }
-        .transcript-divider { height: 1.5px; margin: 6px 0 14px; background: #b69648; }
-        .section-title { margin: 0 0 5px; color: #111827; font-size: 10pt; font-weight: bold; }
-        .technical-section { margin-top: 14px; }
-        .score-table { width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; font-size: 9.5pt; }
-        .score-table th, .score-table td { padding: 5px 10px; border: 1px solid #e5e7eb; }
-        .score-table th { color: #111827; font-weight: bold; text-transform: uppercase; }
-        .score-table .number { width: 60px; text-align: center; }
+        .transcript-page { page-break-before: auto; padding: 10mm 16mm 8mm; }
+        .certificate-page { page-break-after: always; }
+        .transcript-title { margin: 0; color: #0f2c59; font-size: 18pt; font-weight: bold; text-align: center; }
+        .transcript-divider { height: 1.5px; margin: 5px 0 10px; background: #b59449; }
+        .section-title { margin: 0 0 4px; color: #0f2c59; font-size: 9.5pt; font-weight: bold; }
+        .technical-section { margin-top: 10px; }
+        .score-table { width: 100%; border-collapse: collapse; border: 1px solid #9ca3af; font-size: 9pt; }
+        .score-table th, .score-table td { padding: 4px 8px; border: 1px solid #9ca3af; }
+        .score-table th { color: #111827; background: #e5e7eb; font-weight: bold; text-transform: none; }
+        .score-table .number { width: 45px; text-align: center; }
         .score-table .criteria { text-align: left; }
-        .score-table .score { width: 110px; text-align: center; }
-        .score-table .total-row td { font-weight: bold; }
-        .summary { margin-top: 10px; color: #111827; font-size: 10.5pt; font-weight: bold; }
-        .summary-grade { padding-left: 34px; }
-        .bottom-layout { width: 100%; margin-top: 12px; }
+        .score-table .score { width: 95px; text-align: center; }
+        .score-table .total-row td { background: #f3f4f6; font-weight: bold; }
+        .summary { margin: 8px 0; color: #111827; font-size: 10pt; font-weight: bold; }
+        .summary-grade { padding-left: 18px; }
+        .bottom-layout { width: 100%; margin-top: 8px; }
         .bottom-layout td { vertical-align: top; }
-        .scale-cell { width: 55%; }
-        .scale-title { margin: 0 0 4px; color: #111827; font-size: 9pt; font-weight: bold; }
-        .scale-table { width: 80%; border-collapse: collapse; border: 1px solid #e5e7eb; font-size: 8.5pt; text-align: center; }
-        .scale-table th, .scale-table td { padding: 4px 8px; border: 1px solid #e5e7eb; }
-        .scale-table th { font-weight: bold; }
-        .mentor-signature { width: 45%; padding-top: 18px; color: #111827; font-size: 10.5pt; line-height: 1.4; text-align: right; }
-        .mentor-signature-space { height: 55px; }
-        .transcript-page-count { position: absolute; right: 45px; bottom: 20px; margin: 0; color: #6b7280; font-size: 7.5pt; }
+        .scale-cell { width: 42%; }
+        .scale-title { margin: 0 0 3px; color: #0f2c59; font-size: 8.5pt; font-weight: bold; }
+        .scale-table { width: 100%; border-collapse: collapse; border: 1px solid #9ca3af; font-size: 8pt; text-align: center; }
+        .scale-table th, .scale-table td { padding: 3px 6px; border: 1px solid #9ca3af; }
+        .scale-table th { background: #e5e7eb; font-weight: bold; }
+        .mentor-signature { width: 58%; padding-top: 14px; color: #111827; font-size: 10pt; line-height: 1.4; text-align: right; }
+        .mentor-signature-space { height: 48px; }
+        .transcript-page-count { position: absolute; right: 16mm; bottom: 4mm; margin: 0; color: #6b7280; font-size: 7.5pt; }
     </style>
 </head>
 <body>
@@ -130,7 +129,7 @@
                         <p class="address">Jl. Cempaka No. 38 Tanjung, Tabalong, Kalimantan Selatan 71513</p>
                         <p class="contact">Telepon (0526) 2023169 · diskominfo.tabalongkab.go.id · diskominfo@tabalongkab.go.id</p>
                     </td>
-                    <td class="letterhead-right">@if ($logoDiskominfo)<img src="{{ $logoDiskominfo }}" alt="Logo Diskominfo">@endif</td>
+                    <td class="letterhead-right">@if ($logoKomdigi)<img src="{{ $logoKomdigi }}" alt="Logo KOMDIGI">@endif</td>
                 </tr>
             </table>
             <div class="gold-divider"></div>
