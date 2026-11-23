@@ -12,6 +12,7 @@ const docs = [
   { key: 'b4', label: 'Kartu Pelajar', accept: '.pdf,.jpg,.png', required: true },
 ];
 const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const dateOnly = (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
 
 export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }) {
   const [form, setForm] = useState(empty);
@@ -24,6 +25,11 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
   const { divisions, error: divisionError } = useDivisions();
   const { period, loading: periodLoading, error: periodError } = useInternshipPeriodStatus();
   const periodDivisions = period?.divisions || [];
+  const selectedPeriod = periodDivisions.find((division) => division.code === form.bidang);
+  const periodStartDate = dateOnly(selectedPeriod?.start_date);
+  const periodEndDate = dateOnly(selectedPeriod?.end_date);
+  const minimumStartDate = periodStartDate && periodStartDate > today ? periodStartDate : today;
+  const minimumEndDate = form.tgl_mulai && form.tgl_mulai > minimumStartDate ? form.tgl_mulai : minimumStartDate;
   const hasOpenPeriod = periodDivisions.some((division) => division.can_register);
   const allPeriodsConfigured = periodDivisions.length > 0 && periodDivisions.every((division) => division.configured);
   const allPeriodsFull = periodDivisions.length > 0
@@ -58,6 +64,17 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
     if (form.pw && form.pw2 && form.pw !== form.pw2) next.pw2 = 'Konfirmasi password tidak sama.';
     if (form.tgl_mulai && form.tgl_mulai < today) next.tgl_mulai = 'Tanggal mulai tidak boleh sebelum hari ini.';
     if (form.tgl_selesai && form.tgl_selesai < (form.tgl_mulai || today)) next.tgl_selesai = 'Tanggal selesai harus sama atau setelah tanggal mulai.';
+    if (!periodStartDate || !periodEndDate) {
+      if (form.tgl_mulai) next.tgl_mulai = 'Pilih bidang dengan periode pendaftaran aktif terlebih dahulu.';
+      if (form.tgl_selesai) next.tgl_selesai = 'Pilih bidang dengan periode pendaftaran aktif terlebih dahulu.';
+    } else {
+      if (form.tgl_mulai && (form.tgl_mulai < minimumStartDate || form.tgl_mulai > periodEndDate)) {
+        next.tgl_mulai = `Tanggal harus berada dalam periode ${minimumStartDate} sampai ${periodEndDate}.`;
+      }
+      if (form.tgl_selesai && (form.tgl_selesai < minimumEndDate || form.tgl_selesai > periodEndDate)) {
+        next.tgl_selesai = `Tanggal harus berada dalam periode ${minimumEndDate} sampai ${periodEndDate}.`;
+      }
+    }
     docs.forEach(({ key, imageOnly, pdfOnly, required }) => {
       const isOptionalRecommendation = key === 'b3' && form.application_type === 'rekomendasi_kampus';
       const isOptionalCv = key === 'b2' && form.application_type === 'rekomendasi_kampus';
@@ -144,6 +161,25 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
   // PENYARINGAN INPUT : Menyaring nim_nisn agar mengizinkan huruf & angka
   function change(event) {
     const { id, value } = event.target;
+    if (id === 'tgl_mulai' || id === 'tgl_selesai') {
+      const min = id === 'tgl_mulai' ? minimumStartDate : minimumEndDate;
+      if (value && (!periodStartDate || !periodEndDate || value < min || value > periodEndDate)) {
+        setErrors((previous) => ({
+          ...previous,
+          [id]: periodEndDate
+            ? `Pilih tanggal antara ${min} dan ${periodEndDate}.`
+            : 'Pilih bidang dengan periode pendaftaran aktif terlebih dahulu.',
+        }));
+        return;
+      }
+    }
+
+    if (id === 'bidang') {
+      setForm((previous) => ({ ...previous, bidang: value, tgl_mulai: '', tgl_selesai: '' }));
+      setErrors((previous) => ({ ...previous, bidang: '', tgl_mulai: '', tgl_selesai: '' }));
+      return;
+    }
+
     const maxLength = id === 'nim_nisn' ? 20 : id === 'hp' ? 13 : undefined;
     let nextValue = value;
 
@@ -218,8 +254,8 @@ export default function RegisterApplicationPage({ onLogin, onBack, onSubmitted }
           <div className="field"><label htmlFor="jenjang">Jenjang pendidikan<span className="req"> *</span></label><select id="jenjang" className={`input ${errors.jenjang ? 'invalid' : ''}`} value={form.jenjang} onChange={change}><option value="">Pilih jenjang</option><option value="SMK">SMK</option><option value="Kuliah">Kuliah</option></select>{errors.jenjang && <p className="error-msg">{errors.jenjang}</p>}</div>
           {field('jurusan', 'Jurusan / program studi')}
           {field('hp', 'Nomor telepon / WhatsApp', 'tel', { inputMode: 'numeric', minLength: 10, maxLength: 13, autoComplete: 'tel' })}
-          {field('tgl_mulai', 'Tanggal mulai magang', 'date', { min: today })}
-          {field('tgl_selesai', 'Tanggal selesai magang', 'date', { min: form.tgl_mulai || today })}
+          {field('tgl_mulai', 'Tanggal mulai magang', 'date', { min: minimumStartDate, max: periodEndDate || undefined, disabled: !selectedPeriod?.can_register })}
+          {field('tgl_selesai', 'Tanggal selesai magang', 'date', { min: minimumEndDate, max: periodEndDate || undefined, disabled: !selectedPeriod?.can_register })}
           {duration && <p className="date-info full">Perkiraan durasi magang: <strong>{duration}</strong></p>}
           {['pw', 'pw2'].map((key, index) => (
             <div className="field" key={key}>
