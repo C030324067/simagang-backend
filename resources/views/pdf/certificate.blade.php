@@ -41,20 +41,13 @@
         table { border-collapse: collapse; }
         p { padding: 0; }
 
-        .page-frame { height: 192mm; border: 4px solid #0f2c59; padding: 2px; }
-        .page-inner { height: 100%; border: 1.5px solid #b59449; padding: 12px 28px; }
-        .transcript-inner { padding: 10px 24px; }
-        .page-layout { width: 100%; height: 100%; table-layout: fixed; }
-        .page-layout > tbody > tr > td { padding: 0; }
-        .page-main { vertical-align: top; }
-        .page-footer { vertical-align: bottom; }
         .letterhead { width: 100%; table-layout: fixed; }
         .letterhead td { vertical-align: middle; }
-        .letterhead-left, .letterhead-right { width: 12%; }
-        .letterhead-left { text-align: left; }
-        .letterhead-right { text-align: right; }
+        .letterhead-left, .letterhead-right { width: 16%; }
+        .letterhead-left { padding-right: 14px; text-align: right; }
+        .letterhead-right { padding-left: 14px; text-align: left; }
         .letterhead-left img, .letterhead-right img { height: 68px; width: auto; }
-        .letterhead-center { width: 76%; text-align: center; }
+        .letterhead-center { width: 68%; text-align: center; }
         .government { margin: 0; font-size: 13.5pt; font-weight: bold; }
         .department { margin: 2px 0; font-size: 18pt; font-weight: bold; }
         .address { margin: 0; font-size: 8.5pt; }
@@ -74,24 +67,23 @@
         .biodata .label { width: 100px; }
         .biodata .colon { width: 12px; text-align: center; }
         .intern-name { font-weight: bold; text-transform: uppercase; }
-        .description { width: 82%; margin: 10px auto 8px; font-size: 11pt; line-height: 1.35; text-align: center; }
+        .description { width: 82%; margin: 12px auto 8px; font-size: 11pt; line-height: 1.35; text-align: center; }
         .result-badge { width: 270px; margin: 0 auto; padding: 6px 14px; border: 1.5px solid #b59449; font-size: 13.5pt; font-weight: bold; text-align: center; }
         .certificate-footer { width: 100%; margin-top: 10px; table-layout: fixed; }
         .certificate-footer td { vertical-align: bottom; }
-        .qr-cell { width: 40%; }
-        .qr-box { width: 105px; height: 105px; padding: 3px; border: 1px solid #000000; text-align: center; vertical-align: middle; }
-        .qr-box img { width: 98px; height: 98px; }
+        .qr-cell { width: 45%; }
+        .qr-box { width: 102px; height: 102px; padding: 3px; border: 1px solid #000000; text-align: center; vertical-align: middle; }
+        .qr-box img { width: 96px; height: 96px; }
         .qr-caption { margin-top: 3px; font-size: 7.5pt; }
         .signature-kadis { width: 60%; font-size: 9.5pt; line-height: 1.3; text-align: right; }
-        .signature-space { height: 48px; }
+        .signature-space { height: 65px; }
         .signature-name { font-weight: bold; text-decoration: underline; }
-        .transcript-page { background: #ffffff; }
-        .transcript-title { margin: 0; font-size: 16pt; font-weight: bold; text-align: center; }
+        .transcript-title { margin: 0; font-size: 15pt; font-weight: bold; text-align: center; }
         .transcript-divider { height: 0; margin: 4px 0 8px; border-bottom: 1.5px solid #000000; }
         .section-title { margin: 0 0 3px; font-size: 9pt; font-weight: bold; }
         .technical-section { margin-top: 8px; }
         .score-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 8.5pt; background: #ffffff; }
-        .score-table th, .score-table td { padding: 3.5px 6px; border: 1px solid #000000; color: #000000 !important; background: #ffffff; }
+        .score-table th, .score-table td { padding: 3px 6px; border: 1px solid #000000; color: #000000 !important; background: #ffffff; }
         .score-table .number { width: 38px; text-align: center; }
         .score-table .criteria { text-align: left; }
         .score-table .score { width: 75px; text-align: center; }
@@ -99,20 +91,20 @@
         .summary { margin: 6px 0; font-size: 9.5pt; font-weight: bold; }
         .summary-grade { padding-left: 18px; }
         .bottom-layout { width: 100%; margin-top: 6px; table-layout: fixed; }
-        .bottom-layout td { vertical-align: top; }
+        .bottom-layout td { vertical-align: bottom; }
         .scale-cell { width: 44%; }
         .scale-title { margin: 0 0 3px; font-size: 8pt; font-weight: bold; }
         .scale-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; text-align: center; background: #ffffff; }
         .scale-table th, .scale-table td { padding: 2.5px 4px; border: 1px solid #000000; color: #000000 !important; background: #ffffff; }
         .mentor-signature { width: 56%; padding-top: 10px; font-size: 9.5pt; line-height: 1.35; text-align: right; }
-        .mentor-signature-space { height: 46px; }
+        .mentor-signature-space { height: 60px; }
     </style>
 </head>
 <body>
-    <div class="page-frame">
-        <div class="page-inner">
-            <table class="page-layout">
-                <tr><td class="page-main">
+    <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 4px solid #0f2c59; padding: 3px;">
+        <tr><td style="border: 1.5px solid #b59449; padding: 12px 24px; vertical-align: top;">
+            <table style="width: 100%; height: 180mm; border-collapse: collapse;">
+                <tr><td style="vertical-align: top;">
             <table class="letterhead">
                 <tr>
                     <td class="letterhead-left">@if ($logoTabalong)<img src="{{ $logoTabalong }}" alt="Logo Kabupaten Tabalong">@endif</td>
@@ -134,7 +126,7 @@
                     <td class="recipient-photo-cell">
                         <div class="photo-frame">
                             @if ($photoData)
-                                <img src="{{ $photoData }}" alt="Pas foto peserta">
+                                <img src="{{ $photoData }}" alt="Pas foto peserta" style="max-width: 94px; max-height: 124px; width: auto; height: auto;">
                             @else
                                 <div class="photo-fallback">PAS FOTO 3x4</div>
                             @endif
@@ -155,7 +147,7 @@
             <p class="description">Telah mengikuti program magang selama {{ $duration_months }} bulan terhitung dari tanggal {{ $startDateText }} s/d {{ $endDateText }} dengan hasil:</p>
             <div class="result-badge">{{ $grade_description }}</div>
                 </td></tr>
-                <tr><td class="page-footer">
+                <tr><td style="vertical-align: bottom;">
         <table class="certificate-footer">
             <tr>
                 <td class="qr-cell">
@@ -180,16 +172,15 @@
         </table>
                 </td></tr>
             </table>
-            </div>
-        </div>
-    </div>
+        </td></tr>
+    </table>
 
     <div style="page-break-before: always;"></div>
 
-    <div class="page-frame">
-        <div class="page-inner transcript-inner">
-            <table class="page-layout transcript-page">
-                <tr><td class="page-main">
+    <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 4px solid #0f2c59; padding: 3px;">
+        <tr><td style="border: 1.5px solid #b59449; padding: 12px 24px; vertical-align: top;">
+            <table style="width: 100%; height: 180mm; border-collapse: collapse;">
+                <tr><td style="vertical-align: top;">
         <h1 class="transcript-title">DAFTAR NILAI</h1>
         <div class="transcript-divider"></div>
 
@@ -225,7 +216,7 @@
         </div>
 
                 </td></tr>
-                <tr><td class="page-footer">
+                <tr><td style="vertical-align: bottom;">
         <table class="bottom-layout">
             <tr>
                 <td class="scale-cell">
@@ -245,9 +236,6 @@
                     <div>Kabid {{ $divisionName }}</div>
                     <div class="mentor-signature-space"></div>
                     <div class="signature-name">{{ $kabid_name ?: 'Nama Kabid belum tersedia' }}</div>
-                    @if (! empty($kabid_position))
-                        <div>{{ $kabid_position }}</div>
-                    @endif
                     @if (! empty($kabid_nip))
                         <div>NIP {{ $kabid_nip }}</div>
                     @endif
@@ -256,7 +244,7 @@
         </table>
                 </td></tr>
             </table>
-        </div>
-    </div>
+        </td></tr>
+    </table>
 </body>
 </html>

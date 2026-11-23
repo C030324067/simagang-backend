@@ -213,7 +213,6 @@ class CertificateController extends Controller
             'mentor_position' => $evaluation?->mentor?->position,
             'kabid_name' => $kabid?->name,
             'kabid_nip' => $kabid?->nip,
-            'kabid_position' => $kabid?->position,
         ];
 
         $pdf = Pdf::loadView('pdf.certificate', $data)->setPaper('a4', 'landscape');
