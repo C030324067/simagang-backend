@@ -35,7 +35,7 @@
         $skillTotal = collect($skill_scores)->sum(fn ($item) => (float) ($item['score'] ?? 0));
     @endphp
     <style>
-        @page { size: A4 landscape; margin: 6mm; }
+        @page { size: 297mm 210mm; margin: 0; }
         * { box-sizing: border-box; color: #000000 !important; }
         html, body { margin: 0; padding: 0; background: #ffffff; color: #000000; font-family: 'DejaVu Sans', Arial, sans-serif; }
         table { border-collapse: collapse; }
@@ -60,7 +60,6 @@
         .recipient-info { padding-left: 10px; vertical-align: top; }
         .photo-frame { width: 96px; height: 126px; border: 1.5px solid #000000; text-align: center; vertical-align: middle; overflow: hidden; }
         .photo-frame img { max-width: 94px; max-height: 124px; width: auto; height: auto; }
-        .photo-fallback { font-size: 7.5pt; line-height: 124px; }
         .recipient-label { margin: 0 0 4px; font-size: 9.5pt; font-style: italic; }
         .biodata { width: 100%; font-size: 10pt; line-height: 1.35; }
         .biodata td { padding: 1px 0; vertical-align: top; }
@@ -83,7 +82,7 @@
         .section-title { margin: 0 0 3px; font-size: 9pt; font-weight: bold; }
         .technical-section { margin-top: 8px; }
         .score-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 8.5pt; background: #ffffff; }
-        .score-table th, .score-table td { padding: 3px 6px; border: 1px solid #000000; color: #000000 !important; background: #ffffff; }
+        .score-table th, .score-table td { padding: 2.5px 6px; border: 1px solid #000000; color: #000000 !important; background: #ffffff; }
         .score-table .number { width: 38px; text-align: center; }
         .score-table .criteria { text-align: left; }
         .score-table .score { width: 75px; text-align: center; }
@@ -101,9 +100,11 @@
     </style>
 </head>
 <body>
-    <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 4px solid #0f2c59; padding: 3px;">
-        <tr><td style="border: 1.5px solid #b59449; padding: 12px 24px; vertical-align: top;">
-            <table style="width: 100%; height: 180mm; border-collapse: collapse;">
+    <div style="position: fixed; top: 8mm; left: 10mm; right: 10mm; bottom: 8mm; border: 4px solid #0f2c59;"></div>
+    <div style="position: fixed; top: 9.8mm; left: 11.8mm; right: 11.8mm; bottom: 9.8mm; border: 1.5px solid #b59449;"></div>
+
+    <div style="padding: 13mm 17mm 0 17mm;">
+        <table style="width: 100%; height: 184mm; border-collapse: collapse;">
                 <tr><td style="vertical-align: top;">
             <table class="letterhead">
                 <tr>
@@ -128,7 +129,9 @@
                             @if ($photoData)
                                 <img src="{{ $photoData }}" alt="Pas foto peserta" style="max-width: 94px; max-height: 124px; width: auto; height: auto;">
                             @else
-                                <div class="photo-fallback">PAS FOTO 3x4</div>
+                                <table style="width: 100%; height: 100%; border-collapse: collapse;">
+                                    <tr><td style="text-align: center; vertical-align: middle;">PAS FOTO 3x4</td></tr>
+                                </table>
                             @endif
                         </div>
                     </td>
@@ -171,15 +174,13 @@
             </tr>
         </table>
                 </td></tr>
-            </table>
-        </td></tr>
-    </table>
+        </table>
+    </div>
 
     <div style="page-break-before: always;"></div>
 
-    <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 4px solid #0f2c59; padding: 3px;">
-        <tr><td style="border: 1.5px solid #b59449; padding: 12px 24px; vertical-align: top;">
-            <table style="width: 100%; height: 180mm; border-collapse: collapse;">
+    <div style="padding: 13mm 17mm 0 17mm;">
+        <table style="width: 100%; height: 184mm; border-collapse: collapse;">
                 <tr><td style="vertical-align: top;">
         <h1 class="transcript-title">DAFTAR NILAI</h1>
         <div class="transcript-divider"></div>
@@ -243,8 +244,7 @@
             </tr>
         </table>
                 </td></tr>
-            </table>
-        </td></tr>
-    </table>
+        </table>
+    </div>
 </body>
 </html>
