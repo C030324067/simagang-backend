@@ -593,8 +593,8 @@ export default function KadisDashboard() {
                                   </div>
                                 </td>
                                 <td className="px-4 py-4 font-medium text-slate-700">{participant.institution_name || '—'}</td>
-                                <td className="px-4 py-4">
-                                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">{divisionName}</span>
+                                <td className="px-4 py-4 align-middle">
+                                  <span className="inline-block rounded-xl bg-blue-50 px-3 py-1.5 text-left text-xs font-semibold leading-snug text-blue-600 max-w-[210px]">{divisionName}</span>
                                 </td>
                                 <td className="whitespace-nowrap px-4 py-4 text-slate-500">{formatDate(participant.start_date)} – {formatDate(participant.end_date)}</td>
                                 <td className="px-4 py-4">
