@@ -9,27 +9,8 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertCircle, 
-  X,
-  Download
+  X
 } from 'lucide-react';
-
-const getGradeDescription = (score) => {
-  const value = Number(score) || 0;
-  if (value >= 90) return 'SANGAT BAIK';
-  if (value >= 75) return 'BAIK';
-  if (value >= 60) return 'CUKUP';
-  return 'KURANG';
-};
-
-const isSmkApplication = (application) => {
-  const level = application?.education_level || application?.jenjang || '';
-  if (level) return /smk/i.test(level);
-
-  const institution = application?.institution_name || '';
-  if (/(^|\W)smk(s|n)?(\W|$)|sekolah menengah kejuruan/i.test(institution)) return true;
-  if (/universitas|perguruan tinggi|politeknik|institut|sekolah tinggi|stimik|akademi/i.test(institution)) return false;
-  return /^\d{10}$/.test(String(application?.student_number || ''));
-};
 
 export default function KepegawaianDashboard() {
   const {
@@ -39,6 +20,7 @@ export default function KepegawaianDashboard() {
   const [downloadingId, setDownloadingId] = React.useState(null);
   const [evaluations, setEvaluations] = React.useState([]);
   const [issuingId, setIssuingId] = React.useState(null);
+  const [previewingId, setPreviewingId] = React.useState(null);
   const [downloadingCertificateId, setDownloadingCertificateId] = React.useState(null);
   const [certificateNumbers, setCertificateNumbers] = React.useState({});
   const [activeTab, setActiveTab] = React.useState('quota');
@@ -49,22 +31,22 @@ export default function KepegawaianDashboard() {
     });
   }, []);
 
-  const issueCertificate = async (internId, certificateNumber) => {
+  const issueCertificate = async (applicationId, certificateNumber) => {
     if (!certificateNumber?.trim()) {
       setMsg({ type: 'error', text: 'Nomor sertifikat wajib diisi.' });
       return;
     }
 
-    setIssuingId(internId);
+    setIssuingId(applicationId);
     try {
-      const response = await apiRequest('/certificates/generate', {
+      const response = await apiRequest(`/certificates/${applicationId}/issue`, {
         method: 'POST',
-        body: JSON.stringify({ intern_id: internId, certificate_number: certificateNumber.trim() }),
+        body: JSON.stringify({ certificate_number: certificateNumber.trim() }),
       });
       setMsg({ type: response.success ? 'success' : 'error', text: response.message || 'Penerbitan sertifikat gagal.' });
       if (response.success) {
         setEvaluations((current) => current.map((evaluation) => (
-          Number(evaluation.intern?.id) === Number(internId)
+          Number(evaluation.intern_application_id) === Number(applicationId)
             ? {
                 ...evaluation,
                 internApplication: {
@@ -77,6 +59,44 @@ export default function KepegawaianDashboard() {
       }
     } finally {
       setIssuingId(null);
+    }
+  };
+
+  const previewCertificate = async (applicationId, certificateNumber) => {
+    const previewWindow = window.open('about:blank', '_blank');
+    if (!previewWindow) {
+      setMsg({ type: 'error', text: 'Izinkan pop-up browser untuk membuka pratinjau sertifikat.' });
+      return;
+    }
+
+    setPreviewingId(applicationId);
+    try {
+      const query = new URLSearchParams({ certificate_number: certificateNumber });
+      const response = await fetch(`/api/certificates/${applicationId}/preview?${query.toString()}`, {
+        headers: {
+          Accept: 'application/pdf, application/json',
+          Authorization: `Bearer ${getToken()}`,
+          'X-Active-Role': localStorage.getItem('simagang_active_role') || '',
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        previewWindow.close();
+        setMsg({ type: 'error', text: error.message || 'Preview sertifikat gagal dimuat.' });
+        return;
+      }
+
+      const blob = new Blob([await response.blob()], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(blob);
+      previewWindow.opener = null;
+      previewWindow.location.href = blobUrl;
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+      setMsg({ type: 'success', text: 'Preview sertifikat berhasil dimuat.' });
+    } catch (error) {
+      previewWindow.close();
+      setMsg({ type: 'error', text: error.message || 'Preview sertifikat gagal dimuat. Periksa koneksi lalu coba lagi.' });
+    } finally {
+      setPreviewingId(null);
     }
   };
 
@@ -121,7 +141,7 @@ export default function KepegawaianDashboard() {
 
   const certificateEvaluations = evaluations.filter((evaluation) => acceptedApps.some((app) => (
     app.internship_status === 'completed'
-    && Number(app.user?.id) === Number(evaluation.internApplication?.user_id || evaluation.intern?.id)
+    && Number(app.id) === Number(evaluation.internApplication?.id || evaluation.intern_application_id)
   )));
 
   return (
@@ -188,9 +208,9 @@ export default function KepegawaianDashboard() {
               role="tab"
               aria-selected={activeTab === id}
               onClick={() => setActiveTab(id)}
-              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-center text-xs font-semibold transition sm:text-sm ${
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-center text-xs font-bold transition sm:text-sm ${
                 activeTab === id
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-[#3b43d6] text-white shadow-sm'
                   : 'bg-transparent text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -364,74 +384,60 @@ export default function KepegawaianDashboard() {
         )}
 
         {activeTab === 'certificates' && (
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-100"><FileText className="w-5 h-5 text-[#0F2942]" /><h3 className="font-bold text-[#0F2942] text-base sm:text-lg">Penerbitan Sertifikat</h3></div>
-          <p className="text-sm text-slate-500">Peserta yang telah menyelesaikan magang dan memiliki evaluasi akhir mentor.</p>
+        <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
+          <p className="mb-4 text-sm text-slate-500">Peserta yang telah menyelesaikan magang dan memiliki evaluasi akhir mentor.</p>
           <div className="divide-y divide-slate-100">
             {certificateEvaluations.map((evaluation) => {
               const application = evaluation.internApplication
-                || acceptedApps.find((app) => Number(app.user?.id) === Number(evaluation.intern?.id));
-              const internId = evaluation.intern?.id;
-              const certificate = evaluation.internApplication?.certificate;
-              const isSmk = isSmkApplication(application);
-              const certificateNumber = certificateNumbers[internId] ?? certificate?.certificate_number ?? '';
+                || acceptedApps.find((app) => Number(app.id) === Number(evaluation.intern_application_id));
+              const applicationId = application?.id || evaluation.intern_application_id;
+              const certificate = application?.certificate || evaluation.internApplication?.certificate;
+              const certificateNumber = certificateNumbers[applicationId] ?? certificate?.certificate_number ?? '';
 
               return (
-                <div key={evaluation.id} className="space-y-3 py-5">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-bold text-sm text-[#0F2942]">{evaluation.intern?.name}</p>
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${isSmk ? 'bg-violet-100 text-violet-800' : 'bg-blue-100 text-blue-800'}`}>
-                          {isSmk ? 'SMK - PKL' : 'Mahasiswa - Magang'}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {application?.institution_name || 'Institusi tidak tersedia'}
-                        {application?.major ? ` · ${application.major}` : ''}
-                      </p>
-                      <p className="mt-1 text-xs font-semibold text-slate-700">
-                        Nilai Akhir: {Number(evaluation.final_score || 0).toFixed(2)} / {evaluation.grade_letter || '—'}
-                        {' · '}{getGradeDescription(evaluation.final_score)}
-                      </p>
-                    </div>
-                    {certificate && (
-                      <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                        Terbit {certificate.issued_at ? new Date(certificate.issued_at).toLocaleDateString('id-ID') : ''}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                    <label className="min-w-0 flex-1">
-                      <span className="mb-1 block text-xs font-bold text-slate-600">Nomor Sertifikat</span>
+                <div key={evaluation.id} className="flex flex-col justify-between gap-6 py-5 md:flex-row md:items-center">
+                  <div className="flex-1">
+                    <p className="text-base font-bold text-[#0f2c59]">{evaluation.intern?.name}</p>
+                    <p className="mt-0.5 text-sm text-slate-500">Nilai akhir: {Number(evaluation.final_score || 0).toFixed(2)}</p>
+                    <label className="block">
+                      <span className="mb-1.5 mt-3 block text-xs font-semibold text-slate-700">Nomor surat sertifikat</span>
                       <input
                         type="text"
                         required
                         maxLength={255}
                         value={certificateNumber}
-                        onChange={(event) => setCertificateNumbers((previous) => ({ ...previous, [internId]: event.target.value }))}
-                        placeholder="B-478/Diskominfo/000.3.1/XI/2026"
-                        aria-label={`Nomor sertifikat untuk ${evaluation.intern?.name || 'peserta'}`}
-                        className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                        onChange={(event) => setCertificateNumbers((previous) => ({ ...previous, [applicationId]: event.target.value }))}
+                        placeholder="Contoh: 800/123/2026"
+                        aria-label={`Nomor surat sertifikat untuk ${evaluation.intern?.name || 'peserta'}`}
+                        className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-[#3b43d6] focus:outline-none"
                       />
                     </label>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3 md:pt-4">
                     <button
                       type="button"
-                      disabled={issuingId === internId}
-                      onClick={() => issueCertificate(internId, certificateNumber)}
-                      className="rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                      disabled={previewingId === applicationId}
+                      onClick={() => previewCertificate(applicationId, certificateNumber)}
+                      className="rounded-lg bg-[#5b61e6] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4e54d4] disabled:opacity-50"
                     >
-                      {issuingId === internId ? 'Menerbitkan…' : certificate ? 'Simpan Nomor Sertifikat' : 'Terbitkan Sertifikat'}
+                      {previewingId === applicationId ? 'Memuat...' : 'Preview Sertifikat'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={issuingId === applicationId}
+                      onClick={() => issueCertificate(applicationId, certificateNumber)}
+                      className="rounded-lg bg-[#3b43d6] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2f36b8] disabled:opacity-50"
+                    >
+                      {issuingId === applicationId ? 'Menerbitkan...' : 'Terbitkan Sertifikat'}
                     </button>
                     {certificate && (
                       <button
                         type="button"
                         disabled={downloadingCertificateId === certificate.id}
                         onClick={() => downloadCertificate(certificate)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-xs font-bold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                        className="whitespace-nowrap text-xs font-semibold text-[#3b43d6] underline disabled:opacity-50"
                       >
-                        <Download className="h-4 w-4" />
-                        {downloadingCertificateId === certificate.id ? 'Menyiapkan PDF…' : 'Unduh / Cetak Sertifikat PDF'}
+                        {downloadingCertificateId === certificate.id ? 'Menyiapkan PDF...' : 'Unduh PDF'}
                       </button>
                     )}
                   </div>

@@ -61,6 +61,52 @@ class CertificateController extends Controller
         return $this->issueForIntern($intern, $certificateNumber);
     }
 
+    public function preview(Request $request, InternApplication $application)
+    {
+        $request->merge([
+            'certificate_number' => trim((string) $request->input(
+                'certificate_number',
+                $request->input('nomor_sertifikat', ''),
+            )),
+        ]);
+        $validated = $request->validate([
+            'certificate_number' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $application->load(['user.division', 'division', 'evaluation.mentor', 'certificate']);
+        $certificate = $application->certificate ?? new Certificate([
+            'intern_application_id' => $application->id,
+        ]);
+        $certificateNumber = $validated['certificate_number']
+            ?: ($certificate->certificate_number ?: 'DRAFT / BELUM DITERBITKAN');
+        $data = $this->certificatePdfData($certificate, $application, $certificateNumber);
+        $pdf = Pdf::loadView('pdf.certificate', $data)->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Preview-Sertifikat-'.Str::slug($application->user?->name ?? 'Peserta').'.pdf');
+    }
+
+    public function issueApplication(Request $request, InternApplication $application): JsonResponse
+    {
+        $request->merge([
+            'certificate_number' => trim((string) $request->input('certificate_number', '')),
+        ]);
+        $existing = $application->certificate;
+        $validated = $request->validate([
+            'certificate_number' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('certificates', 'certificate_number')->ignore($existing?->id),
+            ],
+        ]);
+
+        return $this->issueForIntern(
+            $application->user()->firstOrFail(),
+            trim($validated['certificate_number']),
+            $application,
+        );
+    }
+
     public function generateFromEvaluation(Request $request, Evaluation $evaluation): JsonResponse
     {
         $mentor = $request->user();
@@ -144,7 +190,27 @@ class CertificateController extends Controller
         }
 
         $application = $certificate->internApplication;
-        $divisionId = $application?->division_id ?? $certificate->intern?->division_id;
+        if ($request->user()->activeRole() === 'mentor') {
+            abort_unless($request->user()->canMentorApplication($application), 404);
+        }
+        $data = $this->certificatePdfData($certificate, $application, $certificate->certificate_number);
+        $pdf = Pdf::loadView('pdf.certificate', $data)->setPaper('a4', 'landscape');
+
+        return $pdf->download('Sertifikat-'.Str::slug($certificate->intern->name).'.pdf');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function certificatePdfData(
+        Certificate $certificate,
+        InternApplication $application,
+        string $certificateNumber,
+    ): array {
+        $application->loadMissing(['user.division', 'division', 'evaluation.mentor']);
+        $intern = $application->user;
+        $evaluation = $application->evaluation;
+        $divisionId = $application->division_id ?? $intern?->division_id;
         $kabid = $divisionId
             ? User::query()
                 ->where('role', 'kabid')
@@ -153,21 +219,16 @@ class CertificateController extends Controller
                 ->orderBy('id')
                 ->first()
             : null;
-        if ($request->user()->activeRole() === 'mentor') {
-            abort_unless($request->user()->canMentorApplication($application), 404);
-        }
-        $evaluation = $application?->evaluation;
-        $evaluation?->load('mentor');
-        $educationLevel = $application?->educationLevel() ?? 'Kuliah';
+        $educationLevel = $application->educationLevel();
         $technicalScores = $evaluation?->technical_scores ?? [];
         if ($technicalScores === []) {
             if ($educationLevel === 'SMK') {
-                $technicalScores = $application?->penilaianSmk()
+                $technicalScores = $application->penilaianSmk()
                     ->orderBy('aspek')
                     ->get()
                     ->map(fn ($item): array => ['criteria' => $item->aspek, 'score' => (float) $item->nilai])
-                    ->all() ?? [];
-            } elseif ($application) {
+                    ->all();
+            } else {
                 $technicalScores = DB::table('penilaian_kuliah')
                     ->where('intern_application_id', $application->id)
                     ->orderBy('id')
@@ -176,6 +237,7 @@ class CertificateController extends Controller
                     ->all();
             }
         }
+
         $skillScores = [
             ['criteria' => 'Disiplin', 'score' => $evaluation?->score_discipline],
             ['criteria' => 'Perilaku dan Sopan Santun', 'score' => $evaluation?->score_quality],
@@ -183,21 +245,29 @@ class CertificateController extends Controller
             ['criteria' => 'Motivasi', 'score' => $evaluation?->score_teamwork],
             ['criteria' => 'Komunikasi dan Kerjasama', 'score' => $evaluation?->score_softskill],
         ];
-        $verifyUrl = url('/verify-cert/'.$certificate->qr_hash);
-        $qrCode = new QrCode(
-            data: $verifyUrl,
-            encoding: new Encoding('UTF-8'),
-            errorCorrectionLevel: ErrorCorrectionLevel::Medium,
-            size: 320,
-            margin: 12,
-            roundBlockSizeMode: RoundBlockSizeMode::Margin,
-            foregroundColor: new Color(15, 23, 42),
-            backgroundColor: new Color(255, 255, 255),
-        );
-        $qrCodeDataUri = (new PngWriter)->write($qrCode)->getDataUri();
-        $data = [
-            'certificate' => $certificate,
-            'intern' => $certificate->intern,
+        $pdfCertificate = clone $certificate;
+        $pdfCertificate->certificate_number = $certificateNumber;
+        $verifyUrl = $certificate->qr_hash && $certificateNumber === $certificate->certificate_number
+            ? url('/verify-cert/'.$certificate->qr_hash)
+            : null;
+        $qrCodeDataUri = null;
+        if ($verifyUrl) {
+            $qrCode = new QrCode(
+                data: $verifyUrl,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: ErrorCorrectionLevel::Medium,
+                size: 320,
+                margin: 12,
+                roundBlockSizeMode: RoundBlockSizeMode::Margin,
+                foregroundColor: new Color(15, 23, 42),
+                backgroundColor: new Color(255, 255, 255),
+            );
+            $qrCodeDataUri = (new PngWriter)->write($qrCode)->getDataUri();
+        }
+
+        return [
+            'certificate' => $pdfCertificate,
+            'intern' => $intern,
             'evaluation' => $evaluation,
             'application' => $application,
             'verify_url' => $verifyUrl,
@@ -207,17 +277,13 @@ class CertificateController extends Controller
             'skill_scores' => $skillScores,
             'grade_description' => $this->descriptionFor((float) ($evaluation?->final_score ?? 0)),
             'grade_letter' => $this->gradeFor((float) ($evaluation?->final_score ?? 0)),
-            'duration_months' => max(1, (int) ceil($application?->start_date?->diffInMonths($application->end_date) ?? 1)),
+            'duration_months' => max(1, (int) ceil($application->start_date?->diffInMonths($application->end_date) ?? 1)),
             'issued_date' => $certificate->issued_at ?? now(),
             'mentor_nip' => $evaluation?->mentor?->nip,
             'mentor_position' => $evaluation?->mentor?->position,
             'kabid_name' => $kabid?->name,
             'kabid_nip' => $kabid?->nip,
         ];
-
-        $pdf = Pdf::loadView('pdf.certificate', $data)->setPaper('a4', 'landscape');
-
-        return $pdf->download('Sertifikat-'.Str::slug($certificate->intern->name).'.pdf');
     }
 
     private function issueForIntern(User $intern, ?string $requestedNumber, ?InternApplication $application = null): JsonResponse
@@ -230,7 +296,9 @@ class CertificateController extends Controller
             ->where('final_status', 'accepted')
             ->latest('id')
             ->first();
-        if (! $application || $application->internship_status !== 'completed') {
+        if (! $application
+            || $application->final_status !== 'accepted'
+            || $application->internship_status !== 'completed') {
             return $this->errorResponse('Sertifikat dapat diterbitkan setelah penilaian akhir pembimbing disimpan.', 422);
         }
 

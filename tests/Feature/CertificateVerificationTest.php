@@ -154,6 +154,17 @@ class CertificateVerificationTest extends TestCase
             ->assertJsonPath('data.technical_scores.0.criteria', 'Pemrograman');
 
         $admin = User::factory()->create(['role' => 'admin_kepegawaian']);
+        $application = $smkIntern->applications()->firstOrFail();
+        $draftPreviewResponse = $this->actingAs($admin, 'sanctum')
+            ->get('/api/certificates/'.$application->id.'/preview');
+        $this->assertStringStartsWith('%PDF-', $draftPreviewResponse->assertOk()->getContent());
+        $this->assertDatabaseMissing('certificates', ['intern_application_id' => $application->id]);
+
+        $numberedPreviewResponse = $this->actingAs($admin, 'sanctum')
+            ->get('/api/certificates/'.$application->id.'/preview?certificate_number=800%2F123%2F2026');
+        $this->assertStringStartsWith('%PDF-', $numberedPreviewResponse->assertOk()->getContent());
+        $this->assertDatabaseMissing('certificates', ['intern_application_id' => $application->id]);
+
         $certificateResponse = $this->actingAs($admin, 'sanctum')->postJson('/api/certificates/generate', [
             'intern_id' => $smkIntern->id,
             'certificate_number' => 'B-478/Diskominfo/000.3.1/XI/2026',
@@ -161,8 +172,12 @@ class CertificateVerificationTest extends TestCase
         $certificateResponse->assertCreated()
             ->assertJsonPath('data.certificate_number', 'B-478/Diskominfo/000.3.1/XI/2026');
 
-        $updatedCertificateResponse = $this->actingAs($admin, 'sanctum')->postJson('/api/certificates/generate', [
-            'intern_id' => $smkIntern->id,
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/certificates/'.$application->id.'/issue')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('certificate_number');
+
+        $updatedCertificateResponse = $this->actingAs($admin, 'sanctum')->postJson('/api/certificates/'.$application->id.'/issue', [
             'certificate_number' => 'B-479/Diskominfo/000.3.1/XI/2026',
         ]);
         $updatedCertificateResponse->assertOk()

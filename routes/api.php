@@ -220,6 +220,8 @@ Route::middleware(['auth:sanctum', 'account.expiration'])->group(function () {
 
         Route::middleware('role:admin_kepegawaian')->group(function () {
             Route::post('/generate', [CertificateController::class, 'generate']);
+            Route::get('/{application}/preview', [CertificateController::class, 'preview']);
+            Route::post('/{application}/issue', [CertificateController::class, 'issueApplication']);
         });
     });
 });
