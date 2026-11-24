@@ -8,8 +8,8 @@ import {
   ChevronRight,
   Clock3,
   Download,
-  GraduationCap,
   Plus,
+  QrCode,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -139,6 +139,13 @@ export default function InternDashboard() {
   const certificateTypeStyle = certificateType === 'kelulusan'
     ? 'bg-emerald-100 text-emerald-800'
     : 'bg-amber-100 text-amber-800';
+  const certificatePredication = evaluationScore >= 90
+    ? 'SANGAT BAIK'
+    : evaluationScore >= 75
+      ? 'BAIK'
+      : evaluationScore >= 60
+        ? 'CUKUP'
+        : 'KURANG';
 
   const handleCertificateClick = () => {
     setIsCertificateModalOpen(true);
@@ -445,7 +452,7 @@ export default function InternDashboard() {
           <section role="dialog" aria-modal="true" aria-labelledby="certificate-title" className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-50 text-[#4F46E5]"><GraduationCap className="h-5 w-5" /></div>
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-50 p-1"><img src="/images/logo-komdigi.png" alt="Logo KOMDIGI" className="h-9 w-9 object-contain" /></div>
                 <div><strong className="block text-sm text-slate-900">SIMAGANG</strong><span className="text-xs text-slate-400">Sertifikat Magang</span></div>
               </div>
               <button type="button" aria-label="Tutup" onClick={() => setIsCertificateModalOpen(false)} className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 transition"><X className="h-5 w-5" /></button>
@@ -493,12 +500,54 @@ export default function InternDashboard() {
                 </div>
               ) : (
                 <div className="grid items-start gap-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs lg:grid-cols-2">
-                  <div className="relative flex aspect-[1.4/1] flex-col items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 p-6 text-center text-white">
-                    <GraduationCap className="mb-2 h-8 w-8" />
-                    <span className={`mb-2 rounded-full px-3 py-1 text-[10px] font-extrabold tracking-wide ${certificateTypeStyle}`}>{certificateTypeLabel}</span>
-                    <h3 className="text-xs font-bold tracking-widest uppercase">SERTIFIKAT MAGANG</h3>
-                    <strong className="mt-2 text-lg sm:text-xl font-extrabold">{userName}</strong>
-                    <p className="mt-1 text-[11px] leading-relaxed text-white/80">Telah menyelesaikan program magang di Diskominfo</p>
+                  <div className="aspect-[297/210] overflow-hidden bg-white shadow-md select-none">
+                    <div className="h-full border-[3px] border-[#0f2c59] p-[2px]">
+                      <div className="flex h-full flex-col justify-between border border-[#b59449] p-2.5 text-black sm:p-3">
+                        <div>
+                          <div className="flex items-center justify-between gap-1">
+                            <img src="/images/logo-tabalong.png" alt="Logo Kabupaten Tabalong" className="h-6 w-6 object-contain sm:h-8 sm:w-8" />
+                            <div className="min-w-0 flex-1 text-center text-[7px] font-bold leading-tight sm:text-[8px]">
+                              <p>PEMERINTAH KABUPATEN TABALONG</p>
+                              <p>DINAS KOMUNIKASI DAN INFORMATIKA</p>
+                            </div>
+                            <img src="/images/logo-komdigi.png" alt="Logo KOMDIGI" className="h-6 w-6 object-contain sm:h-8 sm:w-8" />
+                          </div>
+                          <div className="mt-1 border-b border-[#b59449]" />
+                          <h3 className="mt-1 text-center text-[11px] font-bold tracking-widest text-black">SERTIFIKAT</h3>
+                          <p className="text-center text-[6px] text-black sm:text-[7px]">
+                            Nomor: {certificate?.certificate_number || '—'}
+                          </p>
+                          <div className="mt-1 text-center">
+                            <p className="text-[6px] text-black sm:text-[7px]">Diberikan kepada:</p>
+                            <p className="text-[10px] font-bold uppercase text-black">{userName}</p>
+                            {(application?.student_number || application?.major || application?.institution_name) && (
+                              <div className="mt-0.5 space-y-px text-[5px] leading-tight text-black sm:text-[6px]">
+                                {application?.student_number && <p>{/smk/i.test(application?.jenjang || '') ? 'NISN' : 'NIM'}: {application.student_number}</p>}
+                                {application?.major && <p>Jurusan: {application.major}</p>}
+                                {application?.institution_name && <p>Asal Institusi: {application.institution_name}</p>}
+                              </div>
+                            )}
+                          </div>
+                          <p className="mt-1 text-center text-[5px] leading-tight text-black sm:text-[6px]">
+                            Telah mengikuti program magang dari tanggal {application?.start_date ? formatDate(application.start_date) : '—'} s/d {application?.end_date ? formatDate(application.end_date) : '—'}
+                          </p>
+                          <div className="mx-auto mt-1 w-fit border border-[#b59449] px-3 py-0.5 text-[8px] font-bold text-black">
+                            {certificatePredication}
+                          </div>
+                        </div>
+                        <div className="flex items-end justify-between gap-2 text-[6px] leading-tight text-black">
+                          <div className="flex items-end gap-1">
+                            <QrCode className="h-5 w-5 shrink-0 text-[#0f2c59]" aria-label="Kode QR verifikasi" />
+                            <span className="max-w-12">Verifikasi sertifikat</span>
+                          </div>
+                          <div className="text-right">
+                            <p>Tanjung, {certificate?.issued_at ? formatDate(certificate.issued_at) : '—'}</p>
+                            <p>Kepala Dinas Komunikasi dan Informatika,</p>
+                            <p className="mt-2 font-bold">Eddy Suryani, S.Sos, MA</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-4 text-xs">
