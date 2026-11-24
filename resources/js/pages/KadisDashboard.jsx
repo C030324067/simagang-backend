@@ -11,7 +11,6 @@ import {
   FileText,
   GraduationCap,
   Search,
-  ShieldCheck,
   Users,
   X,
   XCircle,
@@ -637,7 +636,6 @@ export default function KadisDashboard() {
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
               <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
                 <h2 className="flex items-center gap-2 font-bold text-slate-900">
-                  <FileSignature className="h-4 w-4 text-blue-600" />
                   Antrean Otorisasi Akhir
                   <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">{safePendingApps.length}</span>
                 </h2>
@@ -724,7 +722,6 @@ export default function KadisDashboard() {
             <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
               <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
                 <h2 className="flex items-center gap-2 font-bold text-slate-900">
-                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
                   Riwayat Keputusan Kadis
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{safeHistoryApps.length}</span>
                 </h2>
