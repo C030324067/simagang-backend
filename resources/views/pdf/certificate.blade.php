@@ -46,7 +46,7 @@
         .letterhead-left, .letterhead-right { width: 16%; }
         .letterhead-left { padding-right: 14px; text-align: right; }
         .letterhead-right { padding-left: 14px; text-align: left; }
-        .letterhead-left img, .letterhead-right img { height: 68px; width: auto; }
+        .letterhead-left img, .letterhead-right img { height: 88px; width: auto; }
         .letterhead-center { width: 68%; text-align: center; }
         .government { margin: 0; font-size: 13.5pt; font-weight: bold; }
         .department { margin: 2px 0; font-size: 18pt; font-weight: bold; }
