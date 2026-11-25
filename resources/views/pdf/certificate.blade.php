@@ -71,11 +71,12 @@
         .certificate-footer { width: 100%; margin-top: 10px; table-layout: fixed; }
         .certificate-footer td { vertical-align: bottom; }
         .qr-cell { width: 45%; }
-        .qr-box { width: 102px; height: 102px; padding: 3px; border: 1px solid #000000; text-align: center; vertical-align: middle; }
+        .qr-block { width: 158px; }
+        .qr-box { width: 102px; height: 102px; margin: 0 auto; padding: 3px; border: 1px solid #000000; text-align: center; vertical-align: middle; }
         .qr-box img { width: 96px; height: 96px; }
-        .qr-caption { margin-top: 3px; font-size: 7.5pt; }
+        .qr-caption { margin-top: 3px; font-size: 7.5pt; text-align: center; }
         .signature-kadis { width: 60%; font-size: 9.5pt; line-height: 1.3; text-align: right; }
-        .signature-space { height: 65px; }
+        .signature-space { height: 87px; }
         .signature-name { font-weight: bold; text-decoration: underline; }
         .transcript-title { margin: 0; font-size: 15pt; font-weight: bold; text-align: center; }
         .transcript-divider { height: 0; margin: 4px 0 8px; border-bottom: 1.5px solid #000000; }
@@ -154,14 +155,16 @@
         <table class="certificate-footer">
             <tr>
                 <td class="qr-cell">
-                    <table class="qr-box"><tr><td>
-                        @if (! empty($qr_code_data_uri))
-                            <img src="{{ $qr_code_data_uri }}" alt="QR code verifikasi sertifikat">
-                        @else
-                            <span>QR CODE</span>
-                        @endif
-                    </td></tr></table>
-                    <div class="qr-caption">Pindai untuk verifikasi sertifikat</div>
+                    <div class="qr-block">
+                        <table class="qr-box"><tr><td>
+                            @if (! empty($qr_code_data_uri))
+                                <img src="{{ $qr_code_data_uri }}" alt="QR code verifikasi sertifikat">
+                            @else
+                                <span>QR CODE</span>
+                            @endif
+                        </td></tr></table>
+                        <div class="qr-caption">Pindai untuk verifikasi sertifikat</div>
+                    </div>
                 </td>
                 <td class="signature-kadis">
                     <div>Tanjung, {{ $issuedDateText }}</div>
